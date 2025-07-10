@@ -1,6 +1,6 @@
 # StudyBuddy - Student Management Dashboard
 
-This is a student management dashboard for StudyBuddy, a fictional tutoring company. It allows administrators to manage students, subjects, and finances.
+This is a student management dashboard for StudyBuddy, a tutoring company. It allows administrators to manage students, subjects, and finances.
 
 ## Features
 
