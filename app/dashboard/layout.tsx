@@ -1,63 +1,51 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { ThemeProvider } from "@/components/theme-provider"
-import {
-  Menu,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react"
-import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import DashboardSidebar from "@/components/common/dashboard-sidebar"
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Menu, ChevronLeft, ChevronRight } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import DashboardSidebar from "@/components/common/dashboard-sidebar";
 
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [user, setUser] = useState<{ name: string } | null>(null)
-  const [mounted, setMounted] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    setMounted(true)
-    // Check if user is logged in
-    const userData = localStorage.getItem("user")
-    if (userData) {
-      setUser(JSON.parse(userData))
-    } else {
-      router.push("/")
+    if (status === "unauthenticated") {
+      router.push("/");
     }
+  }, [status, router]);
 
+  useEffect(() => {
     // Load sidebar state from localStorage
-    const savedSidebarState = localStorage.getItem("sidebarCollapsed")
+    const savedSidebarState = localStorage.getItem("sidebarCollapsed");
     if (savedSidebarState) {
-      setSidebarCollapsed(savedSidebarState === "true")
+      setSidebarCollapsed(savedSidebarState === "true");
     }
-  }, [router])
-
-  const handleLogout = () => {
-    localStorage.removeItem("user")
-    router.push("/")
-  }
+  }, []);
 
   const toggleSidebar = () => {
-    const newState = !sidebarCollapsed
-    setSidebarCollapsed(newState)
-    localStorage.setItem("sidebarCollapsed", String(newState))
-  }
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    localStorage.setItem("sidebarCollapsed", String(newState));
+  };
 
-  if (!mounted) return null
-
-  if (!user) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>
+  if (status === "loading") {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   return (
@@ -70,9 +58,8 @@ export default function DashboardLayout({
           }`}
         >
           <DashboardSidebar
-            user={user}
+            user={session?.user}
             sidebarCollapsed={sidebarCollapsed}
-            handleLogout={handleLogout}
           />
 
           {/* Collapse toggle button */}
@@ -105,9 +92,8 @@ export default function DashboardLayout({
             <SheetContent side="left" className="w-64 p-0 border-secondary/20">
               <div className="relative h-full">
                 <DashboardSidebar
-                  user={user}
+                  user={session?.user}
                   sidebarCollapsed={false} // Always expanded on mobile
-                  handleLogout={handleLogout}
                 />
               </div>
             </SheetContent>
@@ -120,5 +106,5 @@ export default function DashboardLayout({
         </main>
       </div>
     </ThemeProvider>
-  )
+  );
 }
