@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    /* Updated colors based on the StudyBuddy logo */
+    --primary: 196 100% 50%; /* Blue from the "B" */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 160 84% 39%; /* Green/Teal from the "S" */
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 42 100% 61%; /* Yellow/Gold from the sun and text */
+    --accent-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 196 100% 50%;
+
+    --radius: 0.5rem;
+
+    /* Navy color from logo outline */
+    --navy: 215 60% 16%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --primary: 196 100% 50%; /* Blue from the "B" */
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 160 84% 39%; /* Green/Teal from the "S" */
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 42 100% 61%; /* Yellow/Gold from the sun and text */
+    --accent-foreground: 222 47% 11%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 196 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
