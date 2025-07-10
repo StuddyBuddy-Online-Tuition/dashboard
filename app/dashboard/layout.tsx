@@ -22,6 +22,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import Image from "next/image"
+import DashboardSidebar from "@/components/dashboard-sidebar"
 
 export default function DashboardLayout({
   children,
@@ -107,73 +108,6 @@ export default function DashboardLayout({
     return <div className="flex h-screen items-center justify-center">Loading...</div>
   }
 
-  // Sidebar content component to avoid duplication
-  const SidebarContent = () => (
-    <>
-      {/* Header */}
-      <div className="p-4 border-b border-secondary/20">
-        <div className="flex items-center space-x-2">
-          <div className="relative h-10 w-10 flex-shrink-0">
-            <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-RPBHhgmAbisCI5Y9Lg6k9Rb3r9DtKr.png"
-              alt="StudyBuddy Logo"
-              fill
-              className="object-contain"
-            />
-          </div>
-          {!sidebarCollapsed && (
-            <div>
-              <h2 className="text-lg font-bold text-navy">StudyBuddy</h2>
-              <p className="text-sm text-muted-foreground">Student Management</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* User welcome */}
-      {!sidebarCollapsed && (
-        <div className="p-4">
-          <div className="rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 p-4">
-            <p className="text-sm text-muted-foreground">Welcome,</p>
-            <p className="font-medium text-navy">{user.name}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Navigation */}
-      <nav className="px-2 py-4">
-        <ul className="space-y-1">
-          {menuItems.map((item) => (
-            <li key={item.title}>
-              <Link
-                href={item.path}
-                className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
-                  item.active ? "bg-gradient-to-r from-secondary to-primary text-white" : "text-navy hover:bg-accent/20"
-                }`}
-                title={sidebarCollapsed ? item.title : undefined}
-              >
-                <item.icon className={`h-5 w-5 ${!sidebarCollapsed && "mr-2"}`} />
-                {!sidebarCollapsed && <span>{item.title}</span>}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      {/* Footer */}
-      <div className={`absolute bottom-0 ${sidebarCollapsed ? "w-16" : "w-64"} border-t border-secondary/20 p-4`}>
-        <Button
-          variant="outline"
-          className="w-full justify-start border-secondary/20 text-navy hover:bg-accent/20 hover:text-navy bg-transparent"
-          onClick={handleLogout}
-        >
-          <LogOut className={`h-4 w-4 ${!sidebarCollapsed && "mr-2"}`} />
-          {!sidebarCollapsed && "Logout"}
-        </Button>
-      </div>
-    </>
-  )
-
   return (
     <ThemeProvider attribute="class" defaultTheme="light">
       <div className="flex h-screen w-full overflow-hidden">
@@ -183,7 +117,12 @@ export default function DashboardLayout({
             sidebarCollapsed ? "w-16" : "w-64"
           }`}
         >
-          <SidebarContent />
+          <DashboardSidebar
+            user={user}
+            menuItems={menuItems}
+            sidebarCollapsed={sidebarCollapsed}
+            handleLogout={handleLogout}
+          />
 
           {/* Collapse toggle button */}
           <button
@@ -214,7 +153,12 @@ export default function DashboardLayout({
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0 border-secondary/20">
               <div className="relative h-full">
-                <SidebarContent />
+                <DashboardSidebar
+                  user={user}
+                  menuItems={menuItems}
+                  sidebarCollapsed={false} // Always expanded on mobile
+                  handleLogout={handleLogout}
+                />
               </div>
             </SheetContent>
           </Sheet>
