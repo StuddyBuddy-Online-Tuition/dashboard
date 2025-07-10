@@ -13,7 +13,7 @@ import {
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import DashboardSidebar from "@/components/dashboard-sidebar"
+import DashboardSidebar from "@/components/common/dashboard-sidebar"
 
 export default function DashboardLayout({
   children,
