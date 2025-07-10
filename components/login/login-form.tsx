@@ -16,7 +16,7 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
   })
 
@@ -32,7 +32,7 @@ export default function LoginForm() {
 
     const result = await signIn("credentials", {
       redirect: false,
-      username: formData.username,
+      email: formData.email,
       password: formData.password,
     })
 
@@ -58,15 +58,15 @@ export default function LoginForm() {
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="email">Email</Label>
             <div className="relative">
               <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                id="username"
-                name="username"
-                placeholder="Enter your username"
+                id="email"
+                name="email"
+                placeholder="Enter your email"
                 className="pl-10 border-secondary/20"
-                value={formData.username}
+                value={formData.email}
                 onChange={handleChange}
                 required
               />
