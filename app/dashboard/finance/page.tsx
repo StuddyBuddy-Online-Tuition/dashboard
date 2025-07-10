@@ -1,3 +1,5 @@
+import FinancePageComponent from "@/components/finance/finance-page"
+
 export default function FinancePage() {
   return (
     <div className="w-full">
@@ -6,4 +8,3 @@ export default function FinancePage() {
   )
 }
 
-import FinancePageComponent from "@/components/finance-page"

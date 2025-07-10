@@ -1,3 +1,5 @@
+import StudentsPage from "@/components/student/students-page"
+
 export default function TrialStudentsPage() {
   return (
     <div className="w-full">
@@ -5,5 +7,3 @@ export default function TrialStudentsPage() {
     </div>
   )
 }
-
-import StudentsPage from "@/components/students-page"

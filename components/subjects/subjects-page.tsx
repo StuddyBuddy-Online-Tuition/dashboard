@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Search, BookOpen, Plus, Edit, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import SubjectModal from "@/components/subject-modal"
 import type { Subject } from "@/types/subject"
+import SubjectModal from "@/components/subjects/subject-modal"
 
 // Import subjects data
 import { subjects as initialSubjectsData } from "@/data/subjects"

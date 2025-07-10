@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import StudentModal from "@/components/student-modal"
+import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
 

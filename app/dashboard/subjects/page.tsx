@@ -1,3 +1,5 @@
+import SubjectsPageComponent from "@/components/subjects/subjects-page"
+
 export default function SubjectsPage() {
   return (
     <div className="w-full">
@@ -6,4 +8,3 @@ export default function SubjectsPage() {
   )
 }
 
-import SubjectsPageComponent from "@/components/subjects-page"

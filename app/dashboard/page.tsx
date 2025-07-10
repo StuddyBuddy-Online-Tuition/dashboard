@@ -1,3 +1,5 @@
+import StudentsPage from "@/components/student/students-page"
+
 export default function DashboardPage() {
   return (
     <div className="w-full">
@@ -5,5 +7,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-import StudentsPage from "@/components/students-page"
