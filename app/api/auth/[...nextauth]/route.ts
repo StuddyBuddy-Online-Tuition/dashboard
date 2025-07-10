@@ -1,8 +1,13 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
+import { SupabaseAdapter } from "@next-auth/supabase-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { NextRequest, NextResponse } from "next/server";
 
-const handler = NextAuth({
+export const authOptions: NextAuthOptions = {
+  adapter: SupabaseAdapter({
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    secret: process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ANON_KEY!,
+  }),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -28,6 +33,8 @@ const handler = NextAuth({
   pages: {
     signIn: "/",
   },
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST }; 
