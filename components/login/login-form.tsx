@@ -50,7 +50,7 @@ export default function LoginForm() {
         <CardTitle>Admin Login</CardTitle>
         <CardDescription className="text-white/80">Enter your credentials to access the dashboard</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} method="post">
         <CardContent className="space-y-4 pt-6">
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
