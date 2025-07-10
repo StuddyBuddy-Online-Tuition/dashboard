@@ -4,28 +4,69 @@ import type React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { LogOut } from "lucide-react"
-
-interface MenuItem {
-  title: string
-  icon: React.ElementType
-  path: string
-  active: boolean
-}
+import {
+    Users,
+    ClipboardList,
+    UserX,
+    LogOut,
+    Clock,
+    BookOpen,
+    DollarSign,
+} from "lucide-react"
+import { usePathname } from "next/navigation"
 
 interface DashboardSidebarProps {
   user: { name: string } | null
-  menuItems: MenuItem[]
   sidebarCollapsed: boolean
   handleLogout: () => void
 }
 
 export default function DashboardSidebar({
   user,
-  menuItems,
   sidebarCollapsed,
   handleLogout,
 }: DashboardSidebarProps) {
+    const pathname = usePathname()
+
+    const menuItems = [
+        {
+            title: "Active Students",
+            icon: Users,
+            path: "/dashboard",
+            active: pathname === "/dashboard",
+        },
+        {
+            title: "Pending Students",
+            icon: ClipboardList,
+            path: "/dashboard/pending",
+            active: pathname === "/dashboard/pending",
+        },
+        {
+            title: "Trial Students",
+            icon: Clock,
+            path: "/dashboard/trial",
+            active: pathname === "/dashboard/trial",
+        },
+        {
+            title: "Inactive Students",
+            icon: UserX,
+            path: "/dashboard/inactive",
+            active: pathname === "/dashboard/inactive",
+        },
+        {
+            title: "Subjects",
+            icon: BookOpen,
+            path: "/dashboard/subjects",
+            active: pathname === "/dashboard/subjects",
+        },
+        {
+            title: "Finance/Payment",
+            icon: DollarSign,
+            path: "/dashboard/finance",
+            active: pathname === "/dashboard/finance",
+        },
+    ]
+
   return (
     <>
       {/* Header */}

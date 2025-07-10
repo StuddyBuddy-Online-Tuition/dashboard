@@ -6,22 +6,13 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ThemeProvider } from "@/components/theme-provider"
 import {
-  Users,
-  ClipboardList,
-  UserX,
-  LogOut,
   Menu,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  BookOpen,
-  DollarSign,
 } from "lucide-react"
-import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import Image from "next/image"
 import DashboardSidebar from "@/components/dashboard-sidebar"
 
 export default function DashboardLayout({
@@ -63,45 +54,6 @@ export default function DashboardLayout({
     localStorage.setItem("sidebarCollapsed", String(newState))
   }
 
-  const menuItems = [
-    {
-      title: "Active Students",
-      icon: Users,
-      path: "/dashboard",
-      active: pathname === "/dashboard",
-    },
-    {
-      title: "Pending Students",
-      icon: ClipboardList,
-      path: "/dashboard/pending",
-      active: pathname === "/dashboard/pending",
-    },
-    {
-      title: "Trial Students",
-      icon: Clock,
-      path: "/dashboard/trial",
-      active: pathname === "/dashboard/trial",
-    },
-    {
-      title: "Inactive Students",
-      icon: UserX,
-      path: "/dashboard/inactive",
-      active: pathname === "/dashboard/inactive",
-    },
-    {
-      title: "Subjects",
-      icon: BookOpen,
-      path: "/dashboard/subjects",
-      active: pathname === "/dashboard/subjects",
-    },
-    {
-      title: "Finance/Payment",
-      icon: DollarSign,
-      path: "/dashboard/finance",
-      active: pathname === "/dashboard/finance",
-    },
-  ]
-
   if (!mounted) return null
 
   if (!user) {
@@ -119,7 +71,6 @@ export default function DashboardLayout({
         >
           <DashboardSidebar
             user={user}
-            menuItems={menuItems}
             sidebarCollapsed={sidebarCollapsed}
             handleLogout={handleLogout}
           />
@@ -155,7 +106,6 @@ export default function DashboardLayout({
               <div className="relative h-full">
                 <DashboardSidebar
                   user={user}
-                  menuItems={menuItems}
                   sidebarCollapsed={false} // Always expanded on mobile
                   handleLogout={handleLogout}
                 />
