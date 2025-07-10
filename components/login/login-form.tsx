@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +14,7 @@ import { LockKeyhole, User } from "lucide-react"
 export default function LoginForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -26,21 +28,20 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
-    // In a real app, you would validate credentials against a backend
-    // For demo purposes, we'll just simulate a login
-    setTimeout(() => {
-      // Store user info in localStorage or use a proper auth solution
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: "Admin User",
-          username: formData.username,
-        }),
-      )
+    const result = await signIn("credentials", {
+      redirect: false,
+      username: formData.username,
+      password: formData.password,
+    })
+
+    if (result?.ok) {
       router.push("/dashboard")
+    } else {
+      setError("Invalid username or password.")
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -51,6 +52,11 @@ export default function LoginForm() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4 pt-6">
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <div className="relative">
