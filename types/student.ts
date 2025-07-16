@@ -19,3 +19,5 @@ export interface Student {
   recurringPayment: boolean
   lastPaymentMadeDate: string
 }
+
+export const STATUSES: Readonly<Student["status"][]> = ["active", "pending", "inactive", "trial"]
