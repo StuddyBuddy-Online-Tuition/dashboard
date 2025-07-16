@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import {
     Users,
+    UsersRound,
     ClipboardList,
     UserX,
     LogOut,
@@ -29,6 +30,12 @@ export default function DashboardSidebar({
     const pathname = usePathname()
 
     const menuItems = [
+        {
+            title: "All Students",
+            icon: UsersRound,
+            path: "/dashboard/students",
+            active: pathname === "/dashboard/students",
+        },
         {
             title: "Active Students",
             icon: Users,

@@ -12,6 +12,7 @@ import {
   Settings2,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -22,10 +23,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
+import { STATUSES } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
+import { cn } from "@/lib/utils"
+
+type Status = Student["status"]
 
 interface StudentsPageProps {
-  status: "active" | "pending" | "inactive" | "trial"
+  status?: Status
+  showStatusFilter?: boolean
 }
 
 interface ColumnVisibility {
@@ -47,7 +53,7 @@ interface ColumnVisibility {
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
 
-export default function StudentsPage({ status }: StudentsPageProps) {
+export default function StudentsPage({ status, showStatusFilter = false }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
   const [searchQuery, setSearchQuery] = useState("")
   const [students, setStudents] = useState<Student[]>([])
@@ -55,6 +61,8 @@ export default function StudentsPage({ status }: StudentsPageProps) {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [statusFilter, setStatusFilter] = useState<Status[]>(status ? [status] : [...STATUSES])
+
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     studentId: true,
     name: true,
@@ -80,20 +88,20 @@ export default function StudentsPage({ status }: StudentsPageProps) {
   // Reset to page 1 when search query or items per page changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, itemsPerPage])
+  }, [searchQuery, itemsPerPage, statusFilter])
 
   /* ----------------------------- helpers ----------------------------- */
   const filteredStudents = useMemo(
     () =>
       students.filter(
         (s) =>
-          s.status === status &&
+          (statusFilter.length === 0 || statusFilter.includes(s.status)) &&
           (searchQuery === "" ||
             s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
             s.studentId.toLowerCase().includes(searchQuery.toLowerCase())),
       ),
-    [students, status, searchQuery],
+    [students, statusFilter, searchQuery],
   )
 
   // Pagination calculations
@@ -186,7 +194,7 @@ export default function StudentsPage({ status }: StudentsPageProps) {
         school: "",
         grade: "",
         subjects: [],
-        status,
+        status: status || "pending",
         classInId: null,
         registeredDate: new Date().toISOString().split("T")[0],
         mode: "normal",
@@ -221,6 +229,7 @@ export default function StudentsPage({ status }: StudentsPageProps) {
 
   /* ----- page icon / title per-status ----- */
   const pageMeta = {
+    all: { icon: Users, color: "text-primary", title: "All Students", desc: "Browse all students" },
     active: { icon: Users, color: "text-secondary", title: "Active Students", desc: "Currently enrolled students" },
     pending: {
       icon: ClipboardList,
@@ -230,7 +239,7 @@ export default function StudentsPage({ status }: StudentsPageProps) {
     },
     inactive: { icon: UserX, color: "text-destructive", title: "Inactive Students", desc: "Past students" },
     trial: { icon: Clock, color: "text-blue-600", title: "Trial Students", desc: "Trial-period learners" },
-  }[status]
+  }[status || "all"]
 
   const VisibleColumns = Object.entries(columnVisibility)
     .filter(([, v]) => v)
@@ -271,6 +280,54 @@ export default function StudentsPage({ status }: StudentsPageProps) {
               />
             </div>
 
+            {showStatusFilter && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
+                    <span className="mr-2">Status</span>
+                    {statusFilter.length > 0 && (
+                      <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                        {statusFilter.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="start">
+                  <div className="p-1">
+                    {STATUSES.map((s) => {
+                      const isSelected = statusFilter.includes(s)
+                      return (
+                        <Button
+                          key={s}
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => {
+                            if (isSelected) {
+                              setStatusFilter(statusFilter.filter((fs) => fs !== s))
+                            } else {
+                              setStatusFilter([...statusFilter, s])
+                            }
+                          }}
+                        >
+                          <div
+                            className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                              isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : "opacity-50 [&_svg]:invisible",
+                            )}
+                          >
+                            <Check className={cn("h-4 w-4")} />
+                          </div>
+                          <span>{s.charAt(0).toUpperCase() + s.slice(1)}</span>
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+
             {/* Items per page selector */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground whitespace-nowrap">Show:</span>
@@ -291,37 +348,54 @@ export default function StudentsPage({ status }: StudentsPageProps) {
             {/* Column visibility toggle */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="border-secondary/20 bg-transparent">
-                  <Settings2 className="mr-2 h-4 w-4" /> Columns
+                <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  <span className="mr-2">Columns</span>
+                  <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                    {Object.values(columnVisibility).filter(Boolean).length}
+                  </Badge>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-60 max-h-80 overflow-y-auto" align="end">
-                {(Object.keys(columnVisibility) as (keyof ColumnVisibility)[]).map((col) => (
-                  <div key={col} className="flex items-center space-x-2 py-1">
-                    <Checkbox
-                      id={col}
-                      checked={columnVisibility[col]}
-                      onCheckedChange={(v) => handleColumnVisibilityChange(col, v as boolean)}
-                    />
-                    <label htmlFor={col} className="text-sm capitalize cursor-pointer">
-                      {col === "studentId"
+              <PopoverContent className="w-60 p-0" align="end">
+                <div className="p-1">
+                  {(Object.keys(columnVisibility) as (keyof ColumnVisibility)[]).map((col) => {
+                    const isSelected = columnVisibility[col]
+                    const colName =
+                      col === "studentId"
                         ? "Student ID"
                         : col === "parentName"
-                          ? "Parent Name"
-                          : col === "studentPhone"
-                            ? "Student Phone"
-                            : col === "parentPhone"
-                              ? "Parent Phone"
-                              : col === "classInId"
-                                ? "ClassIn ID"
-                                : col === "registeredDate"
-                                  ? "Registered Date"
-                                  : col.toUpperCase() === "DLP"
-                                    ? "DLP"
-                                    : col.replace(/([A-Z])/g, " $1").trim()}
-                    </label>
-                  </div>
-                ))}
+                        ? "Parent Name"
+                        : col === "studentPhone"
+                        ? "Student Phone"
+                        : col === "parentPhone"
+                        ? "Parent Phone"
+                        : col === "classInId"
+                        ? "ClassIn ID"
+                        : col === "registeredDate"
+                        ? "Registered Date"
+                        : col.toUpperCase() === "DLP"
+                        ? "DLP"
+                        : col.replace(/([A-Z])/g, " $1").trim()
+                    return (
+                      <Button
+                        key={col}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => handleColumnVisibilityChange(col, !isSelected)}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
+                          )}
+                        >
+                          <Check className={cn("h-4 w-4")} />
+                        </div>
+                        <span>{colName}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
               </PopoverContent>
             </Popover>
           </div>
