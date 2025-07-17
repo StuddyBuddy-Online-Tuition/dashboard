@@ -15,6 +15,15 @@ import FinanceModal from "@/components/finance/finance-modal"
 import type { Student } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
 import PaginationControls from "@/components/common/pagination"
+import {
+  formatDate,
+  getDlpColor,
+  getGradeColor,
+  getModeColor,
+  getPaidColor,
+  getPaidStatus,
+  getStatusColor,
+} from "@/lib/utils"
 
 interface ColumnVisibility {
   studentId: boolean
@@ -96,41 +105,6 @@ export default function FinancePage() {
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const paginatedStudents = filteredStudents.slice(startIndex, endIndex)
-
-  const getPaidStatus = (last: string) => {
-    const today = new Date()
-    const paid = new Date(last)
-    return today.getMonth() === paid.getMonth() && today.getFullYear() === paid.getFullYear() ? "Paid" : "No"
-  }
-
-  const getPaidColor = (st: string) =>
-    st === "Paid" ? "bg-green-100 text-green-800 border-green-300" : "bg-red-100 text-red-800 border-red-300"
-
-  const getStatusColor = (st: string) =>
-    ({
-      active: "bg-secondary/20 text-secondary-foreground border-secondary/30",
-      pending: "bg-accent/20 text-accent-foreground border-accent/30",
-      trial: "bg-blue-100 text-blue-800 border-blue-300",
-      inactive: "bg-destructive/20 text-destructive-foreground border-destructive/30",
-    })[st] || "bg-muted text-muted-foreground"
-
-  const getGradeColor = (g: string) =>
-    g.startsWith("S")
-      ? "bg-green-100 text-green-800 border-green-300"
-      : g.startsWith("F")
-        ? "bg-blue-100 text-blue-800 border-blue-300"
-        : g === "CP"
-          ? "bg-purple-100 text-purple-800 border-purple-300"
-          : "bg-gray-100 text-gray-800 border-gray-300"
-
-  const getModeColor = (m: string) =>
-    m === "1 to 1" ? "bg-orange-100 text-orange-800 border-orange-300" : "bg-gray-100 text-gray-800 border-gray-300"
-
-  const getDlpColor = (d: string) =>
-    d === "DLP" ? "bg-purple-100 text-purple-800 border-purple-300" : "bg-gray-100 text-gray-800 border-gray-300"
-
-  const formatDate = (ds: string) =>
-    new Date(ds).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
 
   /* ----------------------- column visibility UX ---------------------- */
   const toggleCol = (k: keyof ColumnVisibility, v: boolean) => setColumnVisibility((prev) => ({ ...prev, [k]: v }))

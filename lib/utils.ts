@@ -34,3 +34,12 @@ export const formatDate = (ds: string) =>
     month: "2-digit",
     year: "numeric",
   })
+
+export const getPaidStatus = (last: string) => {
+  const today = new Date()
+  const paid = new Date(last)
+  return today.getMonth() === paid.getMonth() && today.getFullYear() === paid.getFullYear() ? "Paid" : "No"
+}
+
+export const getPaidColor = (st: string) =>
+  st === "Paid" ? "bg-green-100 text-green-800 border-green-300" : "bg-red-100 text-red-800 border-red-300"
