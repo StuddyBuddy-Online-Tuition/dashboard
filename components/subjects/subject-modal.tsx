@@ -17,6 +17,11 @@ interface SubjectModalProps {
 }
 
 const STANDARD_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5"]
+const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
+  const hours = Math.floor(i / 2)
+  const minutes = i % 2 === 0 ? "00" : "30"
+  return `${String(hours).padStart(2, "0")}:${minutes}`
+})
 
 export default function SubjectModal({ subject, onClose, onSave }: SubjectModalProps) {
   const [formData, setFormData] = useState<Subject>(subject)
@@ -29,6 +34,10 @@ export default function SubjectModal({ subject, onClose, onSave }: SubjectModalP
 
   const handleStandardChange = (value: string) => {
     setFormData((prev) => ({ ...prev, standard: value }))
+  }
+
+  const handleTimeChange = (name: "timeStarts" | "timeEnds", value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -102,6 +111,60 @@ export default function SubjectModal({ subject, onClose, onSave }: SubjectModalP
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Time Starts field */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="timeStarts" className="text-navy sm:text-right">
+                Time Starts *
+              </Label>
+              <Select value={formData.timeStarts} onValueChange={(value) => handleTimeChange("timeStarts", value)}>
+                <SelectTrigger className="sm:col-span-3 border-secondary/20">
+                  <SelectValue placeholder="Select start time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Time Ends field */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="timeEnds" className="text-navy sm:text-right">
+                Time Ends *
+              </Label>
+              <Select value={formData.timeEnds} onValueChange={(value) => handleTimeChange("timeEnds", value)}>
+                <SelectTrigger className="sm:col-span-3 border-secondary/20">
+                  <SelectValue placeholder="Select end time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Teacher Name field */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="teacherName" className="text-navy sm:text-right">
+                Teacher Name *
+              </Label>
+              <Input
+                id="teacherName"
+                name="teacherName"
+                value={formData.teacherName}
+                onChange={handleChange}
+                className="sm:col-span-3 border-secondary/20"
+                placeholder="e.g., Mr. John Doe"
+                required
+              />
             </div>
           </div>
 
