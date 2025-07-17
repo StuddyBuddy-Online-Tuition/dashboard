@@ -26,6 +26,7 @@ import type { Student } from "@/types/student"
 import { STATUSES } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
 import { cn, formatDate, getDlpColor, getGradeColor, getModeColor, getStatusColor } from "@/lib/utils"
+import PaginationControls from "@/components/common/pagination"
 
 type Status = Student["status"]
 
@@ -124,27 +125,6 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
 
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(Number(value))
-  }
-
-  // Generate page numbers for pagination
-  const getPageNumbers = () => {
-    const pages = []
-    const maxVisiblePages = 5
-
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i)
-      }
-    } else {
-      const startPage = Math.max(1, currentPage - 2)
-      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
-
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i)
-      }
-    }
-
-    return pages
   }
 
   /* ---------------------------- modal UX ----------------------------- */
@@ -297,23 +277,6 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                 </PopoverContent>
               </Popover>
             )}
-
-            {/* Items per page selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Show:</span>
-              <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-                <SelectTrigger className="w-20 border-secondary/20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ITEMS_PER_PAGE_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option.toString()}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             {/* Column visibility toggle */}
             <Popover>
@@ -539,56 +502,14 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
 
           {/* ---------- pagination ---------- */}
           {totalPages > 1 && (
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} students
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* Previous button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="border-secondary/20"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-
-                {/* Page numbers */}
-                <div className="flex items-center gap-1">
-                  {getPageNumbers().map((pageNum) => (
-                    <Button
-                      key={pageNum}
-                      variant={currentPage === pageNum ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(pageNum)}
-                      className={
-                        currentPage === pageNum
-                          ? "bg-primary text-primary-foreground"
-                          : "border-secondary/20 hover:bg-secondary/10"
-                      }
-                    >
-                      {pageNum}
-                    </Button>
-                  ))}
-                </div>
-
-                {/* Next button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="border-secondary/20"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
           )}
         </CardContent>
       </Card>
