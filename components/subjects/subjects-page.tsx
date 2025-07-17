@@ -5,33 +5,44 @@ import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, BookOpen, Plus, Edit, Trash2 } from "lucide-react"
+import { Search, BookOpen, Plus, Edit, Trash2, Check } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { Subject } from "@/types/subject"
 import SubjectModal from "@/components/subjects/subject-modal"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 // Import subjects data
 import { subjects as initialSubjectsData } from "@/data/subjects"
+
+const STANDARD_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5"]
 
 export default function SubjectsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [subjects, setSubjects] = useState<Subject[]>(initialSubjectsData)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
+  const [standardFilter, setStandardFilter] = useState<string[]>([])
   const router = useRouter()
 
   const filteredSubjects = useMemo(() => {
-    if (!searchQuery) return subjects
-
-    const query = searchQuery.toLowerCase()
     return subjects.filter(
       (subject) =>
-        subject.name.toLowerCase().includes(query) ||
-        subject.code.toLowerCase().includes(query) ||
-        subject.standard.toLowerCase().includes(query) ||
-        subject.teacherName.toLowerCase().includes(query),
+        (standardFilter.length === 0 || standardFilter.includes(subject.standard)) &&
+        (searchQuery === "" ||
+          subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          subject.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          subject.standard.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          subject.teacherName.toLowerCase().includes(searchQuery.toLowerCase())),
     )
-  }, [searchQuery, subjects])
+  }, [searchQuery, subjects, standardFilter])
 
   // Group subjects by name for better organization
   const groupedSubjects = useMemo(() => {
@@ -135,7 +146,7 @@ export default function SubjectsPage() {
 
       <Card className="border-secondary/20 shadow-md">
         <CardContent className="pt-6">
-          <div className="mb-6 flex items-center gap-4">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -145,6 +156,61 @@ export default function SubjectsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto justify-start border-secondary/20 text-left font-normal">
+                  <span className="mr-2">Standard</span>
+                  {standardFilter.length > 0 && (
+                    <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                      {standardFilter.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0" align="start">
+                <div className="p-1">
+                  {STANDARD_OPTIONS.map((s) => {
+                    const isSelected = standardFilter.includes(s)
+                    return (
+                      <Button
+                        key={s}
+                        variant="ghost"
+                        className="w-full justify-start font-normal"
+                        onClick={() => {
+                          setStandardFilter((prev) =>
+                            isSelected ? prev.filter((item) => item !== s) : [...prev, s],
+                          )
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
+                          )}
+                        >
+                          <Check className="h-4 w-4" />
+                        </div>
+                        <span>{s}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
+                {standardFilter.length > 0 && (
+                  <>
+                    <hr className="my-1" />
+                    <div className="p-1">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start font-normal text-destructive"
+                        onClick={() => setStandardFilter([])}
+                      >
+                        Clear filters
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Mobile Card View - hidden on desktop */}
