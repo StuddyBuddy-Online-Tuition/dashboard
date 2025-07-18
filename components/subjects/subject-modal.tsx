@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Subject } from "@/types/subject"
+import { STANDARD_OPTIONS } from "@/data/subject-constants"
 
 interface SubjectModalProps {
   subject: Subject
@@ -16,7 +17,6 @@ interface SubjectModalProps {
   onSave: (subject: Subject, originalCode?: string) => void
 }
 
-const STANDARD_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5"]
 const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
   const hours = Math.floor(i / 2)
   const minutes = i % 2 === 0 ? "00" : "30"

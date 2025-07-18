@@ -21,8 +21,7 @@ import { cn } from "@/lib/utils"
 
 // Import subjects data
 import { subjects as initialSubjectsData } from "@/data/subjects"
-
-const STANDARD_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5"]
+import { STANDARD_OPTIONS } from "@/data/subject-constants"
 
 export default function SubjectsPage() {
   const [searchQuery, setSearchQuery] = useState("")
