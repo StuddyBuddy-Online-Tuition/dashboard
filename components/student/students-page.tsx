@@ -25,7 +25,7 @@ import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
 import { STATUSES } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
-import { cn, formatDate, getDlpColor, getGradeColor, getModeColor, getStatusColor } from "@/lib/utils"
+import { cn, formatDate, getDlpColor, getGradeColor, getModeColor } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
 
 type Status = Student["status"]
@@ -111,6 +111,14 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const paginatedStudents = filteredStudents.slice(startIndex, endIndex)
+
+  const getStatusColor = (st: string) => //this function is here to solve a bug, dont move to utils like the rest
+    ({
+      active: "bg-secondary/20 text-black border-secondary/30",
+      pending: "bg-accent/20 text-black border-accent/30",
+      trial: "bg-blue-100 text-black border-blue-300",
+      inactive: "bg-destructive/20 text-black border-destructive/30",
+    })[st] || "bg-muted text-black"
 
   /* ----------------------- column visibility UX ---------------------- */
   const handleColumnVisibilityChange = (key: keyof ColumnVisibility, v: boolean) =>
@@ -349,7 +357,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                       <Badge className={getGradeColor(s.grade)}>{s.grade}</Badge>
                       <Badge className={getModeColor(s.mode)}>{s.mode}</Badge>
                       <Badge className={getDlpColor(s.dlp)}>{s.dlp}</Badge>
-                      <Badge className={getStatusColor(s.status)}>{s.status}</Badge>
+                      <Badge className={getStatusColor(s.status)}>{s.status.toUpperCase()}</Badge>
                     </div>
                   </div>
 
@@ -471,7 +479,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                       )}
                       {columnVisibility.status && (
                         <td className="py-3 px-4">
-                          <Badge className={getStatusColor(s.status)}>{s.status}</Badge>
+                          <Badge className={getStatusColor(s.status)}>{s.status.toUpperCase()}</Badge>
                         </td>
                       )}
                       {columnVisibility.classInId && (
