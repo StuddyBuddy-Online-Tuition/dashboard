@@ -1,188 +1,125 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useEffect, useCallback } from "react"
 import type { Subject } from "@/types/subject"
 import { STANDARD_OPTIONS } from "@/data/subject-constants"
 
 interface SubjectModalProps {
-  subject: Subject
+  subject: Subject | null
   onClose: () => void
   onSave: (subject: Subject, originalCode?: string) => void
 }
 
-const timeOptions = Array.from({ length: 24 * 2 }, (_, i) => {
-  const hours = Math.floor(i / 2)
-  const minutes = i % 2 === 0 ? "00" : "30"
-  return `${String(hours).padStart(2, "0")}:${minutes}`
-})
+const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave }) => {
+  const [formData, setFormData] = useState<Subject | null>(null)
+  const [originalCode, setOriginalCode] = useState<string | undefined>(undefined)
 
-export default function SubjectModal({ subject, onClose, onSave }: SubjectModalProps) {
-  const [formData, setFormData] = useState<Subject>(subject)
-  const [originalCode] = useState(subject.code)
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleStandardChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, standard: value }))
-  }
-
-  const handleTimeChange = (name: "timeStarts" | "timeEnds", value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // Validate required fields
-    if (!formData.code.trim() || !formData.name.trim() || !formData.standard.trim()) {
-      alert("Please fill in all required fields.")
-      return
+  useEffect(() => {
+    if (subject) {
+      const { timeSlots, ...rest } = subject
+      setFormData(JSON.parse(JSON.stringify(rest))) // Deep copy without timeSlots
+      setOriginalCode(subject.code)
     }
+  }, [subject])
 
-    onSave(formData, originalCode)
+  const handleInputChange = useCallback((field: keyof Omit<Subject, "timeSlots">, value: string) => {
+    setFormData((prev) => (prev ? { ...prev, [field]: value } : null))
+  }, [])
+
+  const handleSave = () => {
+    if (formData) {
+      // Re-attach an empty timeSlots array to match the Subject type,
+      // as this modal no longer manages them.
+      const subjectToSave: Subject = {
+        ...formData,
+        timeSlots: subject?.timeSlots || [],
+      }
+      onSave(subjectToSave, originalCode)
+      onClose()
+    }
   }
 
-  const isEditing = Boolean(originalCode)
+  if (!formData) return null
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] p-4 rounded-lg sm:w-auto sm:max-w-[500px] sm:p-6 border-secondary/20">
-        <DialogHeader className="bg-gradient-to-r from-secondary/20 to-primary/20 -mx-4 -mt-4 px-4 py-3 rounded-t-lg">
-          <DialogTitle className="text-navy">{isEditing ? "Edit Subject" : "Add New Subject"}</DialogTitle>
+    <Dialog open={!!subject} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] bg-white">
+        <DialogHeader>
+          <DialogTitle>{originalCode ? "Edit Subject" : "Add New Subject"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            {/* Subject Code field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="code" className="text-navy sm:text-right">
-                Subject Code *
-              </Label>
-              <Input
-                id="code"
-                name="code"
-                value={formData.code}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20 font-mono"
-                placeholder="e.g., MMF4, BIF5, K1F4"
-                required
-              />
-            </div>
-
-            {/* Subject Name field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="name" className="text-navy sm:text-right">
-                Subject Name *
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20"
-                placeholder="e.g., Mathematics, Biology, Kimia"
-                required
-              />
-            </div>
-
-            {/* Standard field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="standard" className="text-navy sm:text-right">
-                Standard/Form *
-              </Label>
-              <Select value={formData.standard} onValueChange={handleStandardChange}>
-                <SelectTrigger className="sm:col-span-3 border-secondary/20">
-                  <SelectValue placeholder="Select standard/form" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STANDARD_OPTIONS.map((standard) => (
-                    <SelectItem key={standard} value={standard}>
-                      {standard}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Time Starts field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="timeStarts" className="text-navy sm:text-right">
-                Time Starts *
-              </Label>
-              <Select value={formData.timeStarts} onValueChange={(value) => handleTimeChange("timeStarts", value)}>
-                <SelectTrigger className="sm:col-span-3 border-secondary/20">
-                  <SelectValue placeholder="Select start time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeOptions.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Time Ends field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="timeEnds" className="text-navy sm:text-right">
-                Time Ends *
-              </Label>
-              <Select value={formData.timeEnds} onValueChange={(value) => handleTimeChange("timeEnds", value)}>
-                <SelectTrigger className="sm:col-span-3 border-secondary/20">
-                  <SelectValue placeholder="Select end time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeOptions.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Teacher Name field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="teacherName" className="text-navy sm:text-right">
-                Teacher Name *
-              </Label>
-              <Input
-                id="teacherName"
-                name="teacherName"
-                value={formData.teacherName}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20"
-                placeholder="e.g., Mr. John Doe"
-                required
-              />
-            </div>
+        <div className="grid gap-6 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="code" className="text-right">
+              Code
+            </Label>
+            <Input
+              id="code"
+              value={formData.code}
+              onChange={(e) => handleInputChange("code", e.target.value)}
+              className="col-span-3"
+            />
           </div>
-
-          <DialogFooter className="flex-col space-y-2 mt-4 sm:flex-row sm:space-y-0 sm:mt-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="w-full h-11 sm:w-auto sm:h-auto border-secondary/20 text-navy hover:bg-secondary/10 bg-transparent"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" className="w-full h-11 sm:w-auto sm:h-auto bg-accent text-navy hover:bg-accent/90">
-              {isEditing ? "Update Subject" : "Add Subject"}
-            </Button>
-          </DialogFooter>
-        </form>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="standard" className="text-right">
+              Standard
+            </Label>
+            <Select onValueChange={(value) => handleInputChange("standard", value)} value={formData.standard}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a standard" />
+              </SelectTrigger>
+              <SelectContent>
+                {STANDARD_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="teacherName" className="text-right">
+              Teacher
+            </Label>
+            <Input
+              id="teacherName"
+              value={formData.teacherName}
+              onChange={(e) => handleInputChange("teacherName", e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
+
+export default SubjectModal
