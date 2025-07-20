@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, BookUser, Clock, User, Users, Edit } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import type { Subject } from "@/types/subject"
+import type { Subject, TimeSlot } from "@/types/subject"
 import SubjectModal from "@/components/subjects/subject-modal"
+import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
 
 export default function SubjectDetailPage() {
   const params = useParams()
@@ -20,12 +21,16 @@ export default function SubjectDetailPage() {
 
   const [subjects, setSubjects] = useState(initialSubjects)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false)
 
   const subject = subjects.find((s) => s.code === subjectCode)
   const enrolledStudents = students.filter((student) => student.subjects.includes(subjectCode))
 
   const handleOpenModal = () => setIsModalOpen(true)
   const handleCloseModal = () => setIsModalOpen(false)
+
+  const handleOpenTimeSlotModal = () => setIsTimeSlotModalOpen(true)
+  const handleCloseTimeSlotModal = () => setIsTimeSlotModalOpen(false)
 
   const handleSaveSubject = (updatedSubject: Subject, originalCode?: string) => {
     setSubjects((prevSubjects) => {
@@ -37,6 +42,16 @@ export default function SubjectDetailPage() {
       return newSubjects
     })
     handleCloseModal()
+  }
+
+  const handleSaveTimeSlots = (updatedTimeSlots: TimeSlot[]) => {
+    if (!subject) return
+
+    const updatedSubject = { ...subject, timeSlots: updatedTimeSlots }
+
+    setSubjects((prevSubjects) => {
+      return prevSubjects.map((s) => (s.code === subject.code ? updatedSubject : s))
+    })
   }
 
   const getStandardColor = (standard: string) => {
@@ -107,12 +122,62 @@ export default function SubjectDetailPage() {
                   <User className="h-4 w-4" /> {subject.teacherName}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-muted-foreground">Time</span>
-                <span className="text-navy flex items-center gap-2">
-                  <Clock className="h-4 w-4" /> {subject.timeStarts} - {subject.timeEnds}
-                </span>
-              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-secondary/20 shadow-md">
+            <CardHeader className="bg-gradient-to-r from-secondary/10 to-primary/10">
+              <CardTitle className="flex items-center justify-between text-navy">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5" />
+                  <span>Class Schedule</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size={subject.timeSlots && subject.timeSlots.length > 0 ? "icon" : "default"}
+                  onClick={handleOpenTimeSlotModal}
+                  className={
+                    subject.timeSlots && subject.timeSlots.length > 0
+                      ? "text-navy hover:bg-secondary/10"
+                      : "text-sm h-8"
+                  }
+                >
+                  {subject.timeSlots && subject.timeSlots.length > 0 ? (
+                    <Edit className="h-4 w-4" />
+                  ) : (
+                    "Add Schedule"
+                  )}
+                  <span className="sr-only">Edit Schedule</span>
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Day</TableHead>
+                    <TableHead>Start Time</TableHead>
+                    <TableHead>End Time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subject.timeSlots && subject.timeSlots.length > 0 ? (
+                    subject.timeSlots.map((slot, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{slot.day}</TableCell>
+                        <TableCell>{slot.startTime}</TableCell>
+                        <TableCell>{slot.endTime}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center">
+                        No schedule available for this subject.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </div>
@@ -161,6 +226,15 @@ export default function SubjectDetailPage() {
 
       {isModalOpen && subject && (
         <SubjectModal subject={subject} onClose={handleCloseModal} onSave={handleSaveSubject} />
+      )}
+
+      {isTimeSlotModalOpen && subject && (
+        <TimeSlotModal
+          subject={subject}
+          isOpen={isTimeSlotModalOpen}
+          onClose={handleCloseTimeSlotModal}
+          onSave={handleSaveTimeSlots}
+        />
       )}
     </div>
   )

@@ -68,8 +68,7 @@ export default function SubjectsPage() {
         code: "",
         name: "",
         standard: "",
-        timeStarts: "09:00",
-        timeEnds: "10:00",
+        timeSlots: [{ day: "Monday", startTime: "09:00", endTime: "10:00" }],
         teacherName: "",
       })
     }
@@ -265,8 +264,6 @@ export default function SubjectsPage() {
                   <th className="py-3 px-4 text-left font-medium text-navy">Subject Code</th>
                   <th className="py-3 px-4 text-left font-medium text-navy">Subject Name</th>
                   <th className="py-3 px-4 text-left font-medium text-navy">Standard/Form</th>
-                  <th className="py-3 px-4 text-left font-medium text-navy">Time Starts</th>
-                  <th className="py-3 px-4 text-left font-medium text-navy">Time Ends</th>
                   <th className="py-3 px-4 text-left font-medium text-navy">Teacher Name</th>
                   <th className="py-3 px-4 text-right font-medium text-navy">Actions</th>
                 </tr>
@@ -274,7 +271,7 @@ export default function SubjectsPage() {
               <tbody>
                 {filteredSubjects.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="h-24 text-center">
+                    <td colSpan={5} className="h-24 text-center">
                       No subjects found.
                     </td>
                   </tr>
@@ -290,8 +287,6 @@ export default function SubjectsPage() {
                       <td className="py-3 px-4">
                         <Badge className={`${getStandardColor(subject.standard)}`}>{subject.standard}</Badge>
                       </td>
-                      <td className="py-3 px-4">{subject.timeStarts}</td>
-                      <td className="py-3 px-4">{subject.timeEnds}</td>
                       <td className="py-3 px-4">{subject.teacherName}</td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-1">
