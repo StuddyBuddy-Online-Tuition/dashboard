@@ -54,7 +54,7 @@ export function TimetableModal({ subject, isOpen, onClose }: TimetableModalProps
         <div className="relative">
           {/* Day Headers */}
           <div className="flex sticky top-0 z-20 bg-white">
-            <div className="w-20 flex-shrink-0" /> {/* Spacer */}
+            <div className="w-14 md:w-20 flex-shrink-0" /> {/* Spacer */}
             <div className="flex-grow grid grid-cols-7">
               {DAYS.map((day) => (
                 <div key={day} className="text-center font-medium py-2 border-b border-l">
@@ -67,7 +67,7 @@ export function TimetableModal({ subject, isOpen, onClose }: TimetableModalProps
           <ScrollArea className="h-[70vh]">
             <div className="flex text-sm pt-1">
               {/* Time Column */}
-              <div className="w-20 flex-shrink-0">
+              <div className="w-14 md:w-20 flex-shrink-0">
                 {HOURS.map((hour) => (
                   <div key={hour} className="h-16 text-right pr-2 border-r">
                     <span className="relative -top-2 text-xs text-gray-500">
