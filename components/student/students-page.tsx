@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Edit,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -394,7 +395,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                       onClick={() => openModal(s)}
                       className="border-secondary/20 text-navy hover:bg-secondary/10"
                     >
-                      <Eye className="h-4 w-4 mr-1" /> View
+                      <Edit className="h-4 w-4 mr-1" /> View/Edit
                     </Button>
                   </div>
                 </div>
@@ -498,7 +499,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                           onClick={() => openModal(s)}
                           className="text-navy hover:bg-secondary/10"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </td>
                     </tr>
