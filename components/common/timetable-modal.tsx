@@ -13,7 +13,8 @@ import type { Subject } from "@/types/subject"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface TimetableModalProps {
-  subject: Subject
+  title: string
+  subjects: Subject[]
   isOpen: boolean
   onClose: () => void
 }
@@ -34,7 +35,7 @@ const MAX_HOUR = 24 // 9 AM to 11 PM range
 const HOURS = Array.from({ length: MAX_HOUR - MIN_HOUR }, (_, i) => i + MIN_HOUR)
 const REM_PER_MINUTE = 4 / 60 // Each hour is h-16 (4rem), so 4rem/60min
 
-export function TimetableModal({ subject, isOpen, onClose }: TimetableModalProps) {
+export function TimetableModal({ title, subjects, isOpen, onClose }: TimetableModalProps) {
   const timeToMinutes = (time: string) => {
     const [hours, minutes] = time.split(":").map(Number)
     return hours * 60 + minutes
@@ -49,7 +50,7 @@ export function TimetableModal({ subject, isOpen, onClose }: TimetableModalProps
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl bg-white">
         <DialogHeader>
-          <DialogTitle>Timetable for {subject.name} {subject.code.toUpperCase()}</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="relative">
           {/* Day Headers */}
@@ -98,36 +99,40 @@ export function TimetableModal({ subject, isOpen, onClose }: TimetableModalProps
 
                 {/* Time Slots Container */}
                 <div className="absolute inset-0">
-                  {subject.timeSlots.map((slot, index) => {
-                    const dayIndex = DAY_MAP[slot.day]
-                    if (dayIndex === undefined) return null
+                  {subjects.flatMap((subject) =>
+                    subject.timeSlots.map((slot, index) => {
+                      const dayIndex = DAY_MAP[slot.day]
+                      if (dayIndex === undefined) return null
 
-                    const startMinutes = timeToMinutes(slot.startTime)
-                    const endMinutes = timeToMinutes(slot.endTime)
+                      const startMinutes = timeToMinutes(slot.startTime)
+                      const endMinutes = timeToMinutes(slot.endTime)
 
-                    const top = (startMinutes - MIN_HOUR * 60) * REM_PER_MINUTE
-                    const height = (endMinutes - startMinutes) * REM_PER_MINUTE
+                      const top = (startMinutes - MIN_HOUR * 60) * REM_PER_MINUTE
+                      const height = (endMinutes - startMinutes) * REM_PER_MINUTE
 
-                    if (endMinutes < MIN_HOUR * 60 || startMinutes >= MAX_HOUR * 60) return null
+                      if (endMinutes < MIN_HOUR * 60 || startMinutes >= MAX_HOUR * 60) return null
 
-                    return (
-                      <div
-                        key={index}
-                        className="absolute p-1 rounded-md bg-blue-100 border border-blue-300 text-blue-800 overflow-hidden z-10"
-                        style={{
-                          left: `calc(${(100 / 7) * dayIndex}% + 2px)`,
-                          width: `calc(${(100 / 7)}% - 4px)`,
-                          top: `${top}rem`,
-                          height: `${height}rem`,
-                        }}
-                      >
-                        <p className="font-semibold text-[10px] leading-tight">{subject.name}</p>
-                        <p className="text-[10px] leading-tight">
-                          {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                        </p>
-                      </div>
-                    )
-                  })}
+                      return (
+                        <div
+                          key={`${subject.code}-${index}`}
+                          className="absolute p-1 rounded-md bg-blue-100 border border-blue-300 text-blue-800 overflow-hidden z-10"
+                          style={{
+                            left: `calc(${(100 / 7) * dayIndex}% + 2px)`,
+                            width: `calc(${(100 / 7)}% - 4px)`,
+                            top: `${top}rem`,
+                            height: `${height}rem`,
+                          }}
+                        >
+                          <p className="font-semibold text-[10px] leading-tight">
+                            {subject.code.toUpperCase()}
+                          </p>
+                          <p className="text-[10px] leading-tight">
+                            {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                          </p>
+                        </div>
+                      )
+                    }),
+                  )}
                 </div>
               </div>
             </div>

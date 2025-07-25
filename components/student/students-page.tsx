@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Check,
   Edit,
+  Calendar,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,9 @@ import { STATUSES } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
 import { cn, formatDate, getDlpColor, getGradeColor, getModeColor } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
+import { TimetableModal } from "@/components/common/timetable-modal"
+import type { Subject } from "@/types/subject"
+import { subjects as allSubjects } from "@/data/subjects"
 
 type Status = Student["status"]
 
@@ -64,6 +68,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [statusFilter, setStatusFilter] = useState<Status[]>(status ? [status] : [...STATUSES])
+  const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     studentId: true,
@@ -182,6 +187,11 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       return [...prev, st]
     })
     closeModal()
+  }
+
+  const handleViewTimetable = (student: Student) => {
+    setSelectedStudent(student)
+    setIsTimetableModalOpen(true)
   }
 
   /* ------------------------------ render ----------------------------- */
@@ -501,6 +511,14 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewTimetable(s)}
+                          className="text-navy hover:bg-secondary/10"
+                        >
+                          <Calendar className="h-4 w-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))
@@ -525,6 +543,16 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
 
       {isModalOpen && selectedStudent && (
         <StudentModal student={selectedStudent} onClose={closeModal} onSave={saveStudent} />
+      )}
+      {isTimetableModalOpen && selectedStudent && (
+        <TimetableModal
+          title={`Timetable for ${selectedStudent.name}`}
+          subjects={allSubjects.filter((subject) =>
+            selectedStudent.subjects.includes(subject.code),
+          )}
+          isOpen={isTimetableModalOpen}
+          onClose={() => setIsTimetableModalOpen(false)}
+        />
       )}
     </div>
   )

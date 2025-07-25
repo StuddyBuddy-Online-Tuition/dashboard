@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import type { Subject, TimeSlot } from "@/types/subject"
 import SubjectModal from "@/components/subjects/subject-modal"
 import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
-import { TimetableModal } from "@/components/subjects/timetable-modal"
+import { TimetableModal } from "@/components/common/timetable-modal"
 
 export default function SubjectDetailPage() {
   const params = useParams()
@@ -249,7 +249,12 @@ export default function SubjectDetailPage() {
       )}
 
       {isTimetableModalOpen && subject && (
-        <TimetableModal subject={subject} isOpen={isTimetableModalOpen} onClose={handleCloseTimetableModal} />
+        <TimetableModal
+          title={`Timetable for ${subject.name}`}
+          subjects={[subject]}
+          isOpen={isTimetableModalOpen}
+          onClose={handleCloseTimetableModal}
+        />
       )}
     </div>
   )
