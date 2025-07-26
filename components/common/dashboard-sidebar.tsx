@@ -72,6 +72,12 @@ export default function DashboardSidebar({
             path: "/dashboard/finance",
             active: pathname === "/dashboard/finance",
         },
+        {
+            title: "Users",
+            icon: UsersRound,
+            path: "/dashboard/users",
+            active: pathname === "/dashboard/users",
+        },
     ]
 
   return (
