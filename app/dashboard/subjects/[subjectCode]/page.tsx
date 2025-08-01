@@ -7,7 +7,7 @@ import { subjects as initialSubjects } from "@/data/subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, BookUser, Clock, User, Users, Edit } from "lucide-react"
+import { ArrowLeft, BookUser, Clock, User, Users, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import type { Subject, TimeSlot } from "@/types/subject"
@@ -25,7 +25,9 @@ export default function SubjectDetailPage() {
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
 
   const subject = subjects.find((s) => s.code === subjectCode)
-  const enrolledStudents = students.filter((student) => student.subjects.includes(subjectCode))
+  const [enrolledStudents, setEnrolledStudents] = useState(() =>
+    students.filter((student) => student.subjects.includes(subjectCode)),
+  )
 
   const handleOpenModal = () => setIsModalOpen(true)
   const handleCloseModal = () => setIsModalOpen(false)
@@ -56,6 +58,12 @@ export default function SubjectDetailPage() {
     setSubjects((prevSubjects) => {
       return prevSubjects.map((s) => (s.code === subject.code ? updatedSubject : s))
     })
+  }
+
+  const handleDeleteStudent = (studentId: string) => {
+    if (window.confirm("Are you sure you want to remove this student from the subject?")) {
+      setEnrolledStudents((prevStudents) => prevStudents.filter((student) => student.id !== studentId))
+    }
   }
 
   const getStandardColor = (standard: string) => {
@@ -209,6 +217,7 @@ export default function SubjectDetailPage() {
                     <TableHead>Student ID</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -219,11 +228,22 @@ export default function SubjectDetailPage() {
                         <TableCell className="font-mono">{student.studentId}</TableCell>
                         <TableCell>{student.email}</TableCell>
                         <TableCell>{student.studentPhone}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteStudent(student.id)}
+                            className="text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Remove Student</span>
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">
+                      <TableCell colSpan={5} className="h-24 text-center">
                         No students enrolled in this subject.
                       </TableCell>
                     </TableRow>
