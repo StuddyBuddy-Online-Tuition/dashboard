@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, BookUser, Clock, User, Users, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import type { Subject, TimeSlot } from "@/types/subject"
 import SubjectModal from "@/components/subjects/subject-modal"
 import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
@@ -23,11 +25,19 @@ export default function SubjectDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false)
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
+  const [showOneToOne, setShowOneToOne] = useState(false)
 
   const subject = subjects.find((s) => s.code === subjectCode)
   const [enrolledStudents, setEnrolledStudents] = useState(() =>
     students.filter((student) => student.subjects.includes(subjectCode)),
   )
+
+  const filteredStudents = enrolledStudents.filter((student) => {
+    if (showOneToOne) {
+      return student.mode === "1 to 1"
+    }
+    return student.mode === "normal"
+  })
 
   const handleOpenModal = () => setIsModalOpen(true)
   const handleCloseModal = () => setIsModalOpen(false)
@@ -204,9 +214,19 @@ export default function SubjectDetailPage() {
         <div className="lg:col-span-2">
           <Card className="border-secondary/20 shadow-md">
             <CardHeader className="bg-gradient-to-r from-secondary/10 to-primary/10">
-              <CardTitle className="flex items-center gap-3 text-navy">
-                <Users className="h-5 w-5" />
-                <span>Enrolled Students ({enrolledStudents.length})</span>
+              <CardTitle className="flex items-center justify-between text-navy">
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5" />
+                  <span>Enrolled Students ({filteredStudents.length})</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="student-mode"
+                    checked={showOneToOne}
+                    onCheckedChange={setShowOneToOne}
+                  />
+                  <Label htmlFor="student-mode">{showOneToOne ? "1 to 1" : "Normal"}</Label>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
@@ -221,8 +241,8 @@ export default function SubjectDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {enrolledStudents.length > 0 ? (
-                    enrolledStudents.map((student) => (
+                  {filteredStudents.length > 0 ? (
+                    filteredStudents.map((student) => (
                       <TableRow key={student.id}>
                         <TableCell className="font-medium">{student.name}</TableCell>
                         <TableCell className="font-mono">{student.studentId}</TableCell>
@@ -244,7 +264,7 @@ export default function SubjectDetailPage() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
-                        No students enrolled in this subject.
+                        No students found for {showOneToOne ? '"1 to 1"' : '"Normal"'} mode.
                       </TableCell>
                     </TableRow>
                   )}
