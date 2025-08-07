@@ -1,4 +1,4 @@
-import type { Timeslot } from "@/types/timeslot"
+import type { Timeslot } from "@/types/timeslot.ts"
 
 export const timeslots: Timeslot[] = [
   {
