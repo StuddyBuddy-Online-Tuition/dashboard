@@ -13,8 +13,10 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import type { Subject, TimeSlot } from "@/types/subject"
+import type { Timeslot as OneToOneTimeslot } from "@/types/timeslot.ts"
 import SubjectModal from "@/components/subjects/subject-modal"
 import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
+import { timeslots as oneToOneTimeslots } from "@/data/timeslots"
 import { TimetableModal } from "@/components/common/timetable-modal"
 
 export default function SubjectDetailPage() {
@@ -68,6 +70,15 @@ export default function SubjectDetailPage() {
     setSubjects((prevSubjects) => {
       return prevSubjects.map((s) => (s.code === subject.code ? updatedSubject : s))
     })
+  }
+
+  // 1-to-1 timeslots state for this subject (Alpha uses mock data)
+  const [oneToOneSlots, setOneToOneSlots] = useState<OneToOneTimeslot[]>(() =>
+    oneToOneTimeslots.filter((slot) => slot.subjectCode === subjectCode),
+  )
+
+  const handleSaveOneToOneSlots = (updated: OneToOneTimeslot[]) => {
+    setOneToOneSlots(updated)
   }
 
   const handleDeleteStudent = (studentId: string) => {
@@ -187,10 +198,28 @@ export default function SubjectDetailPage() {
                     <TableHead>Day</TableHead>
                     <TableHead>Start Time</TableHead>
                     <TableHead>End Time</TableHead>
+                    {showOneToOne && <TableHead>Student Name</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {subject.timeSlots && subject.timeSlots.length > 0 ? (
+                  {showOneToOne ? (
+                    oneToOneSlots.length > 0 ? (
+                      oneToOneSlots.map((slot) => (
+                        <TableRow key={slot.timeslotId}>
+                          <TableCell>{slot.day}</TableCell>
+                          <TableCell>{slot.startTime}</TableCell>
+                          <TableCell>{slot.endTime}</TableCell>
+                          <TableCell>{slot.studentName}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                          No 1-to-1 schedule available for this subject.
+                        </TableCell>
+                      </TableRow>
+                    )
+                  ) : subject.timeSlots && subject.timeSlots.length > 0 ? (
                     subject.timeSlots.map((slot, index) => (
                       <TableRow key={index}>
                         <TableCell>{slot.day}</TableCell>
@@ -285,6 +314,8 @@ export default function SubjectDetailPage() {
           isOpen={isTimeSlotModalOpen}
           onClose={handleCloseTimeSlotModal}
           onSave={handleSaveTimeSlots}
+          isOneToOneMode={showOneToOne}
+          onSaveOneToOne={handleSaveOneToOneSlots}
         />
       )}
 
