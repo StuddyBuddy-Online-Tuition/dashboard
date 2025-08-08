@@ -166,11 +166,12 @@ export default function SubjectDetailPage() {
                   <span>Class Schedule</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {subject.timeSlots && subject.timeSlots.length > 0 && (
+                  {(subject.timeSlots && subject.timeSlots.length > 0) ||
+                  (showOneToOne && oneToOneSlots.length > 0) ? (
                     <Button variant="outline" size="sm" onClick={handleOpenTimetableModal}>
                       Timetable View
                     </Button>
-                  )}
+                  ) : null}
                   <Button
                     variant="ghost"
                     size={subject.timeSlots && subject.timeSlots.length > 0 ? "icon" : "default"}
@@ -325,6 +326,8 @@ export default function SubjectDetailPage() {
           subjects={[subject]}
           isOpen={isTimetableModalOpen}
           onClose={handleCloseTimetableModal}
+          isOneToOneMode={showOneToOne}
+          oneToOneSlots={showOneToOne ? oneToOneSlots : []}
         />
       )}
     </div>
