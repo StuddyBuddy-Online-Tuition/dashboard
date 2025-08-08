@@ -97,8 +97,8 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
         studentId: defaultStudent ? defaultStudent.studentId : "",
         studentName: defaultStudent ? defaultStudent.name : "",
         day: "Monday",
-        startTime: "09:00 AM",
-        endTime: "10:00 AM",
+        startTime: "09:00",
+        endTime: "10:00",
       },
     ])
   }, [oneToOneStudents, subject.code])
@@ -152,14 +152,14 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                       </div>
                       <div className="col-span-3">
                         <Input
-                          placeholder="Start Time (e.g., 10:00 AM)"
+                          type="time"
                           value={slot.startTime}
                           onChange={(e) => handleOneToOneSlotChange(index, "startTime", e.target.value)}
                         />
                       </div>
                       <div className="col-span-3">
                         <Input
-                          placeholder="End Time (e.g., 11:00 AM)"
+                          type="time"
                           value={slot.endTime}
                           onChange={(e) => handleOneToOneSlotChange(index, "endTime", e.target.value)}
                         />
