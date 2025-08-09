@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { students } from "@/data/students"
 import { subjects as initialSubjects } from "@/data/subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,6 +22,7 @@ import { TimetableModal } from "@/components/common/timetable-modal"
 export default function SubjectDetailPage() {
   const params = useParams()
   const subjectCode = params.subjectCode as string
+  const router = useRouter()
 
   const [subjects, setSubjects] = useState(initialSubjects)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -93,6 +94,14 @@ export default function SubjectDetailPage() {
     return "bg-gray-100 text-gray-800 border-gray-300"
   }
 
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push("/dashboard/subjects")
+    }
+  }
+
   if (!subject) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
@@ -113,11 +122,9 @@ export default function SubjectDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" asChild>
-          <Link href="/dashboard/subjects">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back to subjects</span>
-          </Link>
+        <Button variant="outline" size="icon" onClick={handleBack}>
+          <ArrowLeft className="h-4 w-4" />
+          <span className="sr-only">Go back</span>
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-navy">{subject.name}</h1>
