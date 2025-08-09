@@ -1,6 +1,7 @@
 import type { Subject } from "@/types/subject"
 
-export const subjects: Subject[] = [
+// Keep raw dataset as-is, then normalize to the master night schedule windows
+const rawSubjects: Subject[] = [
   {
     code: "K1F4",
     name: "Kimia",
@@ -624,3 +625,13 @@ export const subjects: Subject[] = [
     teacherName: "Pn. Lim",
   },
 ]
+
+// Normalize: each subject exactly once per week, at one of the two night windows
+export const subjects: Subject[] = rawSubjects.map((s, i) => {
+  const day = s.timeSlots && s.timeSlots.length > 0 ? s.timeSlots[0].day : "Monday"
+  const useEarlyWindow = i % 2 === 0
+  const timeSlot = useEarlyWindow
+    ? { day, startTime: "20:15", endTime: "21:15" }
+    : { day, startTime: "21:20", endTime: "22:20" }
+  return { ...s, timeSlots: [timeSlot] }
+})
