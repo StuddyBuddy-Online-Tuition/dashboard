@@ -21,6 +21,19 @@ import { students as allStudents } from "@/data/students"
 import type { Timeslot as OneToOneTimeslot } from "@/types/timeslot.ts"
 import type { Student } from "@/types/student"
 
+// Constrained night windows for non 1-to-1 mode
+const NIGHT_WINDOWS = [
+  { key: "early", label: "20:15 – 21:15", startTime: "20:15", endTime: "21:15" },
+  { key: "late", label: "21:20 – 22:20", startTime: "21:20", endTime: "22:20" },
+] as const
+
+type NightWindowKey = (typeof NIGHT_WINDOWS)[number]["key"]
+
+function getWindowKeyFromTimes(startTime: string, endTime: string): NightWindowKey {
+  const match = NIGHT_WINDOWS.find((w) => w.startTime === startTime && w.endTime === endTime)
+  return (match?.key ?? "early") as NightWindowKey
+}
+
 interface TimeSlotModalProps {
   subject: Subject
   isOpen: boolean
@@ -60,7 +73,11 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
   }, [])
 
   const addTimeSlot = useCallback(() => {
-    setTimeSlots((prev) => [...prev, { day: "Monday", startTime: "09:00", endTime: "10:00" }])
+    // Default to the early night window
+    setTimeSlots((prev) => [
+      ...prev,
+      { day: "Monday", startTime: NIGHT_WINDOWS[0].startTime, endTime: NIGHT_WINDOWS[0].endTime },
+    ])
   }, [])
 
   const removeTimeSlot = useCallback((index: number) => {
@@ -116,6 +133,20 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
     onSave(timeSlots)
     onClose()
   }
+
+  // Non 1-to-1: switch time window for a slot
+  const handleTimeWindowChange = useCallback((index: number, key: NightWindowKey) => {
+    const windowDef = NIGHT_WINDOWS.find((w) => w.key === key)!
+    setTimeSlots((prev) => {
+      const next = [...prev]
+      next[index] = {
+        ...next[index],
+        startTime: windowDef.startTime,
+        endTime: windowDef.endTime,
+      }
+      return next
+    })
+  }, [])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -205,7 +236,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
               <div className="space-y-4 mt-2 max-h-[400px] overflow-y-auto pr-2">
                 {timeSlots.map((slot, index) => (
                   <div key={index} className="grid grid-cols-12 gap-2 items-center p-2 rounded-md border">
-                    <div className="col-span-4">
+                    <div className="col-span-5">
                       <Select onValueChange={(value) => handleTimeSlotChange(index, "day", value)} value={slot.day}>
                         <SelectTrigger>
                           <SelectValue placeholder="Day" />
@@ -219,19 +250,22 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-3">
-                      <Input
-                        type="time"
-                        value={slot.startTime}
-                        onChange={(e) => handleTimeSlotChange(index, "startTime", e.target.value)}
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <Input
-                        type="time"
-                        value={slot.endTime}
-                        onChange={(e) => handleTimeSlotChange(index, "endTime", e.target.value)}
-                      />
+                    <div className="col-span-5">
+                      <Select
+                        onValueChange={(value) => handleTimeWindowChange(index, value as NightWindowKey)}
+                        value={getWindowKeyFromTimes(slot.startTime, slot.endTime)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Time Window" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {NIGHT_WINDOWS.map((w) => (
+                            <SelectItem key={w.key} value={w.key}>
+                              {w.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="col-span-2 flex justify-end">
                       <Button
