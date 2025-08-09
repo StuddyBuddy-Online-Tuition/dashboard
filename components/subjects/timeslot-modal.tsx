@@ -11,14 +11,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect, useCallback } from "react"
-import type { Subject, TimeSlot } from "@/types/subject"
+import type { Subject } from "@/types/subject"
+import type { Timeslot } from "@/types/timeslot"
 import { DAY_OPTIONS } from "@/data/subject-constants"
 import { Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { timeslots as oneToOneTimeslots } from "@/data/timeslots"
+import { timeslots as allTimeslots } from "@/data/timeslots"
 import { students as allStudents } from "@/data/students"
-import type { Timeslot as OneToOneTimeslot } from "@/types/timeslot.ts"
+import type { Timeslot as OneToOneTimeslot } from "@/types/timeslot"
 import type { Student } from "@/types/student"
 
 // Constrained night windows for non 1-to-1 mode
@@ -38,21 +39,24 @@ interface TimeSlotModalProps {
   subject: Subject
   isOpen: boolean
   onClose: () => void
-  onSave: (timeSlots: TimeSlot[]) => void
+  onSave: (timeSlots: Timeslot[]) => void
   isOneToOneMode?: boolean
   onSaveOneToOne?: (slots: OneToOneTimeslot[]) => void
 }
 
 export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode = false, onSaveOneToOne }: TimeSlotModalProps) {
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
+  const [timeSlots, setTimeSlots] = useState<Timeslot[]>([])
   const [oneToOneStudents, setOneToOneStudents] = useState<Student[]>([])
   const [oneToOneSlots, setOneToOneSlots] = useState<OneToOneTimeslot[]>([])
 
   useEffect(() => {
     if (!subject) return
 
-    // Initialize normal mode time slots
-    setTimeSlots(JSON.parse(JSON.stringify(subject.timeSlots || [])))
+    // Initialize normal mode time slots from unified dataset
+    const normal = allTimeslots.filter(
+      (t) => t.subjectCode === subject.code && t.studentId === null && t.studentName === null,
+    )
+    setTimeSlots(JSON.parse(JSON.stringify(normal)))
 
     // Initialize 1-to-1 students and slots
     const eligibleStudents = allStudents.filter(
@@ -60,11 +64,13 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
     )
     setOneToOneStudents(eligibleStudents)
 
-    const slotsForSubject = oneToOneTimeslots.filter((t) => t.subjectCode === subject.code)
+    const slotsForSubject = allTimeslots.filter(
+      (t) => t.subjectCode === subject.code && t.studentId !== null && t.studentName !== null,
+    )
     setOneToOneSlots(JSON.parse(JSON.stringify(slotsForSubject)))
   }, [subject])
 
-  const handleTimeSlotChange = useCallback((index: number, field: keyof TimeSlot, value: string) => {
+  const handleTimeSlotChange = useCallback((index: number, field: keyof Timeslot, value: string) => {
     setTimeSlots((prev) => {
       const newTimeSlots = [...prev]
       newTimeSlots[index] = { ...newTimeSlots[index], [field]: value }
@@ -76,7 +82,15 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
     // Default to the early night window
     setTimeSlots((prev) => [
       ...prev,
-      { day: "Monday", startTime: NIGHT_WINDOWS[0].startTime, endTime: NIGHT_WINDOWS[0].endTime },
+      {
+        timeslotId: `new-${Date.now()}`,
+        subjectCode: subject.code,
+        day: "Monday",
+        startTime: NIGHT_WINDOWS[0].startTime,
+        endTime: NIGHT_WINDOWS[0].endTime,
+        studentId: null,
+        studentName: null,
+      },
     ])
   }, [])
 
@@ -198,7 +212,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                       <div className="col-span-2">
                         <Select
                           onValueChange={(value) => handleOneToOneSlotChange(index, "studentId", value)}
-                          value={slot.studentId}
+                          value={slot.studentId ?? ""}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Student" />

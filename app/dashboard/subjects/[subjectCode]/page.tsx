@@ -12,11 +12,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import type { Subject, TimeSlot } from "@/types/subject"
-import type { Timeslot as OneToOneTimeslot } from "@/types/timeslot.ts"
+import type { Subject } from "@/types/subject"
+import type { Timeslot } from "@/types/timeslot"
 import SubjectModal from "@/components/subjects/subject-modal"
 import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
-import { timeslots as oneToOneTimeslots } from "@/data/timeslots"
+import { timeslots as allTimeslots } from "@/data/timeslots"
 import { TimetableModal } from "@/components/common/timetable-modal"
 
 export default function SubjectDetailPage() {
@@ -63,22 +63,19 @@ export default function SubjectDetailPage() {
     handleCloseModal()
   }
 
-  const handleSaveTimeSlots = (updatedTimeSlots: TimeSlot[]) => {
-    if (!subject) return
-
-    const updatedSubject = { ...subject, timeSlots: updatedTimeSlots }
-
-    setSubjects((prevSubjects) => {
-      return prevSubjects.map((s) => (s.code === subject.code ? updatedSubject : s))
-    })
-  }
-
-  // 1-to-1 timeslots state for this subject (Alpha uses mock data)
-  const [oneToOneSlots, setOneToOneSlots] = useState<OneToOneTimeslot[]>(() =>
-    oneToOneTimeslots.filter((slot) => slot.subjectCode === subjectCode),
+  // Local state for normal and 1-to-1 timeslots of this subject
+  const [normalSlots, setNormalSlots] = useState<Timeslot[]>(() =>
+    allTimeslots.filter((t) => t.subjectCode === subjectCode && t.studentId === null && t.studentName === null),
+  )
+  const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>(() =>
+    allTimeslots.filter((t) => t.subjectCode === subjectCode && t.studentId !== null && t.studentName !== null),
   )
 
-  const handleSaveOneToOneSlots = (updated: OneToOneTimeslot[]) => {
+  const handleSaveTimeSlots = (updatedTimeSlots: Timeslot[]) => {
+    setNormalSlots(updatedTimeSlots)
+  }
+
+  const handleSaveOneToOneSlots = (updated: Timeslot[]) => {
     setOneToOneSlots(updated)
   }
 
@@ -173,23 +170,22 @@ export default function SubjectDetailPage() {
                   <span>Class Schedule</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {(subject.timeSlots && subject.timeSlots.length > 0) ||
-                  (showOneToOne && oneToOneSlots.length > 0) ? (
+                   {(normalSlots.length > 0) || (showOneToOne && oneToOneSlots.length > 0) ? (
                     <Button variant="outline" size="sm" onClick={handleOpenTimetableModal}>
                       Timetable View
                     </Button>
                   ) : null}
                   <Button
                     variant="ghost"
-                    size={subject.timeSlots && subject.timeSlots.length > 0 ? "icon" : "default"}
+                    size={normalSlots.length > 0 ? "icon" : "default"}
                     onClick={handleOpenTimeSlotModal}
                     className={
-                      subject.timeSlots && subject.timeSlots.length > 0
+                      normalSlots.length > 0
                         ? "text-navy hover:bg-secondary/10"
                         : "text-sm h-8"
                     }
                   >
-                    {subject.timeSlots && subject.timeSlots.length > 0 ? (
+                    {normalSlots.length > 0 ? (
                       <Edit className="h-4 w-4" />
                     ) : (
                       "Add Schedule"
@@ -227,9 +223,9 @@ export default function SubjectDetailPage() {
                         </TableCell>
                       </TableRow>
                     )
-                  ) : subject.timeSlots && subject.timeSlots.length > 0 ? (
-                    subject.timeSlots.map((slot, index) => (
-                      <TableRow key={index}>
+                  ) : normalSlots.length > 0 ? (
+                    normalSlots.map((slot) => (
+                      <TableRow key={slot.timeslotId}>
                         <TableCell>{slot.day}</TableCell>
                         <TableCell>{slot.startTime}</TableCell>
                         <TableCell>{slot.endTime}</TableCell>
@@ -335,6 +331,7 @@ export default function SubjectDetailPage() {
           onClose={handleCloseTimetableModal}
           isOneToOneMode={showOneToOne}
           oneToOneSlots={showOneToOne ? oneToOneSlots : []}
+          normalSlots={!showOneToOne ? normalSlots : []}
         />
       )}
     </div>

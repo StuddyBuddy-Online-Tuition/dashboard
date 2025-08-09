@@ -68,9 +68,8 @@ export default function SubjectsPage() {
         code: "",
         name: "",
         standard: "",
-        timeSlots: [{ day: "Monday", startTime: "09:00", endTime: "10:00" }],
         teacherName: "",
-      })
+      } as Subject)
     }
     setIsModalOpen(true)
   }

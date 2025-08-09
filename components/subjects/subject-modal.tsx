@@ -28,25 +28,18 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
 
   useEffect(() => {
     if (subject) {
-      const { timeSlots, ...rest } = subject
-      setFormData(JSON.parse(JSON.stringify(rest))) // Deep copy without timeSlots
+      setFormData(JSON.parse(JSON.stringify(subject)))
       setOriginalCode(subject.code)
     }
   }, [subject])
 
-  const handleInputChange = useCallback((field: keyof Omit<Subject, "timeSlots">, value: string) => {
+  const handleInputChange = useCallback((field: keyof Subject, value: string) => {
     setFormData((prev) => (prev ? { ...prev, [field]: value } : null))
   }, [])
 
   const handleSave = () => {
     if (formData) {
-      // Re-attach an empty timeSlots array to match the Subject type,
-      // as this modal no longer manages them.
-      const subjectToSave: Subject = {
-        ...formData,
-        timeSlots: subject?.timeSlots || [],
-      }
-      onSave(subjectToSave, originalCode)
+      onSave(formData, originalCode)
       onClose()
     }
   }

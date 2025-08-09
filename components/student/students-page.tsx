@@ -30,6 +30,8 @@ import { students as mockStudentsData } from "@/data/students"
 import { cn, formatDate, getDlpColor, getGradeColor, getModeColor } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
 import { TimetableModal } from "@/components/common/timetable-modal"
+import { timeslots as allTimeslots } from "@/data/timeslots"
+import type { Timeslot } from "@/types/timeslot"
 import type { Subject } from "@/types/subject"
 import { subjects as allSubjects } from "@/data/subjects"
 
@@ -547,11 +549,12 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       {isTimetableModalOpen && selectedStudent && (
         <TimetableModal
           title={`Timetable for ${selectedStudent.name}`}
-          subjects={allSubjects.filter((subject) =>
-            selectedStudent.subjects.includes(subject.code),
-          )}
+          subjects={allSubjects.filter((subject) => selectedStudent.subjects.includes(subject.code))}
           isOpen={isTimetableModalOpen}
           onClose={() => setIsTimetableModalOpen(false)}
+          normalSlots={allTimeslots.filter(
+            (t) => selectedStudent.subjects.includes(t.subjectCode) && t.studentId === null && t.studentName === null,
+          ) as Timeslot[]}
         />
       )}
     </div>

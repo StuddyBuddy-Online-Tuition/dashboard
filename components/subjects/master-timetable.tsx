@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react"
 import { subjects as allSubjects } from "@/data/subjects"
 import { STANDARD_OPTIONS } from "@/data/subject-constants"
-import type { Subject, TimeSlot } from "@/types/subject"
+import type { Subject } from "@/types/subject"
+import type { Timeslot } from "@/types/timeslot"
+import { timeslots as allTimeslots } from "@/data/timeslots"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,15 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ArrowLeft, Check } from "lucide-react"
 import Link from "next/link"
 
-const DAYS: Array<TimeSlot["day"]> = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-]
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const
 
 const TIME_WINDOWS = [
   { start: "20:15", end: "21:15", label: "20:15–21:15" },
@@ -29,9 +23,9 @@ const TIME_WINDOWS = [
 
 type TimeWindowIndex = 0 | 1
 
-function getTimeWindowIndex(slot: TimeSlot): TimeWindowIndex | null {
-  if (slot.startTime === TIME_WINDOWS[0].start && slot.endTime === TIME_WINDOWS[0].end) return 0
-  if (slot.startTime === TIME_WINDOWS[1].start && slot.endTime === TIME_WINDOWS[1].end) return 1
+function getTimeWindowIndex(startTime: string, endTime: string): TimeWindowIndex | null {
+  if (startTime === TIME_WINDOWS[0].start && endTime === TIME_WINDOWS[0].end) return 0
+  if (startTime === TIME_WINDOWS[1].start && endTime === TIME_WINDOWS[1].end) return 1
   return null
 }
 
@@ -84,6 +78,12 @@ export default function MasterTimetable() {
     return map
   }, [])
 
+  const subjectByCode = useMemo(() => {
+    const map = new Map<string, Subject>()
+    for (const s of allSubjects) map.set(s.code, s)
+    return map
+  }, [])
+
   const handleToggleStandard = (standard: string) => {
     setSelectedStandards((prev) => {
       if (prev.includes(standard)) return prev.filter((s) => s !== standard)
@@ -100,18 +100,22 @@ export default function MasterTimetable() {
       for (const day of DAYS) {
         result[standard][day] = { 0: [], 1: [] }
       }
-      const list = subjectsByStandard[standard] ?? []
-      for (const subject of list) {
-        // Pick first valid time window slot if any
-        const validSlot = subject.timeSlots.find((ts) => getTimeWindowIndex(ts) !== null)
-        if (!validSlot) continue
-        const index = getTimeWindowIndex(validSlot) as TimeWindowIndex
-        const day = validSlot.day
-        result[standard][day][index].push(subject)
+      // Filter normal timeslots for subjects in this standard
+      const subjectCodes = new Set((subjectsByStandard[standard] ?? []).map((s) => s.code))
+      const normalSlots = allTimeslots.filter(
+        (t) => subjectCodes.has(t.subjectCode) && t.studentId === null && t.studentName === null,
+      )
+      for (const slot of normalSlots) {
+        const subject = subjectByCode.get(slot.subjectCode)
+        if (!subject) continue
+        const idx = getTimeWindowIndex(slot.startTime, slot.endTime)
+        if (idx === null) continue
+        const day = slot.day
+        result[standard][day][idx].push(subject)
       }
     }
     return result
-  }, [selectedStandards, subjectsByStandard])
+  }, [selectedStandards, subjectsByStandard, subjectByCode])
 
   // Build legend for only the subjects currently displayed in the grid
   const legendItems = useMemo(() => {
