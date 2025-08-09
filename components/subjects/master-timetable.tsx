@@ -1,0 +1,257 @@
+"use client"
+
+import { useMemo, useState } from "react"
+import { subjects as allSubjects } from "@/data/subjects"
+import { STANDARD_OPTIONS } from "@/data/subject-constants"
+import type { Subject, TimeSlot } from "@/types/subject"
+import { cn } from "@/lib/utils"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ArrowLeft, Check } from "lucide-react"
+import Link from "next/link"
+
+const DAYS: Array<TimeSlot["day"]> = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+]
+
+const TIME_WINDOWS = [
+  { start: "20:15", end: "21:15", label: "20:15–21:15" },
+  { start: "21:20", end: "22:20", label: "21:20–22:20" },
+] as const
+
+type TimeWindowIndex = 0 | 1
+
+function getTimeWindowIndex(slot: TimeSlot): TimeWindowIndex | null {
+  if (slot.startTime === TIME_WINDOWS[0].start && slot.endTime === TIME_WINDOWS[0].end) return 0
+  if (slot.startTime === TIME_WINDOWS[1].start && slot.endTime === TIME_WINDOWS[1].end) return 1
+  return null
+}
+
+// Shortforms similar to the provided picture
+const SUBJECT_ABBREVIATIONS: Record<string, string> = {
+  "Biology": "BIO",
+  "Fizik": "FIZ",
+  "Kimia": "KIM",
+  "Add math": "AM",
+  "Add math DLP": "AM",
+  "Matematik": "MM",
+  "Matematik DLP": "MM",
+  "Bahasa Malaysia": "BM",
+  "Bahasa Inggeris": "BI",
+  "Sejarah": "SEJ",
+  "Geografi": "GEO",
+  "Sains": "SC",
+}
+
+function getAbbrev(subjectName: string): string {
+  return SUBJECT_ABBREVIATIONS[subjectName] ?? subjectName.slice(0, 3).toUpperCase()
+}
+
+const SUBJECT_COLORS: Record<string, string> = {
+  BIO: "bg-green-100 text-green-900 border-green-300",
+  FIZ: "bg-yellow-100 text-yellow-900 border-yellow-300",
+  KIM: "bg-purple-100 text-purple-900 border-purple-300",
+  AM: "bg-red-100 text-red-900 border-red-300",
+  MM: "bg-pink-100 text-pink-900 border-pink-300",
+  BM: "bg-amber-100 text-amber-900 border-amber-300",
+  BI: "bg-sky-100 text-sky-900 border-sky-300",
+  SEJ: "bg-orange-100 text-orange-900 border-orange-300",
+  GEO: "bg-emerald-100 text-emerald-900 border-emerald-300",
+  SC: "bg-blue-100 text-blue-900 border-blue-300",
+}
+
+function getSubjectColor(abbrev: string): string {
+  return SUBJECT_COLORS[abbrev] ?? "bg-gray-100 text-gray-900 border-gray-300"
+}
+
+export default function MasterTimetable() {
+  const [selectedStandards, setSelectedStandards] = useState<string[]>([])
+
+  const subjectsByStandard = useMemo(() => {
+    const map: Record<string, Subject[]> = {}
+    for (const s of allSubjects) {
+      if (!map[s.standard]) map[s.standard] = []
+      map[s.standard].push(s)
+    }
+    return map
+  }, [])
+
+  const handleToggleStandard = (standard: string) => {
+    setSelectedStandards((prev) => {
+      if (prev.includes(standard)) return prev.filter((s) => s !== standard)
+      if (prev.length >= 5) return prev // max 5
+      return [...prev, standard]
+    })
+  }
+
+  const gridData = useMemo(() => {
+    // Record per standard -> day -> timeIndex -> Subject[]
+    const result: Record<string, Record<string, Record<number, Subject[]>>> = {}
+    for (const standard of selectedStandards) {
+      result[standard] = {}
+      for (const day of DAYS) {
+        result[standard][day] = { 0: [], 1: [] }
+      }
+      const list = subjectsByStandard[standard] ?? []
+      for (const subject of list) {
+        // Pick first valid time window slot if any
+        const validSlot = subject.timeSlots.find((ts) => getTimeWindowIndex(ts) !== null)
+        if (!validSlot) continue
+        const index = getTimeWindowIndex(validSlot) as TimeWindowIndex
+        const day = validSlot.day
+        result[standard][day][index].push(subject)
+      }
+    }
+    return result
+  }, [selectedStandards, subjectsByStandard])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" asChild>
+            <Link href="/dashboard/subjects">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="sr-only">Back to subjects</span>
+            </Link>
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-navy">Master Timetable</h2>
+            <p className="text-sm text-muted-foreground">Select up to 5 standards/forms to display. Only night slots are shown.</p>
+          </div>
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="justify-start">
+              <span className="mr-2">Standards</span>
+              {selectedStandards.length > 0 && (
+                <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                  {selectedStandards.length}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[220px] p-1" align="end">
+            <div className="max-h-64 overflow-auto">
+              {STANDARD_OPTIONS.map((s) => {
+                const isSelected = selectedStandards.includes(s)
+                const disabled = !isSelected && selectedStandards.length >= 5
+                return (
+                  <Button
+                    key={s}
+                    variant="ghost"
+                    className={cn("w-full justify-start font-normal", disabled && "opacity-50")}
+                    onClick={() => handleToggleStandard(s)}
+                    disabled={disabled}
+                  >
+                    <div
+                      className={cn(
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
+                      )}
+                    >
+                      <Check className="h-4 w-4" />
+                    </div>
+                    <span>{s}</span>
+                  </Button>
+                )
+              })}
+            </div>
+            {selectedStandards.length > 0 && (
+              <div className="p-1 border-t mt-1">
+                <Button variant="ghost" className="w-full justify-start font-normal text-destructive" onClick={() => setSelectedStandards([])}>
+                  Clear
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <Card className="border-secondary/20 shadow-md">
+        <CardContent className="pt-6 overflow-x-auto">
+          {selectedStandards.length === 0 ? (
+            <p className="py-16 text-center text-muted-foreground">Select standards to view the timetable.</p>
+          ) : (
+            <table className="w-full min-w-[1000px] text-sm">
+              <thead>
+                <tr>
+                  <th className="border px-2 py-2 align-middle w-32">Standard</th>
+                  {DAYS.map((day) => (
+                    <th key={day} className="border px-2 py-2 text-center" colSpan={2}>
+                      {day}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  <th className="border px-2 py-1 text-left text-xs text-muted-foreground">Rows</th>
+                  {DAYS.flatMap((day) => (
+                    TIME_WINDOWS.map((tw) => (
+                      <th key={`${day}-${tw.label}`} className="border px-2 py-1 text-center text-xs text-muted-foreground">
+                        {tw.label}
+                      </th>
+                    ))
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {selectedStandards.map((standard) => (
+                  <tr key={standard} className="align-top">
+                    <td className="border px-2 py-2 font-medium text-navy">
+                      <Badge variant="secondary">{standard}</Badge>
+                    </td>
+                    {DAYS.flatMap((day) => (
+                      ([0, 1] as TimeWindowIndex[]).map((idx) => {
+                        const entries = gridData[standard]?.[day]?.[idx] ?? []
+                        return (
+                          <td key={`${standard}-${day}-${idx}`} className="border px-2 py-2">
+                            <div className="flex flex-col gap-1">
+                              {entries.length === 0 ? (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              ) : (
+                                entries.map((subject) => {
+                                  const abbrev = getAbbrev(subject.name)
+                                  return (
+                                    <div
+                                      key={subject.code}
+                                      className={cn(
+                                        "rounded-md border px-2 py-1 leading-tight",
+                                        "text-xs",
+                                        getSubjectColor(abbrev),
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-1 flex-wrap">
+                                        <span className="font-semibold">{abbrev}</span>
+                                        <span className="opacity-70">•</span>
+                                        <span className="font-mono">{subject.code}</span>
+                                      </div>
+                                      <div className="opacity-80 text-[10px]">{subject.teacherName}</div>
+                                    </div>
+                                  )
+                                })
+                              )}
+                            </div>
+                          </td>
+                        )
+                      })
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+
