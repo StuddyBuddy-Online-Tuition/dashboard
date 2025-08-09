@@ -1,7 +1,14 @@
 import type { Subject } from "@/types/subject"
+import type { Weekday } from "@/types/timeslot"
 
-// Keep raw dataset as-is, then normalize to the master night schedule windows
-const rawSubjects: Subject[] = [
+// Local shape used only for seeding timeslots
+interface RawSubjectSeed extends Omit<Subject, "teacherName"> {
+  teacherName: string
+  timeSlots?: { day: Weekday; startTime: string; endTime: string }[]
+}
+
+// Keep raw dataset as-is for seeding time slot days; not exported
+const rawSubjects: RawSubjectSeed[] = [
   {
     code: "K1F4",
     name: "Kimia",
@@ -626,12 +633,11 @@ const rawSubjects: Subject[] = [
   },
 ]
 
-// Normalize: each subject exactly once per week, at one of the two night windows
-export const subjects: Subject[] = rawSubjects.map((s, i) => {
-  const day = s.timeSlots && s.timeSlots.length > 0 ? s.timeSlots[0].day : "Monday"
-  const useEarlyWindow = i % 2 === 0
-  const timeSlot = useEarlyWindow
-    ? { day, startTime: "20:15", endTime: "21:15" }
-    : { day, startTime: "21:20", endTime: "22:20" }
-  return { ...s, timeSlots: [timeSlot] }
-})
+// Export subjects stripped of timeSlots; timeslots are now in data/timeslots.ts
+export const subjects: Subject[] = rawSubjects.map(({ timeSlots: _unused, ...rest }) => ({ ...rest }))
+
+// Export a compact seed to preserve each subject's preferred day for normal slot generation
+export const subjectDaySeed: Array<{ code: string; day: Weekday }> = rawSubjects.map((s) => ({
+  code: s.code,
+  day: s.timeSlots && s.timeSlots.length > 0 ? s.timeSlots[0].day : ("Monday" as Weekday),
+}))
