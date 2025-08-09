@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { subjects as allSubjects } from "@/data/subjects"
 import { STANDARD_OPTIONS } from "@/data/subject-constants"
 import type { Subject } from "@/types/subject"
@@ -68,6 +68,37 @@ function getSubjectColor(abbrev: string): string {
 
 export default function MasterTimetable() {
   const [selectedStandards, setSelectedStandards] = useState<string[]>([])
+
+  const STORAGE_KEY = "masterTimetable:selectedStandards"
+
+  // Load saved selection on mount
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return
+      const validSet = new Set(STANDARD_OPTIONS)
+      const filtered = parsed.filter((s) => typeof s === "string" && validSet.has(s)).slice(0, 5)
+      if (filtered.length > 0) setSelectedStandards(filtered)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Persist selection when it changes
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return
+      if (selectedStandards.length > 0) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedStandards))
+      } else {
+        localStorage.removeItem(STORAGE_KEY)
+      }
+    } catch {
+      // ignore
+    }
+  }, [selectedStandards])
 
   const subjectsByStandard = useMemo(() => {
     const map: Record<string, Subject[]> = {}
