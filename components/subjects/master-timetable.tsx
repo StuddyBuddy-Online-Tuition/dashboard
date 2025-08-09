@@ -41,9 +41,9 @@ const SUBJECT_ABBREVIATIONS: Record<string, string> = {
   "Fizik": "FIZ",
   "Kimia": "KIM",
   "Add math": "AM",
-  "Add math DLP": "AM",
+  "Add math DLP": "AMD",
   "Matematik": "MM",
-  "Matematik DLP": "MM",
+  "Matematik DLP": "MMD",
   "Bahasa Malaysia": "BM",
   "Bahasa Inggeris": "BI",
   "Sejarah": "SEJ",
@@ -112,6 +112,35 @@ export default function MasterTimetable() {
     }
     return result
   }, [selectedStandards, subjectsByStandard])
+
+  // Build legend for only the subjects currently displayed in the grid
+  const legendItems = useMemo(() => {
+    const map = new Map<string, { abbrev: string; colorClass: string }>()
+    for (const standard of selectedStandards) {
+      const dayMap = gridData[standard]
+      if (!dayMap) continue
+      for (const day of DAYS) {
+        const windows = dayMap[day]
+        for (const idx of [0, 1] as TimeWindowIndex[]) {
+          const entries = windows?.[idx] ?? []
+          for (const subject of entries) {
+            if (!map.has(subject.name)) {
+              const abbrev = getAbbrev(subject.name)
+              map.set(subject.name, { abbrev, colorClass: getSubjectColor(abbrev) })
+            }
+          }
+        }
+      }
+    }
+    return Array.from(map, ([name, info]) => ({ name, ...info })).sort((a, b) => a.abbrev.localeCompare(b.abbrev))
+  }, [selectedStandards, gridData])
+
+  function getStandardLongLabel(standard: string): string {
+    if (!standard) return ""
+    const prefix = standard.startsWith("F") ? "Form" : "Standard"
+    const number = standard.replace(/^[A-Za-z]+/, "")
+    return `${prefix} ${number}`
+  }
 
   return (
     <div className="space-y-6">
@@ -205,8 +234,13 @@ export default function MasterTimetable() {
               <tbody>
                 {selectedStandards.map((standard) => (
                   <tr key={standard} className="align-top">
-                    <td className="border px-2 py-2 font-medium text-navy">
-                      <Badge variant="secondary">{standard}</Badge>
+                    <td className="border p-0 align-middle">
+                      <div className="h-full w-full p-3 flex items-center justify-center text-center">
+                        <div className="flex flex-col items-center leading-tight">
+                          <div className="text-sm font-semibold text-navy">{getStandardLongLabel(standard)}</div>
+                          <div className="text-[11px] font-mono text-muted-foreground">{standard}</div>
+                        </div>
+                      </div>
                     </td>
                     {DAYS.flatMap((day) => (
                       ([0, 1] as TimeWindowIndex[]).map((idx) => {
@@ -220,11 +254,12 @@ export default function MasterTimetable() {
                                 entries.map((subject) => {
                                   const abbrev = getAbbrev(subject.name)
                                   return (
-                                    <div
+                                    <Link
                                       key={subject.code}
+                                      href={`/dashboard/subjects/${subject.code}`}
                                       className={cn(
-                                        "rounded-md border px-2 py-1 leading-tight",
-                                        "text-xs",
+                                        "block rounded-md border px-2 py-1 leading-tight",
+                                        "text-xs hover:ring-2 ring-offset-2 ring-primary/40 transition",
                                         getSubjectColor(abbrev),
                                       )}
                                     >
@@ -234,7 +269,7 @@ export default function MasterTimetable() {
                                         <span className="font-mono">{subject.code}</span>
                                       </div>
                                       <div className="opacity-80 text-[10px]">{subject.teacherName}</div>
-                                    </div>
+                                    </Link>
                                   )
                                 })
                               )}
@@ -250,6 +285,19 @@ export default function MasterTimetable() {
           )}
         </CardContent>
       </Card>
+
+      {selectedStandards.length > 0 && legendItems.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted-foreground mr-1">Legend:</span>
+          {legendItems.map((item) => (
+            <div key={item.name} className={cn("flex items-center gap-1 rounded-md border px-2 py-1", item.colorClass)}>
+              <span className="font-semibold">{item.abbrev}</span>
+              <span className="opacity-70">–</span>
+              <span>{item.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
