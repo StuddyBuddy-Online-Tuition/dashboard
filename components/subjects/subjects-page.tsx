@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, BookOpen, Plus, Edit, Trash2, Check } from "lucide-react"
+import { Search, BookOpen, Plus, Edit, Trash2, Check, CalendarDays } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { Subject } from "@/types/subject"
 import SubjectModal from "@/components/subjects/subject-modal"
@@ -132,6 +132,14 @@ export default function SubjectsPage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">Total: {filteredSubjects.length} subjects</div>
+          <Button
+            onClick={() => router.push("/dashboard/subjects/master")}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            <CalendarDays className="mr-2 h-4 w-4" />
+            Master Timetable
+          </Button>
           <Button
             onClick={(e) => handleOpenModal(e)}
             className="w-full bg-accent text-navy hover:bg-accent/90 sm:w-auto"
