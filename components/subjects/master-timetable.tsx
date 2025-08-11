@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ArrowLeft, Check } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const
@@ -29,24 +30,35 @@ function getTimeWindowIndex(startTime: string, endTime: string): TimeWindowIndex
   return null
 }
 
-// Shortforms similar to the provided picture
-const SUBJECT_ABBREVIATIONS: Record<string, string> = {
-  "Biology": "BIO",
-  "Fizik": "FIZ",
-  "Kimia": "KIM",
+// Base abbreviations for subject names (without DLP suffix)
+const BASE_SUBJECT_ABBREVIATIONS: Record<string, string> = {
+  Biology: "BIO",
+  Fizik: "FIZ",
+  Kimia: "KIM",
   "Add math": "AM",
-  "Add math DLP": "AMD",
-  "Matematik": "MM",
-  "Matematik DLP": "MMD",
+  Matematik: "MM",
   "Bahasa Malaysia": "BM",
   "Bahasa Inggeris": "BI",
-  "Sejarah": "SEJ",
-  "Geografi": "GEO",
-  "Sains": "SC",
+  Sejarah: "SEJ",
+  Geografi: "GEO",
+  Sains: "SC",
+  "Prinsip Akaun": "PA",
 }
 
 function getAbbrev(subjectName: string): string {
-  return SUBJECT_ABBREVIATIONS[subjectName] ?? subjectName.slice(0, 3).toUpperCase()
+  const isDlp = /\bDLP\b/i.test(subjectName)
+  const baseName = subjectName.replace(/\s*DLP\b/i, "").trim()
+  const override = BASE_SUBJECT_ABBREVIATIONS[baseName]
+  const baseAbbrev =
+    override ??
+    (baseName.includes(" ")
+      ? baseName
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((w) => w[0]!.toUpperCase())
+          .join("")
+      : baseName.slice(0, 3).toUpperCase())
+  return isDlp ? `${baseAbbrev}D` : baseAbbrev
 }
 
 const SUBJECT_COLORS: Record<string, string> = {
@@ -63,11 +75,18 @@ const SUBJECT_COLORS: Record<string, string> = {
 }
 
 function getSubjectColor(abbrev: string): string {
-  return SUBJECT_COLORS[abbrev] ?? "bg-gray-100 text-gray-900 border-gray-300"
+  if (SUBJECT_COLORS[abbrev]) return SUBJECT_COLORS[abbrev]
+  // If DLP variant (e.g., MMD, AMD), fall back to base color without trailing D
+  if (/D$/.test(abbrev)) {
+    const base = abbrev.replace(/D$/, "")
+    if (SUBJECT_COLORS[base]) return SUBJECT_COLORS[base]
+  }
+  return "bg-gray-100 text-gray-900 border-gray-300"
 }
 
 export default function MasterTimetable() {
   const [selectedStandards, setSelectedStandards] = useState<string[]>([])
+  const [subjectType, setSubjectType] = useState<"ALL" | "DLP" | "KSSM">("ALL")
 
   const STORAGE_KEY = "masterTimetable:selectedStandards"
 
@@ -131,8 +150,13 @@ export default function MasterTimetable() {
       for (const day of DAYS) {
         result[standard][day] = { 0: [], 1: [] }
       }
-      // Filter normal timeslots for subjects in this standard
-      const subjectCodes = new Set((subjectsByStandard[standard] ?? []).map((s) => s.code))
+      // Filter normal timeslots for subjects in this standard, respecting subjectType filter
+      const subjectsForStandard = (subjectsByStandard[standard] ?? []).filter((s) => {
+        if (subjectType === "ALL") return true
+        const hasDlp = /\bDLP\b/i.test(s.name)
+        return subjectType === "DLP" ? hasDlp : !hasDlp
+      })
+      const subjectCodes = new Set(subjectsForStandard.map((s) => s.code))
       const normalSlots = allTimeslots.filter(
         (t) => subjectCodes.has(t.subjectCode) && t.studentId === null && t.studentName === null,
       )
@@ -146,7 +170,7 @@ export default function MasterTimetable() {
       }
     }
     return result
-  }, [selectedStandards, subjectsByStandard, subjectByCode])
+  }, [selectedStandards, subjectsByStandard, subjectByCode, subjectType])
 
   // Build legend for only the subjects currently displayed in the grid
   const legendItems = useMemo(() => {
@@ -192,52 +216,64 @@ export default function MasterTimetable() {
             <p className="text-sm text-muted-foreground">Select up to 5 standards/forms to display. Only night slots are shown.</p>
           </div>
         </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="justify-start">
-              <span className="mr-2">Standards</span>
-              {selectedStandards.length > 0 && (
-                <Badge variant="secondary" className="rounded-sm px-1 font-mono">
-                  {selectedStandards.length}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[220px] p-1" align="end">
-            <div className="max-h-64 overflow-auto">
-              {STANDARD_OPTIONS.map((s) => {
-                const isSelected = selectedStandards.includes(s)
-                const disabled = !isSelected && selectedStandards.length >= 5
-                return (
-                  <Button
-                    key={s}
-                    variant="ghost"
-                    className={cn("w-full justify-start font-normal", disabled && "opacity-50")}
-                    onClick={() => handleToggleStandard(s)}
-                    disabled={disabled}
-                  >
-                    <div
-                      className={cn(
-                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                        isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
-                      )}
+        <div className="flex items-center gap-2">
+          <Select value={subjectType} onValueChange={(v) => setSubjectType(v as typeof subjectType)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Subject Type" />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="ALL">All</SelectItem>
+              <SelectItem value="DLP">DLP</SelectItem>
+              <SelectItem value="KSSM">KSSM</SelectItem>
+            </SelectContent>
+          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="justify-start">
+                <span className="mr-2">Standards</span>
+                {selectedStandards.length > 0 && (
+                  <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                    {selectedStandards.length}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[220px] p-1" align="end">
+              <div className="max-h-64 overflow-auto">
+                {STANDARD_OPTIONS.map((s) => {
+                  const isSelected = selectedStandards.includes(s)
+                  const disabled = !isSelected && selectedStandards.length >= 5
+                  return (
+                    <Button
+                      key={s}
+                      variant="ghost"
+                      className={cn("w-full justify-start font-normal", disabled && "opacity-50")}
+                      onClick={() => handleToggleStandard(s)}
+                      disabled={disabled}
                     >
-                      <Check className="h-4 w-4" />
-                    </div>
-                    <span>{s}</span>
-                  </Button>
-                )
-              })}
-            </div>
-            {selectedStandards.length > 0 && (
-              <div className="p-1 border-t mt-1">
-                <Button variant="ghost" className="w-full justify-start font-normal text-destructive" onClick={() => setSelectedStandards([])}>
-                  Clear
-                </Button>
+                      <div
+                        className={cn(
+                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                          isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
+                        )}
+                      >
+                        <Check className="h-4 w-4" />
+                      </div>
+                      <span>{s}</span>
+                    </Button>
+                  )
+                })}
               </div>
-            )}
-          </PopoverContent>
-        </Popover>
+              {selectedStandards.length > 0 && (
+                <div className="p-1 border-t mt-1">
+                  <Button variant="ghost" className="w-full justify-start font-normal text-destructive" onClick={() => setSelectedStandards([])}>
+                    Clear
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <Card className="border-secondary/20 shadow-md">
