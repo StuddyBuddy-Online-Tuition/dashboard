@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
+import { cn, getAbbrev, getSubjectColor } from "@/lib/utils"
 
 interface TimetableModalProps {
   title: string
@@ -60,42 +60,7 @@ function getTimeWindowIndex(startTime: string, endTime: string): TimeWindowIndex
   return null
 }
 
-// Subject abbrev/color helpers aligned with master timetable
-const SUBJECT_ABBREVIATIONS: Record<string, string> = {
-  Biology: "BIO",
-  Fizik: "FIZ",
-  Kimia: "KIM",
-  "Add math": "AM",
-  "Add math DLP": "AMD",
-  Matematik: "MM",
-  "Matematik DLP": "MMD",
-  "Bahasa Malaysia": "BM",
-  "Bahasa Inggeris": "BI",
-  Sejarah: "SEJ",
-  Geografi: "GEO",
-  Sains: "SC",
-}
-
-function getAbbrev(subjectName: string): string {
-  return SUBJECT_ABBREVIATIONS[subjectName] ?? subjectName.slice(0, 3).toUpperCase()
-}
-
-const SUBJECT_COLORS: Record<string, string> = {
-  BIO: "bg-green-100 text-green-900 border-green-300",
-  FIZ: "bg-yellow-100 text-yellow-900 border-yellow-300",
-  KIM: "bg-purple-100 text-purple-900 border-purple-300",
-  AM: "bg-red-100 text-red-900 border-red-300",
-  MM: "bg-pink-100 text-pink-900 border-pink-300",
-  BM: "bg-amber-100 text-amber-900 border-amber-300",
-  BI: "bg-sky-100 text-sky-900 border-sky-300",
-  SEJ: "bg-orange-100 text-orange-900 border-orange-300",
-  GEO: "bg-emerald-100 text-emerald-900 border-emerald-300",
-  SC: "bg-blue-100 text-blue-900 border-blue-300",
-}
-
-function getSubjectColor(abbrev: string): string {
-  return SUBJECT_COLORS[abbrev] ?? "bg-gray-100 text-gray-900 border-gray-300"
-}
+// subject helpers are imported from utils
 
 export function TimetableModal({ title, subjects, isOpen, onClose, isOneToOneMode = false, oneToOneSlots = [], normalSlots = [] }: TimetableModalProps) {
   // In 1-to-1 mode, show all hours (0–24). Otherwise, the hourly grid is not used.

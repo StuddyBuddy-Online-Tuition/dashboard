@@ -6,7 +6,7 @@ import { STANDARD_OPTIONS } from "@/data/subject-constants"
 import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
 import { timeslots as allTimeslots } from "@/data/timeslots"
-import { cn } from "@/lib/utils"
+import { cn, getAbbrev, getSubjectColor } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,59 +30,7 @@ function getTimeWindowIndex(startTime: string, endTime: string): TimeWindowIndex
   return null
 }
 
-// Base abbreviations for subject names (without DLP suffix)
-const BASE_SUBJECT_ABBREVIATIONS: Record<string, string> = {
-  Biology: "BIO",
-  Fizik: "FIZ",
-  Kimia: "KIM",
-  "Add math": "AM",
-  Matematik: "MM",
-  "Bahasa Malaysia": "BM",
-  "Bahasa Inggeris": "BI",
-  Sejarah: "SEJ",
-  Geografi: "GEO",
-  Sains: "SC",
-  "Prinsip Akaun": "PA",
-}
-
-function getAbbrev(subjectName: string): string {
-  const isDlp = /\bDLP\b/i.test(subjectName)
-  const baseName = subjectName.replace(/\s*DLP\b/i, "").trim()
-  const override = BASE_SUBJECT_ABBREVIATIONS[baseName]
-  const baseAbbrev =
-    override ??
-    (baseName.includes(" ")
-      ? baseName
-          .split(/\s+/)
-          .filter(Boolean)
-          .map((w) => w[0]!.toUpperCase())
-          .join("")
-      : baseName.slice(0, 3).toUpperCase())
-  return isDlp ? `${baseAbbrev}D` : baseAbbrev
-}
-
-const SUBJECT_COLORS: Record<string, string> = {
-  BIO: "bg-green-100 text-green-900 border-green-300",
-  FIZ: "bg-yellow-100 text-yellow-900 border-yellow-300",
-  KIM: "bg-purple-100 text-purple-900 border-purple-300",
-  AM: "bg-red-100 text-red-900 border-red-300",
-  MM: "bg-pink-100 text-pink-900 border-pink-300",
-  BM: "bg-amber-100 text-amber-900 border-amber-300",
-  BI: "bg-sky-100 text-sky-900 border-sky-300",
-  SEJ: "bg-orange-100 text-orange-900 border-orange-300",
-  GEO: "bg-emerald-100 text-emerald-900 border-emerald-300",
-  SC: "bg-blue-100 text-blue-900 border-blue-300",
-}
-
-function getSubjectColor(abbrev: string): string {
-  if (SUBJECT_COLORS[abbrev]) return SUBJECT_COLORS[abbrev]
-  // If DLP variant (e.g., MMD, AMD), fall back to base color without trailing D
-  if (/D$/.test(abbrev)) {
-    const base = abbrev.replace(/D$/, "")
-    if (SUBJECT_COLORS[base]) return SUBJECT_COLORS[base]
-  }
-  return "bg-gray-100 text-gray-900 border-gray-300"
-}
+// subject helpers are imported from utils
 
 export default function MasterTimetable() {
   const [selectedStandards, setSelectedStandards] = useState<string[]>([])
