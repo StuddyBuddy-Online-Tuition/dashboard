@@ -18,7 +18,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "K2F4",
-    name: "Kimia",
+    name: "Kimia DLP",
     standard: "F4",
     timeSlots: [{ day: "Tuesday", startTime: "21:20", endTime: "22:20" }],
     teacherName: "Dr. Smith",
@@ -32,7 +32,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "K2F5",
-    name: "Kimia",
+    name: "Kimia DLP",
     standard: "F5",
     timeSlots: [{ day: "Thursday", startTime: "21:20", endTime: "22:20" }],
     teacherName: "Dr. Smith",
@@ -46,7 +46,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "B2F4",
-    name: "Biology",
+    name: "Biology DLP",
     standard: "F4",
     timeSlots: [{ day: "Wednesday", startTime: "21:20", endTime: "22:20" }],
     teacherName: "Ms. Jones",
@@ -60,7 +60,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "B2F5",
-    name: "Biology",
+    name: "Biology DLP",
     standard: "F5",
     timeSlots: [{ day: "Friday", startTime: "21:20", endTime: "22:20" }],
     teacherName: "Ms. Jones",
@@ -74,7 +74,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "F2F4",
-    name: "Fizik",
+    name: "Fizik DLP",
     standard: "F4",
     timeSlots: [{ day: "Monday", startTime: "21:20", endTime: "22:20" }],
     teacherName: "Mr. Brown",
@@ -88,7 +88,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "F2F5",
-    name: "Fizik",
+    name: "Fizik DLP",
     standard: "F5",
     timeSlots: [{ day: "Tuesday", startTime: "21:20", endTime: "22:20" }],
     teacherName: "Mr. Brown",
@@ -395,7 +395,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2S1",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "S1",
     timeSlots: [{ day: "Tuesday", startTime: "10:00", endTime: "11:00" }],
     teacherName: "Cikgu Maria",
@@ -409,7 +409,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2S2",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "S2",
     timeSlots: [{ day: "Friday", startTime: "13:00", endTime: "14:00" }],
     teacherName: "Cikgu Maria",
@@ -423,7 +423,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2S3",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "S3",
     timeSlots: [{ day: "Tuesday", startTime: "15:00", endTime: "16:00" }],
     teacherName: "Cikgu Maria",
@@ -437,7 +437,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2S4",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "S4",
     timeSlots: [{ day: "Thursday", startTime: "10:00", endTime: "11:00" }],
     teacherName: "Mr. David",
@@ -465,7 +465,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2S6",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "S6",
     timeSlots: [{ day: "Wednesday", startTime: "15:00", endTime: "16:00" }],
     teacherName: "Mr. David",
@@ -479,7 +479,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2F1",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "F1",
     timeSlots: [{ day: "Friday", startTime: "10:00", endTime: "11:00" }],
     teacherName: "Pn. Wong",
@@ -507,7 +507,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2F3",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "F3",
     timeSlots: [{ day: "Thursday", startTime: "15:00", endTime: "16:00" }],
     teacherName: "Pn. Wong",
@@ -521,7 +521,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2F4",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "F4",
     timeSlots: [{ day: "Monday", startTime: "10:00", endTime: "11:00" }],
     teacherName: "Mr. Kumar",
@@ -535,7 +535,7 @@ const rawSubjects: RawSubjectSeed[] = [
   },
   {
     code: "S2F5",
-    name: "Sains",
+    name: "Sains DLP",
     standard: "F5",
     timeSlots: [{ day: "Wednesday", startTime: "13:00", endTime: "14:00" }],
     teacherName: "Mr. Kumar",
