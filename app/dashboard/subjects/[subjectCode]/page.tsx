@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { students } from "@/data/students"
 import { subjects as initialSubjects } from "@/data/subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, BookUser, Clock, User, Users, Edit, Trash2 } from "lucide-react"
+import { ArrowLeft, BookUser, Clock, User, Users, Edit, Trash2, Plus } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -18,6 +18,113 @@ import SubjectModal from "@/components/subjects/subject-modal"
 import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
 import { timeslots as allTimeslots } from "@/data/timeslots"
 import { TimetableModal } from "@/components/common/timetable-modal"
+import AddStudentsModal from "@/components/subjects/add-students-modal"
+import type { Student } from "@/types/student"
+
+interface ScheduleTableProps {
+  showOneToOne: boolean
+  normalSlots: Timeslot[]
+  oneToOneSlots: Timeslot[]
+}
+
+function ScheduleTable({ showOneToOne, normalSlots, oneToOneSlots }: ScheduleTableProps) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Day</TableHead>
+          <TableHead>Start Time</TableHead>
+          <TableHead>End Time</TableHead>
+          {showOneToOne && <TableHead>Student Name</TableHead>}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {showOneToOne ? (
+          oneToOneSlots.length > 0 ? (
+            oneToOneSlots.map((slot) => (
+              <TableRow key={slot.timeslotId}>
+                <TableCell>{slot.day}</TableCell>
+                <TableCell>{slot.startTime}</TableCell>
+                <TableCell>{slot.endTime}</TableCell>
+                <TableCell>{slot.studentName}</TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={4} className="h-24 text-center">
+                No 1-to-1 schedule available for this subject.
+              </TableCell>
+            </TableRow>
+          )
+        ) : normalSlots.length > 0 ? (
+          normalSlots.map((slot) => (
+            <TableRow key={slot.timeslotId}>
+              <TableCell>{slot.day}</TableCell>
+              <TableCell>{slot.startTime}</TableCell>
+              <TableCell>{slot.endTime}</TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={3} className="h-24 text-center">
+              No schedule available for this subject.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  )
+}
+
+interface EnrolledStudentsTableProps {
+  students: Student[]
+  onDelete: (studentId: string) => void
+}
+
+function EnrolledStudentsTable({ students, onDelete }: EnrolledStudentsTableProps) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Student Name</TableHead>
+          <TableHead>Student ID</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Phone</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {students.length > 0 ? (
+          students.map((student) => (
+            <TableRow key={student.id}>
+              <TableCell className="font-medium">{student.name}</TableCell>
+              <TableCell className="font-mono">{student.studentId}</TableCell>
+              <TableCell>{student.email}</TableCell>
+              <TableCell>{student.studentPhone}</TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(student.id)}
+                  className="text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Remove Student</span>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={5} className="h-24 text-center">
+              No students found for this mode.
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  )
+}
 
 export default function SubjectDetailPage() {
   const params = useParams()
@@ -28,6 +135,7 @@ export default function SubjectDetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false)
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
+  const [isAddStudentsModalOpen, setIsAddStudentsModalOpen] = useState(false)
   const [showOneToOne, setShowOneToOne] = useState(false)
 
   const subject = subjects.find((s) => s.code === subjectCode)
@@ -35,12 +143,11 @@ export default function SubjectDetailPage() {
     students.filter((student) => student.subjects.includes(subjectCode)),
   )
 
-  const filteredStudents = enrolledStudents.filter((student) => {
-    if (showOneToOne) {
-      return student.mode === "1 to 1"
-    }
-    return student.mode === "normal"
-  })
+  const filteredStudents = useMemo(() => {
+    return enrolledStudents.filter((student) => (showOneToOne ? student.mode === "1 to 1" : student.mode === "normal"))
+  }, [enrolledStudents, showOneToOne])
+
+  const excludeStudentIds = useMemo(() => enrolledStudents.map((s) => s.id), [enrolledStudents])
 
   const handleOpenModal = () => setIsModalOpen(true)
   const handleCloseModal = () => setIsModalOpen(false)
@@ -50,6 +157,8 @@ export default function SubjectDetailPage() {
 
   const handleOpenTimetableModal = () => setIsTimetableModalOpen(true)
   const handleCloseTimetableModal = () => setIsTimetableModalOpen(false)
+  const handleOpenAddStudentsModal = () => setIsAddStudentsModalOpen(true)
+  const handleCloseAddStudentsModal = () => setIsAddStudentsModalOpen(false)
 
   const handleSaveSubject = (updatedSubject: Subject, originalCode?: string) => {
     setSubjects((prevSubjects) => {
@@ -83,6 +192,15 @@ export default function SubjectDetailPage() {
     if (window.confirm("Are you sure you want to remove this student from the subject?")) {
       setEnrolledStudents((prevStudents) => prevStudents.filter((student) => student.id !== studentId))
     }
+  }
+
+  const handleAddStudents = (newStudents: Student[]) => {
+    setEnrolledStudents((prev) => {
+      const existingIds = new Set(prev.map((s) => s.id))
+      const toAdd = newStudents.filter((s) => !existingIds.has(s.id))
+      return [...prev, ...toAdd]
+    })
+    setIsAddStudentsModalOpen(false)
   }
 
   const getStandardColor = (standard: string) => {
@@ -196,50 +314,11 @@ export default function SubjectDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Day</TableHead>
-                    <TableHead>Start Time</TableHead>
-                    <TableHead>End Time</TableHead>
-                    {showOneToOne && <TableHead>Student Name</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {showOneToOne ? (
-                    oneToOneSlots.length > 0 ? (
-                      oneToOneSlots.map((slot) => (
-                        <TableRow key={slot.timeslotId}>
-                          <TableCell>{slot.day}</TableCell>
-                          <TableCell>{slot.startTime}</TableCell>
-                          <TableCell>{slot.endTime}</TableCell>
-                          <TableCell>{slot.studentName}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                          No 1-to-1 schedule available for this subject.
-                        </TableCell>
-                      </TableRow>
-                    )
-                  ) : normalSlots.length > 0 ? (
-                    normalSlots.map((slot) => (
-                      <TableRow key={slot.timeslotId}>
-                        <TableCell>{slot.day}</TableCell>
-                        <TableCell>{slot.startTime}</TableCell>
-                        <TableCell>{slot.endTime}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="h-24 text-center">
-                        No schedule available for this subject.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <ScheduleTable
+                showOneToOne={showOneToOne}
+                normalSlots={normalSlots}
+                oneToOneSlots={oneToOneSlots}
+              />
             </CardContent>
           </Card>
         </div>
@@ -259,50 +338,14 @@ export default function SubjectDetailPage() {
                     onCheckedChange={setShowOneToOne}
                   />
                   <Label htmlFor="student-mode">{showOneToOne ? "1 to 1" : "Normal"}</Label>
+                  <Button onClick={handleOpenAddStudentsModal} className="bg-accent text-navy hover:bg-accent/90">
+                    <Plus className="mr-2 h-4 w-4" /> Add Students
+                  </Button>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>Student ID</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell className="font-mono">{student.studentId}</TableCell>
-                        <TableCell>{student.email}</TableCell>
-                        <TableCell>{student.studentPhone}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteStudent(student.id)}
-                            className="text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Remove Student</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
-                        No students found for {showOneToOne ? '"1 to 1"' : '"Normal"'} mode.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <EnrolledStudentsTable students={filteredStudents} onDelete={handleDeleteStudent} />
             </CardContent>
           </Card>
         </div>
@@ -332,6 +375,16 @@ export default function SubjectDetailPage() {
           isOneToOneMode={showOneToOne}
           oneToOneSlots={showOneToOne ? oneToOneSlots : []}
           normalSlots={!showOneToOne ? normalSlots : []}
+        />
+      )}
+
+      {isAddStudentsModalOpen && subject && (
+        <AddStudentsModal
+          isOpen={isAddStudentsModalOpen}
+          onClose={handleCloseAddStudentsModal}
+          subject={subject}
+          excludeStudentIds={excludeStudentIds}
+          onAddMany={handleAddStudents}
         />
       )}
     </div>
