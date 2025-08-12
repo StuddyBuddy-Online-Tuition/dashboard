@@ -6,7 +6,7 @@ import { STANDARD_OPTIONS } from "@/data/subject-constants"
 import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
 import { timeslots as allTimeslots } from "@/data/timeslots"
-import { cn, getAbbrev, getSubjectColor } from "@/lib/utils"
+import { cn, getAbbrev } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,7 +30,28 @@ function getTimeWindowIndex(startTime: string, endTime: string): TimeWindowIndex
   return null
 }
 
-// subject helpers are imported from utils
+// Subject color mapping localized to avoid cross-module side effects
+const SUBJECT_COLORS: Record<string, string> = {
+  BIO: "bg-green-100 text-green-900 border-green-300",
+  FIZ: "bg-yellow-100 text-yellow-900 border-yellow-300",
+  KIM: "bg-purple-100 text-purple-900 border-purple-300",
+  AM: "bg-red-100 text-red-900 border-red-300",
+  MM: "bg-pink-100 text-pink-900 border-pink-300",
+  BM: "bg-amber-100 text-amber-900 border-amber-300",
+  BI: "bg-sky-100 text-sky-900 border-sky-300",
+  SEJ: "bg-orange-100 text-orange-900 border-orange-300",
+  GEO: "bg-emerald-100 text-emerald-900 border-emerald-300",
+  SC: "bg-blue-100 text-blue-900 border-blue-300",
+}
+
+function getSubjectColor(abbrev: string): string {
+  if (SUBJECT_COLORS[abbrev]) return SUBJECT_COLORS[abbrev]
+  if (/D$/.test(abbrev)) {
+    const base = abbrev.replace(/D$/, "")
+    if (SUBJECT_COLORS[base]) return SUBJECT_COLORS[base]
+  }
+  return "bg-gray-100 text-gray-900 border-gray-300"
+}
 
 export default function MasterTimetable() {
   const [selectedStandards, setSelectedStandards] = useState<string[]>([])
@@ -120,6 +141,7 @@ export default function MasterTimetable() {
     return result
   }, [selectedStandards, subjectsByStandard, subjectByCode, subjectType])
 
+  
   // Build legend for only the subjects currently displayed in the grid
   const legendItems = useMemo(() => {
     const map = new Map<string, { abbrev: string; colorClass: string }>()
