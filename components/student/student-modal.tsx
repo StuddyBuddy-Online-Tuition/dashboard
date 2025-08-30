@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { X, Plus } from "lucide-react"
 import type { Student } from "@/types/student"
+import { subjects as allSubjects } from "@/data/subjects"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog"
 
 interface StudentModalProps {
   student: Student
@@ -18,25 +30,32 @@ interface StudentModalProps {
   onSave: (student: Student) => void
 }
 
-const AVAILABLE_SUBJECTS = [
-  "Mathematics",
-  "English",
-  "Science",
-  "History",
-  "Geography",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "Computer Science",
-  "Art",
-  "Music",
-]
-
 const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5", "CP"]
 
 export default function StudentModal({ student, onClose, onSave }: StudentModalProps) {
   const [formData, setFormData] = useState<Student>(student)
   const [newSubject, setNewSubject] = useState("")
+  const [subjectPopoverOpen, setSubjectPopoverOpen] = useState(false)
+  const [subjectSearch, setSubjectSearch] = useState("")
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+
+  const getRelevanceScore = (code: string, name: string, standard: string, query: string) => {
+    const q = query.toLowerCase()
+    const c = code.toLowerCase()
+    const n = name.toLowerCase()
+    const s = standard.toLowerCase()
+    if (!q) return 0
+    let score = 0
+    if (c === q) score += 1000
+    else if (c.startsWith(q)) score += 800
+    else if (c.includes(q)) score += 600
+    if (n === q) score += 500
+    else if (n.startsWith(q)) score += 400
+    else if (n.includes(q)) score += 200
+    if (s === q) score += 100
+    return score
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -80,7 +99,13 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData)
+    if (formRef.current) {
+      if (formRef.current.checkValidity()) {
+        setConfirmOpen(true)
+      } else {
+        formRef.current.reportValidity()
+      }
+    }
   }
 
   const getGradeColor = (grade: string) => {
@@ -100,13 +125,27 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
       : "bg-gray-100 text-gray-800 border-gray-300"
   }
 
+  const pickerSubjects = useMemo(() => {
+    const candidates = allSubjects.filter((s) => !formData.subjects.includes(s.code))
+    const query = subjectSearch.trim()
+    if (query.length === 0) {
+      if (!formData.grade) return candidates
+      return candidates.filter((s) => s.standard === formData.grade)
+    }
+    return candidates
+      .map((s) => ({ s, score: getRelevanceScore(s.code, s.name, s.standard, query) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((x) => x.s)
+  }, [formData.subjects, formData.grade, subjectSearch])
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-[95vw] p-4 rounded-lg sm:w-auto sm:max-w-[600px] sm:p-6 border-secondary/20 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="bg-gradient-to-r from-secondary/20 to-primary/20 -mx-4 -mt-4 px-4 py-3 rounded-t-lg">
           <DialogTitle className="text-navy">{student.id ? "Edit Student" : "Add New Student"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} ref={formRef}>
           <div className="grid gap-4 py-4">
             {/* Student ID field */}
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
@@ -375,18 +414,42 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Select value={newSubject} onValueChange={setNewSubject}>
-                    <SelectTrigger className="flex-1 border-secondary/20">
-                      <SelectValue placeholder="Select subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AVAILABLE_SUBJECTS.filter((subject) => !formData.subjects.includes(subject)).map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                          {subject}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={subjectPopoverOpen} onOpenChange={setSubjectPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 justify-between border-secondary/20"
+                      >
+                        {newSubject ? newSubject : "Search subject by code or name..."}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-72" align="start">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search by code or name..."
+                          value={subjectSearch}
+                          onValueChange={setSubjectSearch}
+                        />
+                        <CommandEmpty>No subject found.</CommandEmpty>
+                        <CommandGroup>
+                          {pickerSubjects.map((s) => (
+                              <CommandItem
+                                key={s.code}
+                                value={`${s.code} ${s.name}`}
+                                onSelect={() => {
+                                  setNewSubject(s.code)
+                                  setSubjectPopoverOpen(false)
+                                  setSubjectSearch("")
+                                }}
+                              >
+                                {s.code} - {s.name}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     type="button"
                     variant="outline"
@@ -416,6 +479,27 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
             </Button>
           </DialogFooter>
         </form>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm save changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will update the student's details. Are you sure you want to continue?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <Button
+                onClick={() => {
+                  setConfirmOpen(false)
+                  onSave(formData)
+                }}
+              >
+                Confirm
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   )
