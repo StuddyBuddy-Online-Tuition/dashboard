@@ -187,7 +187,7 @@ export default function DashboardSidebar({
                       href={item.path}
                       className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium ${
                         item.active
-                          ? "bg-gradient-to-r from-secondary to-primary text-white"
+                          ? "bg-primary/10 text-primary border border-primary/30"
                           : "text-navy hover:bg-accent/20"
                       }`}
                     >
@@ -237,7 +237,7 @@ export default function DashboardSidebar({
                       href={item.path}
                       className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium ${
                         item.active
-                          ? "bg-gradient-to-r from-secondary to-primary text-white"
+                          ? "bg-primary/10 text-primary border border-primary/30"
                           : "text-navy hover:bg-accent/20"
                       }`}
                     >
