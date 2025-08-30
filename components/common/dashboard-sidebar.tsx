@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,10 @@ import {
     Clock,
     BookOpen,
     DollarSign,
+    CalendarDays,
+    ChevronDown,
+    ChevronUp,
+    ChevronRight,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 
@@ -29,7 +34,27 @@ export default function DashboardSidebar({
 }: DashboardSidebarProps) {
     const pathname = usePathname()
 
-    const menuItems = [
+    const isStudentsRoute = [
+        "/dashboard",
+        "/dashboard/students",
+        "/dashboard/pending",
+        "/dashboard/trial",
+        "/dashboard/inactive",
+    ].includes(pathname)
+
+    const [studentsOpen, setStudentsOpen] = useState(false)
+
+    useEffect(() => {
+        setStudentsOpen(isStudentsRoute)
+    }, [isStudentsRoute])
+
+    const isSubjectsRoute = pathname.startsWith("/dashboard/subjects")
+    const [subjectsOpen, setSubjectsOpen] = useState(false)
+    useEffect(() => {
+        setSubjectsOpen(isSubjectsRoute)
+    }, [isSubjectsRoute])
+
+    const studentSubItems = [
         {
             title: "All Students",
             icon: UsersRound,
@@ -60,12 +85,24 @@ export default function DashboardSidebar({
             path: "/dashboard/inactive",
             active: pathname === "/dashboard/inactive",
         },
+    ]
+
+    const subjectSubItems = [
         {
-            title: "Subjects",
+            title: "Subject List",
             icon: BookOpen,
             path: "/dashboard/subjects",
             active: pathname === "/dashboard/subjects",
         },
+        {
+            title: "Master Timetable",
+            icon: CalendarDays,
+            path: "/dashboard/subjects/master",
+            active: pathname === "/dashboard/subjects/master",
+        },
+    ]
+
+    const menuItems = [
         {
             title: "Finance/Payment",
             icon: DollarSign,
@@ -115,6 +152,106 @@ export default function DashboardSidebar({
       {/* Navigation */}
       <nav className="px-2 py-4">
         <ul className="space-y-1">
+          {/* Students parent */}
+          <li>
+            <button
+              type="button"
+              onClick={() => setStudentsOpen((prev) => !prev)}
+              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium ${
+                (isStudentsRoute || studentsOpen)
+                  ? "bg-gradient-to-r from-secondary to-primary text-white"
+                  : "text-navy hover:bg-accent/20"
+              }`}
+              title={sidebarCollapsed ? "Students" : undefined}
+            >
+              <span className="flex items-center">
+                <UsersRound className={`h-5 w-5 ${!sidebarCollapsed && "mr-2"}`} />
+                {!sidebarCollapsed && <span>Students</span>}
+              </span>
+              {!sidebarCollapsed && (
+                studentsOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )
+              )}
+            </button>
+          </li>
+          {/* Students submenu */}
+          {!sidebarCollapsed && studentsOpen && (
+            <li>
+              <ul className="space-y-1 ml-6">
+                {studentSubItems.map((item) => (
+                  <li key={item.title}>
+                    <Link
+                      href={item.path}
+                      className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium ${
+                        item.active
+                          ? "bg-gradient-to-r from-secondary to-primary text-white"
+                          : "text-navy hover:bg-accent/20"
+                      }`}
+                    >
+                      <span className="flex items-center">
+                        <ChevronRight className="h-4 w-4 mr-2" />
+                        <item.icon className="h-4 w-4 mr-2" />
+                        <span>{item.title}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          )}
+          {/* Subjects parent */}
+          <li>
+            <button
+              type="button"
+              onClick={() => setSubjectsOpen((prev) => !prev)}
+              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium ${
+                (isSubjectsRoute || subjectsOpen)
+                  ? "bg-gradient-to-r from-secondary to-primary text-white"
+                  : "text-navy hover:bg-accent/20"
+              }`}
+              title={sidebarCollapsed ? "Subjects" : undefined}
+            >
+              <span className="flex items-center">
+                <BookOpen className={`h-5 w-5 ${!sidebarCollapsed && "mr-2"}`} />
+                {!sidebarCollapsed && <span>Subjects</span>}
+              </span>
+              {!sidebarCollapsed && (
+                subjectsOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )
+              )}
+            </button>
+          </li>
+          {/* Subjects submenu */}
+          {!sidebarCollapsed && subjectsOpen && (
+            <li>
+              <ul className="space-y-1 ml-6">
+                {subjectSubItems.map((item) => (
+                  <li key={item.title}>
+                    <Link
+                      href={item.path}
+                      className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium ${
+                        item.active
+                          ? "bg-gradient-to-r from-secondary to-primary text-white"
+                          : "text-navy hover:bg-accent/20"
+                      }`}
+                    >
+                      <span className="flex items-center">
+                        <ChevronRight className="h-4 w-4 mr-2" />
+                        <item.icon className="h-4 w-4 mr-2" />
+                        <span>{item.title}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          )}
           {menuItems.map((item) => (
             <li key={item.title}>
               <Link
