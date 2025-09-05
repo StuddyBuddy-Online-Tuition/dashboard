@@ -9,7 +9,7 @@ export interface Student {
   school: string
   grade: string
   subjects: string[]
-  status: "active" | "pending" | "inactive" | "trial"
+  status: "active" | "pending" | "inactive" | "trial" | "removed"
   classInId: string | null
   registeredDate: string
   mode: "1 to 1" | "normal"
@@ -20,4 +20,4 @@ export interface Student {
   lastPaymentMadeDate: string
 }
 
-export const STATUSES: Readonly<Student["status"][]> = ["active", "pending", "inactive", "trial"]
+export const STATUSES: Readonly<Student["status"][]> = ["active", "pending", "inactive", "trial", "removed"]

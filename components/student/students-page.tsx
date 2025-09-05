@@ -126,6 +126,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       pending: "bg-accent/20 text-black border-accent/30",
       trial: "bg-blue-100 text-black border-blue-300",
       inactive: "bg-destructive/20 text-black border-destructive/30",
+      removed: "bg-gray-200 text-black border-gray-300",
     })[st] || "bg-muted text-black"
 
   /* ----------------------- column visibility UX ---------------------- */
@@ -210,6 +211,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
     },
     inactive: { icon: UserX, color: "text-destructive", title: "Inactive Students", desc: "Past students" },
     trial: { icon: Clock, color: "text-blue-600", title: "Trial Students", desc: "Trial-period learners" },
+    removed: { icon: UserX, color: "text-destructive", title: "Removed Students", desc: "Soft-deleted students" },
   }[status || "all"]
 
   const VisibleColumns = Object.entries(columnVisibility)

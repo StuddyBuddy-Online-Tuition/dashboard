@@ -40,6 +40,7 @@ export default function DashboardSidebar({
         "/dashboard/pending",
         "/dashboard/trial",
         "/dashboard/inactive",
+        "/dashboard/removed",
     ].includes(pathname)
 
     const [studentsOpen, setStudentsOpen] = useState(false)
@@ -84,6 +85,12 @@ export default function DashboardSidebar({
             icon: UserX,
             path: "/dashboard/inactive",
             active: pathname === "/dashboard/inactive",
+        },
+        {
+            title: "Removed Students",
+            icon: UserX,
+            path: "/dashboard/removed",
+            active: pathname === "/dashboard/removed",
         },
     ]
 
