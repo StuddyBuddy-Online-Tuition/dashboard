@@ -23,6 +23,17 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
 import { STATUSES } from "@/types/student"
@@ -523,6 +534,40 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                         >
                           <Calendar className="h-4 w-4" />
                         </Button>
+                        {status !== "removed" && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive/10"
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove student?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will mark {s.name} as removed. You can find removed students in the Removed Students view.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() =>
+                                    setStudents((prev) =>
+                                      prev.map((stu) => (stu.id === s.id ? { ...stu, status: "removed" } : stu)),
+                                    )
+                                  }
+                                >
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </td>
                     </tr>
                   ))
