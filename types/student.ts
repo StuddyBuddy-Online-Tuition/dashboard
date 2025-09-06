@@ -1,3 +1,5 @@
+export type StudentMode = "1 TO 1" | "NORMAL" | "OTHERS"
+
 export interface Student {
   id: string
   studentId: string
@@ -12,7 +14,7 @@ export interface Student {
   status: "active" | "pending" | "inactive" | "trial" | "removed"
   classInId: string | null
   registeredDate: string
-  mode: "1 to 1" | "normal"
+  modes: StudentMode[]
   dlp: "DLP" | "non-DLP"
   // Financial fields
   nextRecurringPaymentDate: string

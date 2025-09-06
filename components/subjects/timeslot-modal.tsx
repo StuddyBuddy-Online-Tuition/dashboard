@@ -60,7 +60,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
 
     // Initialize 1-to-1 students and slots
     const eligibleStudents = allStudents.filter(
-      (s) => s.mode === "1 to 1" && Array.isArray(s.subjects) && s.subjects.includes(subject.code),
+      (s) => Array.isArray(s.subjects) && s.subjects.includes(subject.code) && Array.isArray(s.modes) && s.modes.includes("1 TO 1"),
     )
     setOneToOneStudents(eligibleStudents)
 

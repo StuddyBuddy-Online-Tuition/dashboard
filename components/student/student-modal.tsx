@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { X, Plus } from "lucide-react"
-import type { Student } from "@/types/student"
+import type { Student, StudentMode } from "@/types/student"
 import { subjects as allSubjects } from "@/data/subjects"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
@@ -73,11 +74,12 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
     }))
   }
 
-  const handleModeChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      mode: value as "1 to 1" | "normal",
-    }))
+  const toggleMode = (mode: StudentMode) => {
+    setFormData((prev) => {
+      const exists = prev.modes.includes(mode)
+      const modes = exists ? prev.modes.filter((m) => m !== mode) : [...prev.modes, mode]
+      return { ...prev, modes }
+    })
   }
 
   const handleAddSubject = () => {
@@ -120,9 +122,13 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
   }
 
   const getModeColor = (mode: string) => {
-    return mode === "1 to 1"
-      ? "bg-orange-100 text-orange-800 border-orange-300"
-      : "bg-gray-100 text-gray-800 border-gray-300"
+    return (
+      {
+        "NORMAL": "bg-gray-100 text-gray-800 border-gray-300",
+        "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
+        "OTHERS": "bg-slate-100 text-slate-800 border-slate-300",
+      } as Record<string, string>
+    )[mode] || "bg-gray-100 text-gray-800 border-gray-300"
   }
 
   const pickerSubjects = useMemo(() => {
@@ -312,25 +318,29 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
               />
             </div>
 
-            {/* Mode field */}
+            {/* Modes field */}
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="mode" className="text-navy sm:text-right">
-                Mode
-              </Label>
+              <Label className="text-navy sm:text-right">Modes</Label>
               <div className="sm:col-span-3 space-y-2">
-                <Select value={formData.mode} onValueChange={handleModeChange}>
-                  <SelectTrigger className="border-secondary/20">
-                    <SelectValue placeholder="Select mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="1 to 1">1 to 1</SelectItem>
-                  </SelectContent>
-                </Select>
-                {formData.mode && (
+                <div className="flex flex-wrap gap-4">
+                  {(["NORMAL", "1 TO 1", "OTHERS"] as StudentMode[]).map((m) => (
+                    <label key={m} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={formData.modes.includes(m)}
+                        onCheckedChange={() => toggleMode(m)}
+                      />
+                      <span>{m}</span>
+                    </label>
+                  ))}
+                </div>
+                {formData.modes.length > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Selected:</span>
-                    <Badge className={getModeColor(formData.mode)}>{formData.mode}</Badge>
+                    <div className="flex flex-wrap gap-1">
+                      {formData.modes.map((m) => (
+                        <Badge key={m} className={getModeColor(m)}>{m}</Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

@@ -73,9 +73,13 @@ export default function FinanceModal({ student, onClose, onSave }: FinanceModalP
   }
 
   const getModeColor = (mode: string) => {
-    return mode === "1 to 1"
-      ? "bg-orange-100 text-orange-800 border-orange-300"
-      : "bg-gray-100 text-gray-800 border-gray-300"
+    return (
+      {
+        "NORMAL": "bg-gray-100 text-gray-800 border-gray-300",
+        "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
+        "OTHERS": "bg-slate-100 text-slate-800 border-slate-300",
+      } as Record<string, string>
+    )[mode] || "bg-gray-100 text-gray-800 border-gray-300"
   }
 
   const currentPaidStatus = getPaidStatus(formData.lastPaymentMadeDate)
@@ -96,7 +100,9 @@ export default function FinanceModal({ student, onClose, onSave }: FinanceModalP
             <span className="font-medium text-navy">Student:</span>
             <span className="font-mono text-sm bg-white px-2 py-1 rounded">{student.studentId}</span>
             <Badge className={getGradeColor(student.grade)}>{student.grade}</Badge>
-            <Badge className={getModeColor(student.mode)}>{student.mode}</Badge>
+            {student.modes.map((m) => (
+              <Badge key={m} className={getModeColor(m)}>{m}</Badge>
+            ))}
             <Badge className={getPaidStatusColor(currentPaidStatus)}>{currentPaidStatus}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">

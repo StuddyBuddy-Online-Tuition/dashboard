@@ -38,7 +38,7 @@ import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
 import { STATUSES } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
-import { cn, formatDate, getDlpColor, getGradeColor, getModeColor } from "@/lib/utils"
+import { cn, formatDate, getDlpColor, getGradeColor } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
 import { TimetableModal } from "@/components/common/timetable-modal"
 import { timeslots as allTimeslots } from "@/data/timeslots"
@@ -140,6 +140,15 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       removed: "bg-gray-200 text-black border-gray-300",
     })[st] || "bg-muted text-black"
 
+  const getModeColor = (m: string) =>
+    (
+      {
+        NORMAL: "bg-gray-100 text-gray-800 border-gray-300",
+        "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
+        OTHERS: "bg-slate-100 text-slate-800 border-slate-300",
+      } as Record<string, string>
+    )[m] || "bg-gray-100 text-gray-800 border-gray-300"
+
   /* ----------------------- column visibility UX ---------------------- */
   const handleColumnVisibilityChange = (key: keyof ColumnVisibility, v: boolean) =>
     setColumnVisibility((prev) => ({ ...prev, [key]: v }))
@@ -175,7 +184,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
         status: status || "pending",
         classInId: null,
         registeredDate: new Date().toISOString().split("T")[0],
-        mode: "normal",
+        modes: ["NORMAL"],
         dlp: "non-DLP",
         nextRecurringPaymentDate: "",
         recurringPayment: false,
@@ -381,7 +390,9 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                     </div>
                     <div className="flex flex-wrap gap-1">
                       <Badge className={getGradeColor(s.grade)}>{s.grade}</Badge>
-                      <Badge className={getModeColor(s.mode)}>{s.mode}</Badge>
+                      {s.modes.map((m) => (
+                        <Badge key={m} className={getModeColor(m)}>{m}</Badge>
+                      ))}
                       <Badge className={getDlpColor(s.dlp)}>{s.dlp}</Badge>
                       <Badge className={getStatusColor(s.status)}>{s.status.toUpperCase()}</Badge>
                     </div>
@@ -458,7 +469,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                   {columnVisibility.registeredDate && (
                     <th className="py-3 px-4 text-left font-medium text-navy">Registered</th>
                   )}
-                  {columnVisibility.mode && <th className="py-3 px-4 text-left font-medium text-navy">Mode</th>}
+                  {columnVisibility.mode && <th className="py-3 px-4 text-left font-medium text-navy">Modes</th>}
                   <th className="py-3 px-4 text-right font-medium text-navy">Actions</th>
                 </tr>
               </thead>
@@ -514,7 +525,11 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                       {columnVisibility.registeredDate && <td className="py-3 px-4">{formatDate(s.registeredDate)}</td>}
                       {columnVisibility.mode && (
                         <td className="py-3 px-4">
-                          <Badge className={getModeColor(s.mode)}>{s.mode}</Badge>
+                          <div className="flex flex-wrap gap-1">
+                            {s.modes.map((m) => (
+                              <Badge key={m} className={getModeColor(m)}>{m}</Badge>
+                            ))}
+                          </div>
                         </td>
                       )}
                       <td className="py-3 px-4 text-right">

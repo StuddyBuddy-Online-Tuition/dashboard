@@ -144,7 +144,9 @@ export default function SubjectDetailPage() {
   )
 
   const filteredStudents = useMemo(() => {
-    return enrolledStudents.filter((student) => (showOneToOne ? student.mode === "1 to 1" : student.mode === "normal"))
+    return enrolledStudents.filter((student) =>
+      showOneToOne ? student.modes.includes("1 TO 1") : student.modes.includes("NORMAL"),
+    )
   }, [enrolledStudents, showOneToOne])
 
   const excludeStudentIds = useMemo(() => enrolledStudents.map((s) => s.id), [enrolledStudents])

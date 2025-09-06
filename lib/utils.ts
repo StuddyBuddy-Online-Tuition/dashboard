@@ -23,7 +23,13 @@ export const getGradeColor = (g: string) =>
         : "bg-gray-100 text-gray-800 border-gray-300"
 
 export const getModeColor = (m: string) =>
-  m === "1 to 1" ? "bg-orange-100 text-orange-800 border-orange-300" : "bg-gray-100 text-gray-800 border-gray-300"
+  (
+    {
+      "NORMAL": "bg-gray-100 text-gray-800 border-gray-300",
+      "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
+      "OTHERS": "bg-slate-100 text-slate-800 border-slate-300",
+    } as Record<string, string>
+  )[m] || "bg-gray-100 text-gray-800 border-gray-300"
 
 export const getDlpColor = (d: string) =>
   d === "DLP" ? "bg-purple-100 text-purple-800 border-purple-300" : "bg-gray-100 text-gray-800 border-gray-300"

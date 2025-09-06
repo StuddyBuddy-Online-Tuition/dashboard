@@ -15,15 +15,7 @@ import FinanceModal from "@/components/finance/finance-modal"
 import type { Student } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
 import PaginationControls from "@/components/common/pagination"
-import {
-  formatDate,
-  getDlpColor,
-  getGradeColor,
-  getModeColor,
-  getPaidColor,
-  getPaidStatus,
-  getStatusColor,
-} from "@/lib/utils"
+import { formatDate, getDlpColor, getGradeColor, getPaidColor, getPaidStatus, getStatusColor } from "@/lib/utils"
 
 interface ColumnVisibility {
   studentId: boolean
@@ -98,6 +90,15 @@ export default function FinancePage() {
       ),
     [students, searchQuery],
   )
+
+  const getModeColor = (m: string) =>
+    (
+      {
+        NORMAL: "bg-gray-100 text-gray-800 border-gray-300",
+        "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
+        OTHERS: "bg-slate-100 text-slate-800 border-slate-300",
+      } as Record<string, string>
+    )[m] || "bg-gray-100 text-gray-800 border-gray-300"
 
   // Pagination calculations
   const totalItems = filteredStudents.length
@@ -243,7 +244,9 @@ export default function FinancePage() {
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {columnVisibility.grade && <Badge className={getGradeColor(s.grade)}>{s.grade}</Badge>}
-                        {columnVisibility.mode && <Badge className={getModeColor(s.mode)}>{s.mode}</Badge>}
+                        {columnVisibility.mode && s.modes.map((m) => (
+                          <Badge key={m} className={getModeColor(m)}>{m}</Badge>
+                        ))}
                         {columnVisibility.dlp && <Badge className={getDlpColor(s.dlp)}>{s.dlp}</Badge>}
                         {columnVisibility.status && <Badge className={getStatusColor(s.status)}>{s.status}</Badge>}
                         {columnVisibility.paidStatus && (
@@ -316,7 +319,7 @@ export default function FinancePage() {
                   {columnVisibility.status && <TH>Status</TH>}
                   {columnVisibility.classInId && <TH>ClassIn&nbsp;ID</TH>}
                   {columnVisibility.registeredDate && <TH>Registered</TH>}
-                  {columnVisibility.mode && <TH>Mode</TH>}
+                  {columnVisibility.mode && <TH>Modes</TH>}
                   {columnVisibility.dlp && <TH>DLP</TH>}
                   {columnVisibility.nextRecurringPaymentDate && <TH>Next&nbsp;Payment</TH>}
                   {columnVisibility.recurringPayment && <TH>Recurring</TH>}
@@ -375,7 +378,11 @@ export default function FinancePage() {
                         {columnVisibility.registeredDate && <TD>{formatDate(s.registeredDate)}</TD>}
                         {columnVisibility.mode && (
                           <TD>
-                            <Badge className={getModeColor(s.mode)}>{s.mode}</Badge>
+                            <div className="flex flex-wrap gap-1">
+                              {s.modes.map((m) => (
+                                <Badge key={m} className={getModeColor(m)}>{m}</Badge>
+                              ))}
+                            </div>
                           </TD>
                         )}
                         {columnVisibility.dlp && (

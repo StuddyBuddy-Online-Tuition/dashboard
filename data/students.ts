@@ -1,6 +1,6 @@
 import type { Student } from "@/types/student"
 
-export const students: Student[] = [
+const legacyStudents: any[] = [
 {
   id: "7c3273b9-c8cc-4f88-b049-0da4bbf2249e",
   studentId: "SBA2980",
@@ -15,7 +15,7 @@ export const students: Student[] = [
   status: "pending",
   classInId: "student0@classin.com",
   registeredDate: "2023-07-07",
-  mode: "normal",
+  mode: ["OTHERS", "NORMAL", "1 TO 1"],
   dlp: "DLP",
   nextRecurringPaymentDate: "2025-03-17",
   recurringPayment: false,
@@ -35,7 +35,7 @@ export const students: Student[] = [
   status: "active",
   classInId: "student1@classin.com",
   registeredDate: "2023-04-26",
-  mode: "normal",
+  mode: "others",
   dlp: "DLP",
   nextRecurringPaymentDate: "2025-06-14",
   recurringPayment: true,
@@ -75,7 +75,7 @@ export const students: Student[] = [
   status: "pending",
   classInId: null,
   registeredDate: "2023-10-20",
-  mode: "normal",
+  mode: "others",
   dlp: "DLP",
   nextRecurringPaymentDate: "2025-02-18",
   recurringPayment: true,
@@ -95,7 +95,7 @@ export const students: Student[] = [
   status: "inactive",
   classInId: "student4@classin.com",
   registeredDate: "2023-01-21",
-  mode: "1 to 1",
+  mode: "others",
   dlp: "DLP",
   nextRecurringPaymentDate: "2025-09-12",
   recurringPayment: false,
@@ -4262,3 +4262,30 @@ export const students: Student[] = [
   lastPaymentMadeDate: "2024-11-22",
 }
 ]
+
+function normalizeModeToModes(v: any): ("1 TO 1" | "NORMAL" | "OTHERS")[] {
+  if (Array.isArray(v)) {
+    return v
+      .map((m) => String(m).toUpperCase())
+      .map((m) => (m === "1 TO 1" || m === "NORMAL" || m === "OTHERS" ? m : null))
+      .filter(Boolean) as ("1 TO 1" | "NORMAL" | "OTHERS")[]
+  }
+  if (typeof v === "string") {
+    const up = v.toUpperCase()
+    if (up === "1 TO 1" || up === "NORMAL" || up === "OTHERS") return [up]
+    return []
+  }
+  return []
+}
+
+export const students: Student[] = legacyStudents.map((s) => {
+  const { mode, modes, ...rest } = s
+  const allModes = ["NORMAL", "1 TO 1", "OTHERS"] as ("1 TO 1" | "NORMAL" | "OTHERS")[]
+  const shuffled = [...allModes].sort(() => Math.random() - 0.5)
+  const count = Math.floor(Math.random() * allModes.length) + 1 // 1 to 3 modes
+  const randomizedModes = shuffled.slice(0, count)
+  return {
+    ...rest,
+    modes: randomizedModes,
+  } as Student
+})
