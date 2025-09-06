@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { X, Plus } from "lucide-react"
+import { X, Plus, UserX } from "lucide-react"
 import type { Student, StudentMode } from "@/types/student"
 import { subjects as allSubjects } from "@/data/subjects"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -24,16 +24,18 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog"
+import { RemoveStudentConfirm } from "@/components/student/RemoveStudentConfirm"
 
 interface StudentModalProps {
   student: Student
   onClose: () => void
   onSave: (student: Student) => void
+  onRemove?: (studentId: string) => void
 }
 
 const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5", "CP"]
 
-export default function StudentModal({ student, onClose, onSave }: StudentModalProps) {
+export default function StudentModal({ student, onClose, onSave, onRemove }: StudentModalProps) {
   const [formData, setFormData] = useState<Student>(student)
   const [newSubject, setNewSubject] = useState("")
   const [subjectPopoverOpen, setSubjectPopoverOpen] = useState(false)
@@ -475,18 +477,39 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
               </div>
             </div>
           </div>
-          <DialogFooter className="flex-col space-y-2 mt-4 sm:flex-row sm:space-y-0 sm:mt-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="w-full h-11 sm:w-auto sm:h-auto border-secondary/20 text-navy hover:bg-secondary/10 bg-transparent"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" className="w-full h-11 sm:w-auto sm:h-auto bg-accent text-navy hover:bg-accent/90">
-              Save Changes
-            </Button>
+          <DialogFooter className="mt-4 sm:mt-0">
+            <div className="w-full flex flex-col gap-2 sm:flex-row sm:items-center">
+              {student.id && onRemove && (
+                <RemoveStudentConfirm
+                  studentName={formData.name || student.name}
+                  onConfirm={() => {
+                    onRemove(student.id)
+                    onClose()
+                  }}
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-destructive hover:bg-destructive/10"
+                  >
+                    <UserX className="h-4 w-4 mr-1" /> Remove Student
+                  </Button>
+                </RemoveStudentConfirm>
+              )}
+              <div className="ml-auto flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="w-full h-11 sm:w-auto sm:h-auto border-secondary/20 text-navy hover:bg-secondary/10 bg-transparent"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="w-full h-11 sm:w-auto sm:h-auto bg-accent text-navy hover:bg-accent/90">
+                  Save Changes
+                </Button>
+              </div>
+            </div>
           </DialogFooter>
         </form>
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
