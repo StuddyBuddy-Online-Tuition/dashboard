@@ -14,6 +14,7 @@ import {
   Check,
   Edit,
   Calendar,
+  X,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -44,6 +45,8 @@ import { timeslots as allTimeslots } from "@/data/timeslots"
 import type { Timeslot } from "@/types/timeslot"
 import type { Subject } from "@/types/subject"
 import { subjects as allSubjects } from "@/data/subjects"
+import { STANDARD_OPTIONS } from "@/data/subject-constants"
+import type { StudentMode } from "@/types/student"
 
 type Status = Student["status"]
 
@@ -71,6 +74,7 @@ interface ColumnVisibility {
 }
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
+const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "OTHERS"]
 
 export default function StudentsPage({ status, showStatusFilter = false }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
@@ -102,37 +106,85 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
   })
 
   const [detailView, setDetailView] = useState<"student" | "parent">("student")
+  type SortField = "grade" | "dlp" | "status" | "registeredDate"
+  type SortOrder = "asc" | "desc"
+  type SortRule = { field: SortField; order: SortOrder }
+  const [sortRules, setSortRules] = useState<SortRule[]>([])
+  const [modesFilter, setModesFilter] = useState<StudentMode[]>([...MODE_OPTIONS])
 
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
     setStudents(mockStudentsData)
   }, [])
 
-  // Reset to page 1 when search query or items per page changes
+  // Reset to page 1 when search, items per page, filters, or sorting changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, itemsPerPage, statusFilter])
+  }, [searchQuery, itemsPerPage, statusFilter, sortRules, modesFilter])
 
   /* ----------------------------- helpers ----------------------------- */
   const filteredStudents = useMemo(
     () =>
-      students.filter(
-        (s) =>
-          (statusFilter.length === 0 || statusFilter.includes(s.status)) &&
-          (searchQuery === "" ||
-            s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            s.studentId.toLowerCase().includes(searchQuery.toLowerCase())),
-      ),
-    [students, statusFilter, searchQuery],
+      students.filter((s) => {
+        const matchesStatus = statusFilter.length === 0 || statusFilter.includes(s.status)
+        const matchesSearch =
+          searchQuery === "" ||
+          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesModes = modesFilter.length === 0 || s.modes.some((m) => modesFilter.includes(m))
+        return matchesStatus && matchesSearch && matchesModes
+      }),
+    [students, statusFilter, searchQuery, modesFilter],
   )
+
+  const sortedStudents = useMemo(() => {
+    if (sortRules.length === 0) return filteredStudents
+
+    const gradeOrder = new Map(STANDARD_OPTIONS.map((g, i) => [g, i]))
+    const statusOrder = new Map(STATUSES.map((st, i) => [st, i]))
+    const dlpOrder = new Map([
+      ["DLP", 0],
+      ["non-DLP", 1],
+    ])
+
+    const arr = [...filteredStudents]
+    arr.sort((a, b) => {
+      for (const rule of sortRules) {
+        const direction = rule.order === "asc" ? 1 : -1
+        let cmp = 0
+
+        if (rule.field === "grade") {
+          const ai = gradeOrder.get(a.grade) ?? Number.POSITIVE_INFINITY
+          const bi = gradeOrder.get(b.grade) ?? Number.POSITIVE_INFINITY
+          cmp = ai - bi
+        } else if (rule.field === "dlp") {
+          const ai = dlpOrder.get(a.dlp) ?? Number.POSITIVE_INFINITY
+          const bi = dlpOrder.get(b.dlp) ?? Number.POSITIVE_INFINITY
+          cmp = ai - bi
+        } else if (rule.field === "status") {
+          const ai = statusOrder.get(a.status) ?? Number.POSITIVE_INFINITY
+          const bi = statusOrder.get(b.status) ?? Number.POSITIVE_INFINITY
+          cmp = ai - bi
+        } else if (rule.field === "registeredDate") {
+          cmp = a.registeredDate.localeCompare(b.registeredDate)
+        }
+
+        if (cmp !== 0) return cmp * direction
+      }
+
+      // Final tie-breaker by name
+      return a.name.localeCompare(b.name)
+    })
+    return arr
+  }, [filteredStudents, sortRules])
 
   // Pagination calculations
   const totalItems = filteredStudents.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const paginatedStudents = filteredStudents.slice(startIndex, endIndex)
+  const paginatedStudents = sortedStudents.slice(startIndex, endIndex)
 
   const getStatusColor = (st: string) => //this function is here to solve a bug, dont move to utils like the rest
     ({
@@ -367,6 +419,53 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
               </Popover>
             )}
 
+            {/* Modes filter */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
+                  <span className="mr-2">Modes</span>
+                  {modesFilter.length > 0 && (
+                    <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                      {modesFilter.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[220px] p-0" align="start">
+                <div className="p-1">
+                  {MODE_OPTIONS.map((m) => {
+                    const isSelected = modesFilter.includes(m)
+                    return (
+                      <Button
+                        key={m}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          if (isSelected) {
+                            setModesFilter(modesFilter.filter((fm) => fm !== m))
+                          } else {
+                            setModesFilter([...modesFilter, m])
+                          }
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "opacity-50 [&_svg]:invisible",
+                          )}
+                        >
+                          <Check className={cn("h-4 w-4")} />
+                        </div>
+                        <span>{m}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+
             {/* Detail view dropdown */}
             <Select value={detailView} onValueChange={handleDetailViewChange}>
               <SelectTrigger className="w-[180px] border-secondary/20 text-left font-normal">
@@ -377,6 +476,75 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                 <SelectItem value="parent">Parent details</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Sorting controls (multi-criteria, persist across views) */}
+            <div className="flex flex-col gap-2">
+              {sortRules.length === 0 && (
+                <span className="text-sm text-muted-foreground">No sorting applied</span>
+              )}
+              {sortRules.map((rule, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <Select
+                    value={rule.field}
+                    onValueChange={(v) =>
+                      setSortRules((prev) => prev.map((r, i) => (i === idx ? { ...r, field: v as SortField } : r)))
+                    }
+                  >
+                    <SelectTrigger className="w-[180px] border-secondary/20 text-left font-normal">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="grade">Grade</SelectItem>
+                      <SelectItem value="dlp">DLP</SelectItem>
+                      <SelectItem value="status">Status</SelectItem>
+                      <SelectItem value="registeredDate">Registered Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={rule.order}
+                    onValueChange={(v) =>
+                      setSortRules((prev) => prev.map((r, i) => (i === idx ? { ...r, order: v as SortOrder } : r)))
+                    }
+                  >
+                    <SelectTrigger className="w-[140px] border-secondary/20 text-left font-normal">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                      <SelectItem value="desc">Descending</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="border-secondary/20"
+                    onClick={() => setSortRules((prev) => prev.filter((_, i) => i !== idx))}
+                    aria-label="Remove sort rule"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="border-secondary/20"
+                  onClick={() => setSortRules((prev) => [...prev, { field: "registeredDate", order: "asc" }])}
+                >
+                  Add sort
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-secondary/20"
+                  onClick={() => setSortRules([])}
+                >
+                  Reset Sort
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* ---------- mobile cards ---------- */}
