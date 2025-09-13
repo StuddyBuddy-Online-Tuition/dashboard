@@ -102,3 +102,8 @@ export function getSubjectColor(abbrev: string): string {
   }
   return "bg-gray-100 text-gray-900 border-gray-300"
 }
+
+export function toWhatsAppHref(phone: string): string {
+  const digits = (phone || "").replace(/[^0-9]/g, "")
+  return digits ? `https://wa.me/${digits}` : ""
+}

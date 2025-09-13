@@ -9,7 +9,6 @@ import {
   ClipboardList,
   Clock,
   UserX,
-  Settings2,
   ChevronLeft,
   ChevronRight,
   Check,
@@ -20,7 +19,6 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -39,7 +37,7 @@ import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
 import { STATUSES } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
-import { cn, formatDate, getDlpColor, getGradeColor } from "@/lib/utils"
+import { cn, formatDate, getDlpColor, getGradeColor, toWhatsAppHref } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
 import { TimetableModal } from "@/components/common/timetable-modal"
 import { timeslots as allTimeslots } from "@/data/timeslots"
@@ -88,18 +86,20 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
     studentId: true,
     name: true,
     parentName: false,
-    studentPhone: false, // Changed from 'phone' to 'studentPhone'
+    studentPhone: true, // Changed from 'phone' to 'studentPhone'
     parentPhone: false, // Added parent phone
-    email: false,
-    school: false,
+    email: true,
+    school: true,
     grade: true,
     subjects: true,
     status: true,
-    classInId: false,
-    registeredDate: false,
+    classInId: true,
+    registeredDate: true,
     mode: true,
     dlp: true,
   })
+
+  const [detailView, setDetailView] = useState<"student" | "parent">("student")
 
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
@@ -150,9 +150,50 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       } as Record<string, string>
     )[m] || "bg-gray-100 text-gray-800 border-gray-300"
 
-  /* ----------------------- column visibility UX ---------------------- */
-  const handleColumnVisibilityChange = (key: keyof ColumnVisibility, v: boolean) =>
-    setColumnVisibility((prev) => ({ ...prev, [key]: v }))
+    /* ----------------------- column visibility UX ---------------------- */
+  const applyColumnsPreset = (view: "student" | "parent") => {
+    if (view === "student") {
+      setColumnVisibility({
+        studentId: true,
+        name: true,
+        parentName: false,
+        studentPhone: true,
+        parentPhone: false,
+        email: true,
+        school: true,
+        grade: true,
+        subjects: true,
+        status: true,
+        classInId: true,
+        registeredDate: true,
+        mode: true,
+        dlp: true,
+      })
+    } else {
+      setColumnVisibility({
+        studentId: true,
+        name: true,
+        parentName: true,
+        studentPhone: false,
+        parentPhone: true,
+        email: false,
+        school: false,
+        grade: false,
+        subjects: false,
+        status: true,
+        classInId: false,
+        registeredDate: false,
+        mode: false,
+        dlp: false,
+      })
+    }
+  }
+
+  const handleDetailViewChange = (value: string) => {
+    const view = value === "parent" ? "parent" : "student"
+    setDetailView(view)
+    applyColumnsPreset(view)
+  }
 
   /* -------------------------- pagination UX -------------------------- */
   const handlePageChange = (page: number) => {
@@ -322,59 +363,16 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
               </Popover>
             )}
 
-            {/* Column visibility toggle */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
-                  <Settings2 className="mr-2 h-4 w-4" />
-                  <span className="mr-2">Columns</span>
-                  <Badge variant="secondary" className="rounded-sm px-1 font-mono">
-                    {Object.values(columnVisibility).filter(Boolean).length}
-                  </Badge>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-60 p-0" align="end">
-                <div className="p-1">
-                  {(Object.keys(columnVisibility) as (keyof ColumnVisibility)[]).map((col) => {
-                    const isSelected = columnVisibility[col]
-                    const colName =
-                      col === "studentId"
-                        ? "Student ID"
-                        : col === "parentName"
-                        ? "Parent Name"
-                        : col === "studentPhone"
-                        ? "Student Phone"
-                        : col === "parentPhone"
-                        ? "Parent Phone"
-                        : col === "classInId"
-                        ? "ClassIn ID"
-                        : col === "registeredDate"
-                        ? "Registered Date"
-                        : col.toUpperCase() === "DLP"
-                        ? "DLP"
-                        : col.replace(/([A-Z])/g, " $1").trim()
-                    return (
-                      <Button
-                        key={col}
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => handleColumnVisibilityChange(col, !isSelected)}
-                      >
-                        <div
-                          className={cn(
-                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                            isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
-                          )}
-                        >
-                          <Check className={cn("h-4 w-4")} />
-                        </div>
-                        <span>{colName}</span>
-                      </Button>
-                    )
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* Detail view dropdown */}
+            <Select value={detailView} onValueChange={handleDetailViewChange}>
+              <SelectTrigger className="w-[180px] border-secondary/20 text-left font-normal">
+                <SelectValue placeholder="View" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="student">Student details</SelectItem>
+                <SelectItem value="parent">Parent details</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* ---------- mobile cards ---------- */}
@@ -403,7 +401,22 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                   <div className="space-y-1 text-sm">
                     {columnVisibility.parentName && <p>Parent: {s.parentName}</p>}
                     {columnVisibility.studentPhone && <p>Student Phone: {s.studentPhone}</p>}
-                    {columnVisibility.parentPhone && <p>Parent Phone: {s.parentPhone}</p>}
+                    {columnVisibility.parentPhone && (
+                      <p>
+                        Parent Phone: {toWhatsAppHref(s.parentPhone) ? (
+                          <a
+                            href={toWhatsAppHref(s.parentPhone)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline"
+                          >
+                            {s.parentPhone}
+                          </a>
+                        ) : (
+                          s.parentPhone || "-"
+                        )}
+                      </p>
+                    )}
                     {columnVisibility.email && <p>Email: {s.email}</p>}
                     {columnVisibility.school && <p>School: {s.school}</p>}
                     {columnVisibility.classInId && s.classInId && <p>ClassIn: {s.classInId}</p>}
@@ -488,7 +501,22 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                       {columnVisibility.name && <td className="py-3 px-4 font-medium">{s.name}</td>}
                       {columnVisibility.parentName && <td className="py-3 px-4">{s.parentName}</td>}
                       {columnVisibility.studentPhone && <td className="py-3 px-4">{s.studentPhone}</td>}
-                      {columnVisibility.parentPhone && <td className="py-3 px-4">{s.parentPhone}</td>}
+                      {columnVisibility.parentPhone && (
+                        <td className="py-3 px-4">
+                          {toWhatsAppHref(s.parentPhone) ? (
+                            <a
+                              href={toWhatsAppHref(s.parentPhone)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {s.parentPhone}
+                            </a>
+                          ) : (
+                            s.parentPhone || "-"
+                          )}
+                        </td>
+                      )}
                       {columnVisibility.email && <td className="py-3 px-4">{s.email}</td>}
                       {columnVisibility.school && <td className="py-3 px-4">{s.school}</td>}
                       {columnVisibility.grade && (
