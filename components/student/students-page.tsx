@@ -533,9 +533,6 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                         </td>
                       )}
                       {columnVisibility.email && <td className="py-3 px-4">{s.email}</td>}
-                      {columnVisibility.ticketId && (s.status === "pending" || s.status === "trial") && (
-                        <td className="py-3 px-4">Ticket ID: {"TICKET-PLACEHOLDER"}</td>
-                      )}
                       {columnVisibility.school && <td className="py-3 px-4">{s.school}</td>}
                       {columnVisibility.grade && (
                         <td className="py-3 px-4">
