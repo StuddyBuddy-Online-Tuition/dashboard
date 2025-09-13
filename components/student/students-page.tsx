@@ -54,6 +54,7 @@ interface StudentsPageProps {
 
 interface ColumnVisibility {
   studentId: boolean
+  ticketId: boolean
   name: boolean
   parentName: boolean
   studentPhone: boolean // Changed from 'phone' to 'studentPhone'
@@ -84,6 +85,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     studentId: true,
+    ticketId: status === "pending" || status === "trial",
     name: true,
     parentName: false,
     studentPhone: true, // Changed from 'phone' to 'studentPhone'
@@ -155,6 +157,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
     if (view === "student") {
       setColumnVisibility({
         studentId: true,
+        ticketId: status === "pending" || status === "trial",
         name: true,
         parentName: false,
         studentPhone: true,
@@ -172,6 +175,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
     } else {
       setColumnVisibility({
         studentId: true,
+        ticketId: false,
         name: true,
         parentName: true,
         studentPhone: false,
@@ -418,6 +422,9 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                       </p>
                     )}
                     {columnVisibility.email && <p>Email: {s.email}</p>}
+                    {columnVisibility.ticketId && (s.status === "pending" || s.status === "trial") && (
+                      <p>Ticket ID: {"TICKET-PLACEHOLDER"}</p>
+                    )}
                     {columnVisibility.school && <p>School: {s.school}</p>}
                     {columnVisibility.classInId && s.classInId && <p>ClassIn: {s.classInId}</p>}
                     {columnVisibility.registeredDate && <p>Registered: {formatDate(s.registeredDate)}</p>}
@@ -461,6 +468,9 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                   {columnVisibility.studentId && (
                     <th className="py-3 px-4 text-left font-medium text-navy">Student&nbsp;ID</th>
                   )}
+                  {columnVisibility.ticketId && (
+                    <th className="py-3 px-4 text-left font-medium text-navy">Ticket&nbsp;ID</th>
+                  )}
                   {columnVisibility.name && <th className="py-3 px-4 text-left font-medium text-navy">Name</th>}
                   {columnVisibility.parentName && (
                     <th className="py-3 px-4 text-left font-medium text-navy">Parent&nbsp;Name</th>
@@ -498,6 +508,11 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                   paginatedStudents.map((s) => (
                     <tr key={s.id} className="border-b border-secondary/10 bg-white hover:bg-secondary/5">
                       {columnVisibility.studentId && <td className="py-3 px-4 font-mono text-sm">{s.studentId}</td>}
+                      {columnVisibility.ticketId && (
+                        <td className="py-3 px-4 font-mono text-sm">
+                          {s.status === "pending" || s.status === "trial" ? "TICKET-PLACEHOLDER" : "-"}
+                        </td>
+                      )}
                       {columnVisibility.name && <td className="py-3 px-4 font-medium">{s.name}</td>}
                       {columnVisibility.parentName && <td className="py-3 px-4">{s.parentName}</td>}
                       {columnVisibility.studentPhone && <td className="py-3 px-4">{s.studentPhone}</td>}
@@ -518,6 +533,9 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                         </td>
                       )}
                       {columnVisibility.email && <td className="py-3 px-4">{s.email}</td>}
+                      {columnVisibility.ticketId && (s.status === "pending" || s.status === "trial") && (
+                        <td className="py-3 px-4">Ticket ID: {"TICKET-PLACEHOLDER"}</td>
+                      )}
                       {columnVisibility.school && <td className="py-3 px-4">{s.school}</td>}
                       {columnVisibility.grade && (
                         <td className="py-3 px-4">
