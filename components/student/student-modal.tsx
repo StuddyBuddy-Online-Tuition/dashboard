@@ -155,6 +155,8 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
         </DialogHeader>
         <form onSubmit={handleSubmit} ref={formRef}>
           <div className="grid gap-4 py-4">
+            {/* Student section */}
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Student</div>
             {/* Student ID field */}
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
               <Label htmlFor="studentId" className="text-navy sm:text-right">
@@ -186,15 +188,16 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
               />
             </div>
 
-            {/* Parent's Name field */}
+            {/* Email field */}
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="parentName" className="text-navy sm:text-right">
-                Parent's Name
+              <Label htmlFor="email" className="text-navy sm:text-right">
+                Email
               </Label>
               <Input
-                id="parentName"
-                name="parentName"
-                value={formData.parentName}
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
                 onChange={handleChange}
                 className="sm:col-span-3 border-secondary/20"
                 required
@@ -210,37 +213,6 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
                 id="studentPhone"
                 name="studentPhone"
                 value={formData.studentPhone}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20"
-                required
-              />
-            </div>
-
-            {/* Parent Phone field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="parentPhone" className="text-navy sm:text-right">
-                Parent Phone
-              </Label>
-              <Input
-                id="parentPhone"
-                name="parentPhone"
-                value={formData.parentPhone}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20"
-                required
-              />
-            </div>
-
-            {/* Email field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="email" className="text-navy sm:text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
                 onChange={handleChange}
                 className="sm:col-span-3 border-secondary/20"
                 required
@@ -319,6 +291,8 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
                 required
               />
             </div>
+
+            
 
             {/* Modes field */}
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
@@ -475,6 +449,38 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
                   </Button>
                 </div>
               </div>
+            </div>
+            {/* Parent section */}
+            <div className="text-xs uppercase tracking-wide text-muted-foreground pt-2">Parent</div>
+
+            {/* Parent's Name field */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="parentName" className="text-navy sm:text-right">
+                Parent's Name
+              </Label>
+              <Input
+                id="parentName"
+                name="parentName"
+                value={formData.parentName}
+                onChange={handleChange}
+                className="sm:col-span-3 border-secondary/20"
+                required
+              />
+            </div>
+
+            {/* Parent Phone field */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="parentPhone" className="text-navy sm:text-right">
+                Parent Phone
+              </Label>
+              <Input
+                id="parentPhone"
+                name="parentPhone"
+                value={formData.parentPhone}
+                onChange={handleChange}
+                className="sm:col-span-3 border-secondary/20"
+                required
+              />
             </div>
           </div>
           <DialogFooter className="mt-4 sm:mt-0">
