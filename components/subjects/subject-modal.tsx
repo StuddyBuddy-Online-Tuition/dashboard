@@ -92,17 +92,7 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="teacherName" className="text-right">
-              Teacher
-            </Label>
-            <Input
-              id="teacherName"
-              value={formData.teacherName}
-              onChange={(e) => handleInputChange("teacherName", e.target.value)}
-              className="col-span-3"
-            />
-          </div>
+          
         </div>
         <DialogFooter>
           <DialogClose asChild>

@@ -36,6 +36,7 @@ function ScheduleTable({ showOneToOne, normalSlots, oneToOneSlots }: ScheduleTab
           <TableHead>Start Time</TableHead>
           <TableHead>End Time</TableHead>
           {showOneToOne && <TableHead>Student Name</TableHead>}
+          <TableHead>Teacher</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -47,11 +48,12 @@ function ScheduleTable({ showOneToOne, normalSlots, oneToOneSlots }: ScheduleTab
                 <TableCell>{slot.startTime}</TableCell>
                 <TableCell>{slot.endTime}</TableCell>
                 <TableCell>{slot.studentName}</TableCell>
+                <TableCell>{slot.teacherName}</TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
+              <TableCell colSpan={5} className="h-24 text-center">
                 No 1-to-1 schedule available for this subject.
               </TableCell>
             </TableRow>
@@ -62,11 +64,12 @@ function ScheduleTable({ showOneToOne, normalSlots, oneToOneSlots }: ScheduleTab
               <TableCell>{slot.day}</TableCell>
               <TableCell>{slot.startTime}</TableCell>
               <TableCell>{slot.endTime}</TableCell>
+              <TableCell>{slot.teacherName}</TableCell>
             </TableRow>
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={3} className="h-24 text-center">
+            <TableCell colSpan={4} className="h-24 text-center">
               No schedule available for this subject.
             </TableCell>
           </TableRow>
@@ -300,12 +303,6 @@ export default function SubjectDetailPage() {
               <div className="flex justify-between">
                 <span className="font-medium text-muted-foreground">Standard/Form</span>
                 <Badge className={getStandardColor(subject.standard)}>{subject.standard}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-muted-foreground">Teacher</span>
-                <span className="text-navy flex items-center gap-2">
-                  <User className="h-4 w-4" /> {subject.teacherName}
-                </span>
               </div>
             </CardContent>
           </Card>

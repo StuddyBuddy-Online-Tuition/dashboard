@@ -13,6 +13,7 @@ export interface Timeslot {
   day: Weekday
   startTime: string
   endTime: string
+  teacherName: string
   studentId: string | null
   studentName: string | null
 }

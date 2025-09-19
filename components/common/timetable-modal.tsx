@@ -260,9 +260,7 @@ export function TimetableModal({ title, subjects, isOpen, onClose, isOneToOneMod
                                         <span className="opacity-70">•</span>
                                         <span className="font-mono">{subject.code}</span>
                                       </div>
-                                      {subject.teacherName && (
-                                        <div className="opacity-80 text-[10px]">{subject.teacherName}</div>
-                                      )}
+                                      {/* Teacher shown at timeslot level; hide subject-level teacher here */}
                                     </div>
                                   )
                                 })

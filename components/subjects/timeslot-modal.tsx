@@ -9,6 +9,17 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect, useCallback } from "react"
 import type { Subject } from "@/types/subject"
@@ -68,6 +79,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
       (t) => t.subjectCode === subject.code && t.studentId !== null && t.studentName !== null,
     )
     setOneToOneSlots(JSON.parse(JSON.stringify(slotsForSubject)))
+
   }, [subject])
 
   const handleTimeSlotChange = useCallback((index: number, field: keyof Timeslot, value: string) => {
@@ -88,11 +100,12 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
         day: "Monday",
         startTime: NIGHT_WINDOWS[0].startTime,
         endTime: NIGHT_WINDOWS[0].endTime,
+        teacherName: "",
         studentId: null,
         studentName: null,
       },
     ])
-  }, [])
+  }, [subject.code])
 
   const removeTimeSlot = useCallback((index: number) => {
     setTimeSlots((prev) => prev.filter((_, i) => i !== index))
@@ -130,6 +143,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
         day: "Monday",
         startTime: "09:00",
         endTime: "10:00",
+        teacherName: "",
       },
     ])
   }, [oneToOneStudents, subject.code])
@@ -195,14 +209,14 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <Input
                           type="time"
                           value={slot.startTime}
                           onChange={(e) => handleOneToOneSlotChange(index, "startTime", e.target.value)}
                         />
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <Input
                           type="time"
                           value={slot.endTime}
@@ -226,15 +240,37 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="col-span-2">
+                        <Input
+                          placeholder="Teacher name"
+                          value={slot.teacherName ?? ""}
+                          onChange={(e) => handleOneToOneSlotChange(index, "teacherName" as any, e.target.value)}
+                        />
+                      </div>
                       <div className="col-span-1 flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeOneToOneSlot(index)}
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove time slot?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. The selected time slot will be permanently removed.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => removeOneToOneSlot(index)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}
@@ -250,7 +286,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
               <div className="space-y-4 mt-2 max-h-[400px] overflow-y-auto pr-2">
                 {timeSlots.map((slot, index) => (
                   <div key={index} className="grid grid-cols-12 gap-2 items-center p-2 rounded-md border">
-                    <div className="col-span-5">
+                    <div className="col-span-4">
                       <Select onValueChange={(value) => handleTimeSlotChange(index, "day", value)} value={slot.day}>
                         <SelectTrigger>
                           <SelectValue placeholder="Day" />
@@ -264,7 +300,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-5">
+                    <div className="col-span-4">
                       <Select
                         onValueChange={(value) => handleTimeWindowChange(index, value as NightWindowKey)}
                         value={getWindowKeyFromTimes(slot.startTime, slot.endTime)}
@@ -281,15 +317,37 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2 flex justify-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeTimeSlot(index)}
-                        className="text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="col-span-3">
+                      <Input
+                        placeholder="Teacher name"
+                        value={slot.teacherName ?? ""}
+                        onChange={(e) => handleTimeSlotChange(index, "teacherName", e.target.value)}
+                      />
+                    </div>
+                    <div className="col-span-1 flex justify-end">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove time slot?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. The selected time slot will be permanently removed.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => removeTimeSlot(index)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 ))}
