@@ -81,6 +81,15 @@ interface EnrolledStudentsTableProps {
   onDelete: (studentId: string) => void
 }
 
+function getStatusColor(st: string) {
+  return (
+    {
+      active: "bg-secondary/20 text-black border-secondary/30",
+      trial: "bg-blue-100 text-black border-blue-300",
+    } as Record<string, string>
+  )[st] || "bg-muted text-black"
+}
+
 function EnrolledStudentsTable({ students, onDelete }: EnrolledStudentsTableProps) {
   return (
     <Table>
@@ -90,6 +99,7 @@ function EnrolledStudentsTable({ students, onDelete }: EnrolledStudentsTableProp
           <TableHead>Student ID</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Phone</TableHead>
+          <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -101,6 +111,9 @@ function EnrolledStudentsTable({ students, onDelete }: EnrolledStudentsTableProp
               <TableCell className="font-mono">{student.studentId}</TableCell>
               <TableCell>{student.email}</TableCell>
               <TableCell>{student.studentPhone}</TableCell>
+              <TableCell>
+                <Badge className={getStatusColor(student.status)}>{student.status.toUpperCase()}</Badge>
+              </TableCell>
               <TableCell className="text-right">
                 <Button
                   variant="ghost"
@@ -116,7 +129,7 @@ function EnrolledStudentsTable({ students, onDelete }: EnrolledStudentsTableProp
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={5} className="h-24 text-center">
+            <TableCell colSpan={6} className="h-24 text-center">
               No students found for this mode.
             </TableCell>
           </TableRow>
@@ -144,9 +157,18 @@ export default function SubjectDetailPage() {
   )
 
   const filteredStudents = useMemo(() => {
-    return enrolledStudents.filter((student) =>
-      showOneToOne ? student.modes.includes("1 TO 1") : student.modes.includes("NORMAL"),
+    const arr = enrolledStudents.filter(
+      (student) =>
+        (showOneToOne ? student.modes.includes("1 TO 1") : student.modes.includes("NORMAL")) &&
+        (student.status === "active" || student.status === "trial"),
     )
+    arr.sort((a, b) => {
+      const ai = a.status === "trial" ? 0 : 1
+      const bi = b.status === "trial" ? 0 : 1
+      if (ai !== bi) return ai - bi
+      return a.name.localeCompare(b.name)
+    })
+    return arr
   }, [enrolledStudents, showOneToOne])
 
   const excludeStudentIds = useMemo(() => enrolledStudents.map((s) => s.id), [enrolledStudents])
@@ -210,6 +232,12 @@ export default function SubjectDetailPage() {
     if (standard.startsWith("F")) return "bg-blue-100 text-blue-800 border-blue-300"
     return "bg-gray-100 text-gray-800 border-gray-300"
   }
+
+  const getStatusColor = (st: string) =>
+    ({
+      active: "bg-secondary/20 text-black border-secondary/30",
+      trial: "bg-blue-100 text-black border-blue-300",
+    } as Record<string, string>)[st] || "bg-muted text-black"
 
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
