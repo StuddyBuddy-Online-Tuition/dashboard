@@ -7,7 +7,7 @@ import { subjects as initialSubjects } from "@/data/subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, BookUser, Clock, User, Users, Edit, Trash2, Plus } from "lucide-react"
+import { ArrowLeft, Clock, Users, Edit, Trash2, Plus } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -269,44 +269,29 @@ export default function SubjectDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={handleBack}>
-          <ArrowLeft className="h-4 w-4" />
-          <span className="sr-only">Go back</span>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-navy">{subject.name}</h1>
-          <p className="text-sm text-muted-foreground">Detailed view of the subject and enrolled students</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Go back</span>
+          </Button>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-navy">{subject.name}</h1>
+              <Badge className={getStandardColor(subject.standard)}>{subject.standard}</Badge>
+              <span className="font-mono text-sm text-muted-foreground">{subject.code}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Detailed view of the subject and enrolled students</p>
+          </div>
         </div>
+        <Button variant="ghost" onClick={handleOpenModal} className="text-navy hover:bg-secondary/10">
+          <Edit className="mr-2 h-4 w-4" />
+          Edit Subject
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-6">
-          <Card className="border-secondary/20 shadow-md">
-            <CardHeader className="bg-gradient-to-r from-secondary/10 to-primary/10">
-              <CardTitle className="flex items-center justify-between text-navy">
-                <div className="flex items-center gap-3">
-                  <BookUser className="h-5 w-5" />
-                  <span>Subject Details</span>
-                </div>
-                <Button variant="ghost" size="icon" onClick={handleOpenModal} className="text-navy hover:bg-secondary/10">
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">Edit Subject</span>
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div className="flex justify-between">
-                <span className="font-medium text-muted-foreground">Subject Code</span>
-                <span className="font-mono text-navy">{subject.code}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-muted-foreground">Standard/Form</span>
-                <Badge className={getStandardColor(subject.standard)}>{subject.standard}</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="border-secondary/20 shadow-md">
             <CardHeader className="bg-gradient-to-r from-secondary/10 to-primary/10">
               <CardTitle className="flex items-center justify-between text-navy">
