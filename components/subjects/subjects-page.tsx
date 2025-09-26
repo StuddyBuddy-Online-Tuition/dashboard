@@ -38,8 +38,7 @@ export default function SubjectsPage() {
         (searchQuery === "" ||
           subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           subject.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          subject.standard.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          subject.teacherName.toLowerCase().includes(searchQuery.toLowerCase())),
+          subject.standard.toLowerCase().includes(searchQuery.toLowerCase())),
     )
   }, [searchQuery, subjects, standardFilter])
 
@@ -68,7 +67,8 @@ export default function SubjectsPage() {
         code: "",
         name: "",
         standard: "",
-        teacherName: "",
+        type: "Classroom",
+        subject: "",
       } as Subject)
     }
     setIsModalOpen(true)
@@ -271,7 +271,7 @@ export default function SubjectsPage() {
                   <th className="py-3 px-4 text-left font-medium text-navy">Subject Code</th>
                   <th className="py-3 px-4 text-left font-medium text-navy">Subject Name</th>
                   <th className="py-3 px-4 text-left font-medium text-navy">Standard/Form</th>
-                  <th className="py-3 px-4 text-left font-medium text-navy">Teacher Name</th>
+                        
                   <th className="py-3 px-4 text-right font-medium text-navy">Actions</th>
                 </tr>
               </thead>
@@ -294,7 +294,7 @@ export default function SubjectsPage() {
                       <td className="py-3 px-4">
                         <Badge className={`${getStandardColor(subject.standard)}`}>{subject.standard}</Badge>
                       </td>
-                      <td className="py-3 px-4">{subject.teacherName}</td>
+                      
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-1">
                           <Button

@@ -2,5 +2,6 @@ export interface Subject {
   code: string
   name: string
   standard: string
-  teacherName: string
+  type: string
+  subject: string
 }

@@ -247,7 +247,7 @@ export function TimetableModal({ title, subjects, isOpen, onClose, isOneToOneMod
                                   const abbrev = getAbbrev(subject.name)
                                   const colorClass = getSubjectColor(abbrev)
                                   return (
-                                    <div
+                    <div
                                       key={`${subject.code}-${abbrev}`}
                                       className={cn(
                                         "rounded-md border px-2 py-1 leading-tight",
@@ -260,7 +260,7 @@ export function TimetableModal({ title, subjects, isOpen, onClose, isOneToOneMod
                                         <span className="opacity-70">•</span>
                                         <span className="font-mono">{subject.code}</span>
                                       </div>
-                                      {/* Teacher shown at timeslot level; hide subject-level teacher here */}
+                      
                                     </div>
                                   )
                                 })

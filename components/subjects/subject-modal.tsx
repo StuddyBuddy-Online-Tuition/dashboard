@@ -77,7 +77,7 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="standard" className="text-right">
-              Standard
+              Std/Form
             </Label>
             <Select onValueChange={(value) => handleInputChange("standard", value)} value={formData.standard}>
               <SelectTrigger className="col-span-3">

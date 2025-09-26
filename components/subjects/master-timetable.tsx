@@ -6,7 +6,7 @@ import { STANDARD_OPTIONS } from "@/data/subject-constants"
 import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
 import { timeslots as allTimeslots } from "@/data/timeslots"
-import { cn, getAbbrev } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -51,6 +51,47 @@ function getSubjectColor(abbrev: string): string {
     if (SUBJECT_COLORS[base]) return SUBJECT_COLORS[base]
   }
   return "bg-gray-100 text-gray-900 border-gray-300"
+}
+
+// Map CSV Subject field (without BM/DLP) to our base color keys
+function getBaseAbbrevFromSubjectField(subjectField: string): string {
+  const normalized = subjectField
+    .replace(/\b(BM|DLP)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+
+  if (normalized.startsWith("kimia")) return "KIM"
+  if (normalized.startsWith("fizik")) return "FIZ"
+  if (normalized.startsWith("biology") || normalized.startsWith("biologi")) return "BIO"
+  if (normalized.startsWith("add math")) return "AM"
+  if (normalized.startsWith("matematik")) return "MM"
+  if (normalized.startsWith("bahasa malaysia")) return "BM"
+  if (normalized.startsWith("bahasa inggeris")) return "BI"
+  if (normalized.startsWith("sejarah")) return "SEJ"
+  if (normalized.startsWith("geografi")) return "GEO"
+  if (normalized.startsWith("sains")) return "SC"
+  return normalized.slice(0, 3).toUpperCase()
+}
+
+function getBaseLabelFromSubjectField(subjectField: string): string {
+  const normalized = subjectField
+    .replace(/\b(BM|DLP)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+
+  if (normalized.startsWith("kimia")) return "Kimia"
+  if (normalized.startsWith("fizik")) return "Fizik"
+  if (normalized.startsWith("biology") || normalized.startsWith("biologi")) return "Biology"
+  if (normalized.startsWith("add math")) return "Add Math"
+  if (normalized.startsWith("matematik")) return "Matematik"
+  if (normalized.startsWith("bahasa malaysia")) return "Bahasa Malaysia"
+  if (normalized.startsWith("bahasa inggeris")) return "Bahasa Inggeris"
+  if (normalized.startsWith("sejarah")) return "Sejarah"
+  if (normalized.startsWith("geografi")) return "Geografi"
+  if (normalized.startsWith("sains")) return "Sains"
+  return subjectField
 }
 
 export default function MasterTimetable() {
@@ -124,7 +165,7 @@ export default function MasterTimetable() {
         if (subjectType === "ALL") return true
         const hasDlp = /\bDLP\b/i.test(s.name)
         return subjectType === "DLP" ? hasDlp : !hasDlp
-      })
+      }).filter((s) => s.type === "Classroom")
       const subjectCodes = new Set(subjectsForStandard.map((s) => s.code))
       const normalSlots = allTimeslots.filter(
         (t) => subjectCodes.has(t.subjectCode) && t.studentId === null && t.studentName === null,
@@ -144,7 +185,7 @@ export default function MasterTimetable() {
   
   // Build legend for only the subjects currently displayed in the grid
   const legendItems = useMemo(() => {
-    const map = new Map<string, { abbrev: string; colorClass: string }>()
+    const map = new Map<string, { abbrev: string; colorClass: string; name: string }>()
     for (const standard of selectedStandards) {
       const dayMap = gridData[standard]
       if (!dayMap) continue
@@ -153,15 +194,16 @@ export default function MasterTimetable() {
         for (const idx of [0, 1] as TimeWindowIndex[]) {
           const entries = windows?.[idx] ?? []
           for (const subject of entries) {
-            if (!map.has(subject.name)) {
-              const abbrev = getAbbrev(subject.name)
-              map.set(subject.name, { abbrev, colorClass: getSubjectColor(abbrev) })
+            const baseAbbrev = getBaseAbbrevFromSubjectField(subject.subject)
+            if (!map.has(baseAbbrev)) {
+              const label = getBaseLabelFromSubjectField(subject.subject)
+              map.set(baseAbbrev, { abbrev: baseAbbrev, colorClass: getSubjectColor(baseAbbrev), name: label })
             }
           }
         }
       }
     }
-    return Array.from(map, ([name, info]) => ({ name, ...info })).sort((a, b) => a.abbrev.localeCompare(b.abbrev))
+    return Array.from(map, ([, info]) => info).sort((a, b) => a.abbrev.localeCompare(b.abbrev))
   }, [selectedStandards, gridData])
 
   function getStandardLongLabel(standard: string): string {
@@ -293,7 +335,7 @@ export default function MasterTimetable() {
                                 <span className="text-xs text-muted-foreground">-</span>
                               ) : (
                                 entries.map((subject) => {
-                                  const abbrev = getAbbrev(subject.name)
+                                  const abbrev = getBaseAbbrevFromSubjectField(subject.subject)
                                   return (
                                     <Link
                                       key={subject.code}
@@ -309,7 +351,7 @@ export default function MasterTimetable() {
                                         <span className="opacity-70">•</span>
                                         <span className="font-mono">{subject.code}</span>
                                       </div>
-                                      <div className="opacity-80 text-[10px]">{subject.teacherName}</div>
+                                      
                                     </Link>
                                   )
                                 })
