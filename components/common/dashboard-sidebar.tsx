@@ -107,6 +107,12 @@ export default function DashboardSidebar({
             path: "/dashboard/subjects/master",
             active: pathname === "/dashboard/subjects/master",
         },
+      {
+        title: "1-to-1 Timetable",
+        icon: CalendarDays,
+        path: "/dashboard/subjects/one-to-one",
+        active: pathname === "/dashboard/subjects/one-to-one",
+      },
     ]
 
     const menuItems = [

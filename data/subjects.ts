@@ -217,7 +217,7 @@ function parseCsvToSubjects(csv: string): Subject[] {
 export const subjects: Subject[] = parseCsvToSubjects(CSV_SOURCE)
 
 // Deterministic day assignment for Classroom subjects only (used by data/timeslots.ts)
-const WEEK_DAYS: Weekday[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+const WEEK_DAYS: Weekday[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 export const subjectDaySeed: Array<{ code: string; day: Weekday }> = subjects
   .filter((s) => s.type === "Classroom")
   .map((s, idx) => ({ code: s.code, day: WEEK_DAYS[idx % WEEK_DAYS.length] }))

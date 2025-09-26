@@ -42,6 +42,18 @@ const oneToOneSamples: Timeslot[] = [
   { timeslotId: "ts-010", subjectCode: "F1F4", studentId: "SBA9286", studentName: "Farah Wong", day: "Thursday", startTime: "10:00", endTime: "11:00", teacherName: randomTeacher() },
   { timeslotId: "ts-011", subjectCode: "MMS3", studentId: "SBA9227", studentName: "Adam Tan", day: "Monday", startTime: "13:00", endTime: "14:00", teacherName: randomTeacher() },
   { timeslotId: "ts-012", subjectCode: "BIS3", studentId: "SBA9227", studentName: "Adam Tan", day: "Wednesday", startTime: "14:00", endTime: "15:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-013", subjectCode: "BMS3", studentId: "SBA1164", studentName: "Bella Yusof", day: "Tuesday", startTime: "10:00", endTime: "11:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-014", subjectCode: "BIS3", studentId: "SBA1164", studentName: "Bella Yusof", day: "Thursday", startTime: "11:15", endTime: "12:15", teacherName: randomTeacher() },
+  { timeslotId: "ts-015", subjectCode: "BMS2", studentId: "SBA3623", studentName: "Jade Abdullah", day: "Monday", startTime: "09:00", endTime: "10:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-016", subjectCode: "MMS2", studentId: "SBA3623", studentName: "Jade Abdullah", day: "Wednesday", startTime: "15:00", endTime: "16:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-017", subjectCode: "MMF2", studentId: "SBA2151", studentName: "Ivan Abdullah", day: "Tuesday", startTime: "16:00", endTime: "17:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-018", subjectCode: "BIF2", studentId: "SBA2151", studentName: "Ivan Abdullah", day: "Friday", startTime: "10:00", endTime: "11:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-019", subjectCode: "S1S1", studentId: "SBA1704", studentName: "Ivan Abdullah", day: "Tuesday", startTime: "18:00", endTime: "19:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-020", subjectCode: "MMS1", studentId: "SBA1704", studentName: "Ivan Abdullah", day: "Thursday", startTime: "19:00", endTime: "20:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-021", subjectCode: "K1F4", studentId: "SBA2931", studentName: "Dina Ong", day: "Monday", startTime: "17:00", endTime: "18:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-022", subjectCode: "MMF4", studentId: "SBA2931", studentName: "Dina Ong", day: "Wednesday", startTime: "18:15", endTime: "19:15", teacherName: randomTeacher() },
+  { timeslotId: "ts-023", subjectCode: "B1F4", studentId: "SBA1190", studentName: "George Ismail", day: "Sunday", startTime: "11:00", endTime: "2:00", teacherName: randomTeacher() },
+  { timeslotId: "ts-024", subjectCode: "SEJF4", studentId: "SBA1190", studentName: "George Ismail", day: "Friday", startTime: "14:00", endTime: "15:10", teacherName: randomTeacher() },
 ]
 
 // Generate one normal slot per subject in one of the two night windows
