@@ -152,9 +152,11 @@ export default function MasterTimetable() {
     })
   }
 
+  type GridEntry = { subject: Subject; teacherName: string }
+
   const gridData = useMemo(() => {
-    // Record per standard -> day -> timeIndex -> Subject[]
-    const result: Record<string, Record<string, Record<number, Subject[]>>> = {}
+    // Record per standard -> day -> timeIndex -> GridEntry[]
+    const result: Record<string, Record<string, Record<number, GridEntry[]>>> = {}
     for (const standard of selectedStandards) {
       result[standard] = {}
       for (const day of DAYS) {
@@ -176,7 +178,7 @@ export default function MasterTimetable() {
         const idx = getTimeWindowIndex(slot.startTime, slot.endTime)
         if (idx === null) continue
         const day = slot.day
-        result[standard][day][idx].push(subject)
+        result[standard][day][idx].push({ subject, teacherName: slot.teacherName })
       }
     }
     return result
@@ -193,10 +195,10 @@ export default function MasterTimetable() {
         const windows = dayMap[day]
         for (const idx of [0, 1] as TimeWindowIndex[]) {
           const entries = windows?.[idx] ?? []
-          for (const subject of entries) {
-            const baseAbbrev = getBaseAbbrevFromSubjectField(subject.subject)
+          for (const entry of entries) {
+            const baseAbbrev = getBaseAbbrevFromSubjectField(entry.subject.subject)
             if (!map.has(baseAbbrev)) {
-              const label = getBaseLabelFromSubjectField(subject.subject)
+              const label = getBaseLabelFromSubjectField(entry.subject.subject)
               map.set(baseAbbrev, { abbrev: baseAbbrev, colorClass: getSubjectColor(baseAbbrev), name: label })
             }
           }
@@ -334,12 +336,12 @@ export default function MasterTimetable() {
                               {entries.length === 0 ? (
                                 <span className="text-xs text-muted-foreground">-</span>
                               ) : (
-                                entries.map((subject) => {
-                                  const abbrev = getBaseAbbrevFromSubjectField(subject.subject)
+                                entries.map((entry) => {
+                                  const abbrev = getBaseAbbrevFromSubjectField(entry.subject.subject)
                                   return (
                                     <Link
-                                      key={subject.code}
-                                      href={`/dashboard/subjects/${subject.code}`}
+                                      key={entry.subject.code}
+                                      href={`/dashboard/subjects/${entry.subject.code}`}
                                       className={cn(
                                         "block rounded-md border px-2 py-1 leading-tight",
                                         "text-xs hover:ring-2 ring-offset-2 ring-primary/40 transition",
@@ -349,9 +351,9 @@ export default function MasterTimetable() {
                                       <div className="flex items-center gap-1 flex-wrap">
                                         <span className="font-semibold">{abbrev}</span>
                                         <span className="opacity-70">•</span>
-                                        <span className="font-mono">{subject.code}</span>
+                                        <span className="font-mono">{entry.subject.code}</span>
                                       </div>
-                                      
+                                      <div className="opacity-80 text-[10px]">{entry.teacherName}</div>
                                     </Link>
                                   )
                                 })
