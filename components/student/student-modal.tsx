@@ -188,21 +188,7 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
               />
             </div>
 
-            {/* Email field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="email" className="text-navy sm:text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20"
-                required
-              />
-            </div>
+            
 
             {/* Student Phone field */}
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
@@ -482,6 +468,21 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
                 required
               />
             </div>
+          {/* Parent Email field */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+            <Label htmlFor="email" className="text-navy sm:text-right">
+              Email
+            </Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="sm:col-span-3 border-secondary/20"
+              required
+            />
+          </div>
           </div>
           <DialogFooter className="mt-4 sm:mt-0">
             <div className="w-full flex flex-col gap-2 sm:flex-row sm:items-center">
