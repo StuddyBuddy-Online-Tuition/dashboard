@@ -13,7 +13,6 @@ import {
     LogOut,
     Clock,
     BookOpen,
-    DollarSign,
     CalendarDays,
     ChevronDown,
     ChevronUp,
@@ -116,12 +115,6 @@ export default function DashboardSidebar({
     ]
 
     const menuItems = [
-        {
-            title: "Finance/Payment",
-            icon: DollarSign,
-            path: "/dashboard/finance",
-            active: pathname === "/dashboard/finance",
-        },
         {
             title: "Users",
             icon: UsersRound,

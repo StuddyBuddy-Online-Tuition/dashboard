@@ -286,9 +286,6 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
         registeredDate: new Date().toISOString().split("T")[0],
         modes: ["NORMAL"],
         dlp: "non-DLP",
-        nextRecurringPaymentDate: "",
-        recurringPayment: false,
-        lastPaymentMadeDate: "",
       })
     }
     setIsModalOpen(true)
