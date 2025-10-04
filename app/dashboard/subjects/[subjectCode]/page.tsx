@@ -10,8 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Clock, Users, Edit, Trash2, Plus } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+ 
 import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
 import SubjectModal from "@/components/subjects/subject-modal"
@@ -133,7 +132,7 @@ function EnrolledStudentsTable({ students, onDelete }: EnrolledStudentsTableProp
         ) : (
           <TableRow>
             <TableCell colSpan={6} className="h-24 text-center">
-              No students found for this mode.
+              No students enrolled.
             </TableCell>
           </TableRow>
         )}
@@ -144,7 +143,15 @@ function EnrolledStudentsTable({ students, onDelete }: EnrolledStudentsTableProp
 
 export default function SubjectDetailPage() {
   const params = useParams()
-  const subjectCode = params.subjectCode as string
+  const rawSubjectCode = params.subjectCode as string
+  const subjectCode = useMemo(() => {
+    try {
+      const decoded = decodeURIComponent(rawSubjectCode)
+      return decoded.replace(/\+/g, " ")
+    } catch {
+      return rawSubjectCode.replace(/\+/g, " ")
+    }
+  }, [rawSubjectCode])
   const router = useRouter()
 
   const [subjects, setSubjects] = useState(initialSubjects)
@@ -152,27 +159,14 @@ export default function SubjectDetailPage() {
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false)
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
   const [isAddStudentsModalOpen, setIsAddStudentsModalOpen] = useState(false)
-  const [showOneToOne, setShowOneToOne] = useState(false)
 
   const subject = subjects.find((s) => s.code === subjectCode)
+  const showOneToOne = subject?.type === "1 to 1"
   const [enrolledStudents, setEnrolledStudents] = useState(() =>
     students.filter((student) => student.subjects.includes(subjectCode)),
   )
 
-  const filteredStudents = useMemo(() => {
-    const arr = enrolledStudents.filter(
-      (student) =>
-        (showOneToOne ? student.modes.includes("1 TO 1") : student.modes.includes("NORMAL")) &&
-        (student.status === "active" || student.status === "trial"),
-    )
-    arr.sort((a, b) => {
-      const ai = a.status === "trial" ? 0 : 1
-      const bi = b.status === "trial" ? 0 : 1
-      if (ai !== bi) return ai - bi
-      return a.name.localeCompare(b.name)
-    })
-    return arr
-  }, [enrolledStudents, showOneToOne])
+  
 
   const excludeStudentIds = useMemo(() => enrolledStudents.map((s) => s.id), [enrolledStudents])
 
@@ -206,6 +200,8 @@ export default function SubjectDetailPage() {
   const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>(() =>
     allTimeslots.filter((t) => t.subjectCode === subjectCode && t.studentId !== null && t.studentName !== null),
   )
+
+  const activeSlots = showOneToOne ? oneToOneSlots : normalSlots
 
   const handleSaveTimeSlots = (updatedTimeSlots: Timeslot[]) => {
     setNormalSlots(updatedTimeSlots)
@@ -300,22 +296,22 @@ export default function SubjectDetailPage() {
                   <span>Class Schedule</span>
                 </div>
                 <div className="flex items-center gap-2">
-                   {(normalSlots.length > 0) || (showOneToOne && oneToOneSlots.length > 0) ? (
+                   {activeSlots.length > 0 ? (
                     <Button variant="outline" size="sm" onClick={handleOpenTimetableModal}>
                       Timetable View
                     </Button>
                   ) : null}
                   <Button
                     variant="ghost"
-                    size={normalSlots.length > 0 ? "icon" : "default"}
+                    size={activeSlots.length > 0 ? "icon" : "default"}
                     onClick={handleOpenTimeSlotModal}
                     className={
-                      normalSlots.length > 0
+                      activeSlots.length > 0
                         ? "text-navy hover:bg-secondary/10"
                         : "text-sm h-8"
                     }
                   >
-                    {normalSlots.length > 0 ? (
+                    {activeSlots.length > 0 ? (
                       <Edit className="h-4 w-4" />
                     ) : (
                       "Add Schedule"
@@ -341,15 +337,9 @@ export default function SubjectDetailPage() {
               <CardTitle className="flex items-center justify-between text-navy">
                 <div className="flex items-center gap-3">
                   <Users className="h-5 w-5" />
-                  <span>Enrolled Students ({filteredStudents.length})</span>
+                  <span>Enrolled Students ({enrolledStudents.length})</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Switch
-                    id="student-mode"
-                    checked={showOneToOne}
-                    onCheckedChange={setShowOneToOne}
-                  />
-                  <Label htmlFor="student-mode">{showOneToOne ? "1 to 1" : "Normal"}</Label>
                   <Button onClick={handleOpenAddStudentsModal} className="bg-accent text-navy hover:bg-accent/90">
                     <Plus className="mr-2 h-4 w-4" /> Add Students
                   </Button>
@@ -357,7 +347,7 @@ export default function SubjectDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <EnrolledStudentsTable students={filteredStudents} onDelete={handleDeleteStudent} />
+              <EnrolledStudentsTable students={enrolledStudents} onDelete={handleDeleteStudent} />
             </CardContent>
           </Card>
         </div>
@@ -375,6 +365,7 @@ export default function SubjectDetailPage() {
           onSave={handleSaveTimeSlots}
           isOneToOneMode={showOneToOne}
           onSaveOneToOne={handleSaveOneToOneSlots}
+          enrolledStudents={enrolledStudents}
         />
       )}
 

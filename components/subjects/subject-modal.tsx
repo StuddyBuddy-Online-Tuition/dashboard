@@ -92,7 +92,20 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
               </SelectContent>
             </Select>
           </div>
-          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="type" className="text-right">
+              Type
+            </Label>
+            <Select onValueChange={(value) => handleInputChange("type", value)} value={formData.type}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Classroom">Classroom</SelectItem>
+                <SelectItem value="1 to 1">1 to 1</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <DialogFooter>
           <DialogClose asChild>

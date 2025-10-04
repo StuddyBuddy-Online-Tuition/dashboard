@@ -86,6 +86,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [statusFilter, setStatusFilter] = useState<Status[]>(status ? [status] : [...STATUSES])
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
+  const [gradeFilter, setGradeFilter] = useState<string>("")
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     studentId: true,
@@ -120,7 +121,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
   // Reset to page 1 when search, items per page, filters, or sorting changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, itemsPerPage, statusFilter, sortRules, modesFilter])
+  }, [searchQuery, itemsPerPage, statusFilter, sortRules, modesFilter, gradeFilter])
 
   /* ----------------------------- helpers ----------------------------- */
   const filteredStudents = useMemo(
@@ -133,9 +134,10 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
           s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
           s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
         const matchesModes = modesFilter.length === 0 || s.modes.some((m) => modesFilter.includes(m))
-        return matchesStatus && matchesSearch && matchesModes
+        const matchesGrade = gradeFilter === "" || s.grade === gradeFilter
+        return matchesStatus && matchesSearch && matchesModes && matchesGrade
       }),
-    [students, statusFilter, searchQuery, modesFilter],
+    [students, statusFilter, searchQuery, modesFilter, gradeFilter],
   )
 
   const sortedStudents = useMemo(() => {
@@ -465,6 +467,21 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                 </div>
               </PopoverContent>
             </Popover>
+
+        {/* Grade filter */}
+        <Select value={gradeFilter} onValueChange={(v) => setGradeFilter(v === "__ALL__" ? "" : v)}>
+          <SelectTrigger className="w-[160px] border-secondary/20 text-left font-normal">
+            <SelectValue placeholder="Grade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__ALL__">All Grades</SelectItem>
+            {STANDARD_OPTIONS.map((g) => (
+              <SelectItem key={g} value={g}>
+                {g}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
             {/* Detail view dropdown */}
             <Select value={detailView} onValueChange={handleDetailViewChange}>

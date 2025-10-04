@@ -46,6 +46,30 @@ function getWindowKeyFromTimes(startTime: string, endTime: string): NightWindowK
   return (match?.key ?? "early") as NightWindowKey
 }
 
+function computeDurationInMinutes(startTime: string, endTime: string): number | null {
+  if (!startTime || !endTime) return null
+  const [sh, sm] = startTime.split(":").map((v) => Number(v))
+  const [eh, em] = endTime.split(":").map((v) => Number(v))
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null
+  const start = sh * 60 + sm
+  const end = eh * 60 + em
+  if (end <= start) return null
+  return end - start
+}
+
+function formatDuration(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
+  if (hours > 0) return `${hours}h`
+  return `${minutes}m`
+}
+
+function getDurationLabel(startTime: string, endTime: string): string {
+  const mins = computeDurationInMinutes(startTime, endTime)
+  return mins !== null ? formatDuration(mins) : "—"
+}
+
 interface TimeSlotModalProps {
   subject: Subject
   isOpen: boolean
@@ -53,9 +77,10 @@ interface TimeSlotModalProps {
   onSave: (timeSlots: Timeslot[]) => void
   isOneToOneMode?: boolean
   onSaveOneToOne?: (slots: OneToOneTimeslot[]) => void
+  enrolledStudents?: Student[]
 }
 
-export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode = false, onSaveOneToOne }: TimeSlotModalProps) {
+export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode = false, onSaveOneToOne, enrolledStudents: enrolledStudentsProp }: TimeSlotModalProps) {
   const [timeSlots, setTimeSlots] = useState<Timeslot[]>([])
   const [oneToOneStudents, setOneToOneStudents] = useState<Student[]>([])
   const [oneToOneSlots, setOneToOneSlots] = useState<OneToOneTimeslot[]>([])
@@ -70,17 +95,17 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
     setTimeSlots(JSON.parse(JSON.stringify(normal)))
 
     // Initialize 1-to-1 students and slots
-    const eligibleStudents = allStudents.filter(
-      (s) => Array.isArray(s.subjects) && s.subjects.includes(subject.code) && Array.isArray(s.modes) && s.modes.includes("1 TO 1"),
-    )
+    const baseCandidates = Array.isArray(enrolledStudentsProp) && enrolledStudentsProp.length > 0
+      ? enrolledStudentsProp
+      : allStudents.filter((s) => Array.isArray(s.subjects) && s.subjects.includes(subject.code))
+    const eligibleStudents = baseCandidates.filter((s) => Array.isArray(s.modes) && s.modes.includes("1 TO 1"))
     setOneToOneStudents(eligibleStudents)
 
     const slotsForSubject = allTimeslots.filter(
       (t) => t.subjectCode === subject.code && t.studentId !== null && t.studentName !== null,
     )
     setOneToOneSlots(JSON.parse(JSON.stringify(slotsForSubject)))
-
-  }, [subject])
+  }, [subject, enrolledStudentsProp])
 
   const handleTimeSlotChange = useCallback((index: number, field: keyof Timeslot, value: string) => {
     setTimeSlots((prev) => {
@@ -237,6 +262,11 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                                 {s.name}
                               </SelectItem>
                             ))}
+                            {!oneToOneStudents.some((s) => s.studentId === (slot.studentId ?? "")) && slot.studentId ? (
+                              <SelectItem key={`missing-${slot.studentId}`} value={slot.studentId}>
+                                {(slot.studentName || slot.studentId) + " (not enrolled)"}
+                              </SelectItem>
+                            ) : null}
                           </SelectContent>
                         </Select>
                       </div>
@@ -271,6 +301,9 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
+                      </div>
+                      <div className="col-span-12 flex justify-end text-xs text-muted-foreground mt-1">
+                        Duration: {getDurationLabel(slot.startTime, slot.endTime)}
                       </div>
                     </div>
                   ))}
