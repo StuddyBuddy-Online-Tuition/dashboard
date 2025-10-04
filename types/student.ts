@@ -16,10 +16,6 @@ export interface Student {
   registeredDate: string
   modes: StudentMode[]
   dlp: "DLP" | "non-DLP"
-  // Financial fields
-  nextRecurringPaymentDate: string
-  recurringPayment: boolean
-  lastPaymentMadeDate: string
 }
 
 export const STATUSES: Readonly<Student["status"][]> = ["active", "pending", "inactive", "trial", "removed"]
