@@ -188,7 +188,19 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
               />
             </div>
 
-            
+            {/* Full name field */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="fullName" className="text-navy sm:text-right">
+                Full name
+              </Label>
+              <Input
+                id="fullName"
+                name="fullName"
+                value={formData.fullName ?? ""}
+                onChange={handleChange}
+                className="sm:col-span-3 border-secondary/20"
+              />
+            </div>
 
             {/* Student Phone field */}
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">

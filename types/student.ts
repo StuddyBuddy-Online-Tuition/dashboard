@@ -1,9 +1,10 @@
-export type StudentMode = "1 TO 1" | "NORMAL" | "OTHERS"
+export type StudentMode = "1 TO 1" | "NORMAL" | "OTHERS" | "BREAK"
 
 export interface Student {
   id: string
   studentId: string
   name: string
+  fullName?: string | null
   parentName: string
   studentPhone: string // Changed from 'phone' to 'studentPhone'
   parentPhone: string // Added parent phone

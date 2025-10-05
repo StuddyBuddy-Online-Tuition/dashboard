@@ -274,6 +274,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
         id: Date.now().toString(),
         studentId: "NEW",
         name: "",
+        fullName: null,
         parentName: "",
         studentPhone: "", // Changed from 'phone' to 'studentPhone'
         parentPhone: "", // Added parent phone
