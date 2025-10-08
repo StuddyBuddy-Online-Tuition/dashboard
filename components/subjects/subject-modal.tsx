@@ -1,125 +1,121 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useEffect, useCallback } from "react"
 import type { Subject } from "@/types/subject"
+import { STANDARD_OPTIONS } from "@/data/subject-constants"
 
 interface SubjectModalProps {
-  subject: Subject
+  subject: Subject | null
   onClose: () => void
   onSave: (subject: Subject, originalCode?: string) => void
 }
 
-const STANDARD_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5"]
+const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave }) => {
+  const [formData, setFormData] = useState<Subject | null>(null)
+  const [originalCode, setOriginalCode] = useState<string | undefined>(undefined)
 
-export default function SubjectModal({ subject, onClose, onSave }: SubjectModalProps) {
-  const [formData, setFormData] = useState<Subject>(subject)
-  const [originalCode] = useState(subject.code)
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleStandardChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, standard: value }))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // Validate required fields
-    if (!formData.code.trim() || !formData.name.trim() || !formData.standard.trim()) {
-      alert("Please fill in all required fields.")
-      return
+  useEffect(() => {
+    if (subject) {
+      setFormData(JSON.parse(JSON.stringify(subject)))
+      setOriginalCode(subject.code)
     }
+  }, [subject])
 
-    onSave(formData, originalCode)
+  const handleInputChange = useCallback((field: keyof Subject, value: string) => {
+    setFormData((prev) => (prev ? { ...prev, [field]: value } : null))
+  }, [])
+
+  const handleSave = () => {
+    if (formData) {
+      onSave(formData, originalCode)
+      onClose()
+    }
   }
 
-  const isEditing = Boolean(originalCode)
+  if (!formData) return null
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] p-4 rounded-lg sm:w-auto sm:max-w-[500px] sm:p-6 border-secondary/20">
-        <DialogHeader className="bg-gradient-to-r from-secondary/20 to-primary/20 -mx-4 -mt-4 px-4 py-3 rounded-t-lg">
-          <DialogTitle className="text-navy">{isEditing ? "Edit Subject" : "Add New Subject"}</DialogTitle>
+    <Dialog open={!!subject} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] bg-white">
+        <DialogHeader>
+          <DialogTitle>{originalCode ? "Edit Subject" : "Add New Subject"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            {/* Subject Code field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="code" className="text-navy sm:text-right">
-                Subject Code *
-              </Label>
-              <Input
-                id="code"
-                name="code"
-                value={formData.code}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20 font-mono"
-                placeholder="e.g., MMF4, BIF5, K1F4"
-                required
-              />
-            </div>
-
-            {/* Subject Name field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="name" className="text-navy sm:text-right">
-                Subject Name *
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20"
-                placeholder="e.g., Mathematics, Biology, Kimia"
-                required
-              />
-            </div>
-
-            {/* Standard field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="standard" className="text-navy sm:text-right">
-                Standard/Form *
-              </Label>
-              <Select value={formData.standard} onValueChange={handleStandardChange}>
-                <SelectTrigger className="sm:col-span-3 border-secondary/20">
-                  <SelectValue placeholder="Select standard/form" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STANDARD_OPTIONS.map((standard) => (
-                    <SelectItem key={standard} value={standard}>
-                      {standard}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="grid gap-6 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="code" className="text-right">
+              Code
+            </Label>
+            <Input
+              id="code"
+              value={formData.code}
+              onChange={(e) => handleInputChange("code", e.target.value)}
+              className="col-span-3"
+            />
           </div>
-
-          <DialogFooter className="flex-col space-y-2 mt-4 sm:flex-row sm:space-y-0 sm:mt-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="w-full h-11 sm:w-auto sm:h-auto border-secondary/20 text-navy hover:bg-secondary/10 bg-transparent"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" className="w-full h-11 sm:w-auto sm:h-auto bg-accent text-navy hover:bg-accent/90">
-              {isEditing ? "Update Subject" : "Add Subject"}
-            </Button>
-          </DialogFooter>
-        </form>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="standard" className="text-right">
+              Std/Form
+            </Label>
+            <Select onValueChange={(value) => handleInputChange("standard", value)} value={formData.standard}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a standard" />
+              </SelectTrigger>
+              <SelectContent>
+                {STANDARD_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="type" className="text-right">
+              Type
+            </Label>
+            <Select onValueChange={(value) => handleInputChange("type", value)} value={formData.type}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Classroom">Classroom</SelectItem>
+                <SelectItem value="1 to 1">1 to 1</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
+
+export default SubjectModal

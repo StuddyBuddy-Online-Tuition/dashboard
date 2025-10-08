@@ -1,7 +1,10 @@
+export type StudentMode = "1 TO 1" | "NORMAL" | "OTHERS" | "BREAK"
+
 export interface Student {
   id: string
   studentId: string
   name: string
+  fullName?: string | null
   parentName: string
   studentPhone: string // Changed from 'phone' to 'studentPhone'
   parentPhone: string // Added parent phone
@@ -9,13 +12,11 @@ export interface Student {
   school: string
   grade: string
   subjects: string[]
-  status: "active" | "pending" | "inactive" | "trial"
+  status: "active" | "pending" | "inactive" | "trial" | "removed"
   classInId: string | null
   registeredDate: string
-  mode: "1 to 1" | "normal"
+  modes: StudentMode[]
   dlp: "DLP" | "non-DLP"
-  // Financial fields
-  nextRecurringPaymentDate: string
-  recurringPayment: boolean
-  lastPaymentMadeDate: string
 }
+
+export const STATUSES: Readonly<Student["status"][]> = ["active", "pending", "inactive", "trial", "removed"]

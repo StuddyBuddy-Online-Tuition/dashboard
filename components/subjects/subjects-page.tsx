@@ -1,34 +1,46 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, BookOpen, Plus, Edit, Trash2 } from "lucide-react"
+import { Search, BookOpen, Plus, Edit, Trash2, Check, CalendarDays } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import type { Subject } from "@/types/subject"
 import SubjectModal from "@/components/subjects/subject-modal"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 // Import subjects data
 import { subjects as initialSubjectsData } from "@/data/subjects"
+import { STANDARD_OPTIONS } from "@/data/subject-constants"
 
 export default function SubjectsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [subjects, setSubjects] = useState<Subject[]>(initialSubjectsData)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
+  const [standardFilter, setStandardFilter] = useState<string[]>([])
+  const router = useRouter()
 
   const filteredSubjects = useMemo(() => {
-    if (!searchQuery) return subjects
-
-    const query = searchQuery.toLowerCase()
     return subjects.filter(
       (subject) =>
-        subject.name.toLowerCase().includes(query) ||
-        subject.code.toLowerCase().includes(query) ||
-        subject.standard.toLowerCase().includes(query),
+        (standardFilter.length === 0 || standardFilter.includes(subject.standard)) &&
+        (searchQuery === "" ||
+          subject.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          subject.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          subject.standard.toLowerCase().includes(searchQuery.toLowerCase())),
     )
-  }, [searchQuery, subjects])
+  }, [searchQuery, subjects, standardFilter])
 
   // Group subjects by name for better organization
   const groupedSubjects = useMemo(() => {
@@ -42,7 +54,12 @@ export default function SubjectsPage() {
     return groups
   }, [filteredSubjects])
 
-  const handleOpenModal = (subject?: Subject) => {
+  const handleRowClick = (subjectCode: string) => {
+    router.push(`/dashboard/subjects/${subjectCode}`)
+  }
+
+  const handleOpenModal = (e: React.MouseEvent, subject?: Subject) => {
+    e.stopPropagation()
     if (subject) {
       setSelectedSubject(subject)
     } else {
@@ -50,7 +67,9 @@ export default function SubjectsPage() {
         code: "",
         name: "",
         standard: "",
-      })
+        type: "Classroom",
+        subject: "",
+      } as Subject)
     }
     setIsModalOpen(true)
   }
@@ -84,7 +103,8 @@ export default function SubjectsPage() {
     handleCloseModal()
   }
 
-  const handleDeleteSubject = (subjectCode: string) => {
+  const handleDeleteSubject = (e: React.MouseEvent, subjectCode: string) => {
+    e.stopPropagation()
     if (window.confirm("Are you sure you want to delete this subject?")) {
       setSubjects((prevSubjects) => prevSubjects.filter((s) => s.code !== subjectCode))
     }
@@ -111,7 +131,18 @@ export default function SubjectsPage() {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-muted-foreground">Total: {filteredSubjects.length} subjects</div>
-          <Button onClick={() => handleOpenModal()} className="w-full bg-accent text-navy hover:bg-accent/90 sm:w-auto">
+          <Button
+            onClick={() => router.push("/dashboard/subjects/master")}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            <CalendarDays className="mr-2 h-4 w-4" />
+            Master Timetable
+          </Button>
+          <Button
+            onClick={(e) => handleOpenModal(e)}
+            className="w-full bg-accent text-navy hover:bg-accent/90 sm:w-auto"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Subject
           </Button>
@@ -120,7 +151,7 @@ export default function SubjectsPage() {
 
       <Card className="border-secondary/20 shadow-md">
         <CardContent className="pt-6">
-          <div className="mb-6 flex items-center gap-4">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -130,6 +161,61 @@ export default function SubjectsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto justify-start border-secondary/20 text-left font-normal">
+                  <span className="mr-2">Standard</span>
+                  {standardFilter.length > 0 && (
+                    <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                      {standardFilter.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0" align="start">
+                <div className="p-1">
+                  {STANDARD_OPTIONS.map((s) => {
+                    const isSelected = standardFilter.includes(s)
+                    return (
+                      <Button
+                        key={s}
+                        variant="ghost"
+                        className="w-full justify-start font-normal"
+                        onClick={() => {
+                          setStandardFilter((prev) =>
+                            isSelected ? prev.filter((item) => item !== s) : [...prev, s],
+                          )
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
+                          )}
+                        >
+                          <Check className="h-4 w-4" />
+                        </div>
+                        <span>{s}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
+                {standardFilter.length > 0 && (
+                  <>
+                    <hr className="my-1" />
+                    <div className="p-1">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start font-normal text-destructive"
+                        onClick={() => setStandardFilter([])}
+                      >
+                        Clear filters
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Mobile Card View - hidden on desktop */}
@@ -153,7 +239,7 @@ export default function SubjectsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleOpenModal(subject)}
+                            onClick={(e) => handleOpenModal(e, subject)}
                             className="h-8 w-8 p-0 text-navy hover:bg-secondary/10"
                           >
                             <Edit className="h-3 w-3" />
@@ -162,7 +248,7 @@ export default function SubjectsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteSubject(subject.code)}
+                            onClick={(e) => handleDeleteSubject(e, subject.code)}
                             className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -185,30 +271,36 @@ export default function SubjectsPage() {
                   <th className="py-3 px-4 text-left font-medium text-navy">Subject Code</th>
                   <th className="py-3 px-4 text-left font-medium text-navy">Subject Name</th>
                   <th className="py-3 px-4 text-left font-medium text-navy">Standard/Form</th>
+                        
                   <th className="py-3 px-4 text-right font-medium text-navy">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSubjects.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="h-24 text-center">
+                    <td colSpan={5} className="h-24 text-center">
                       No subjects found.
                     </td>
                   </tr>
                 ) : (
                   filteredSubjects.map((subject) => (
-                    <tr key={subject.code} className="border-b border-secondary/10 bg-white hover:bg-secondary/5">
+                    <tr
+                      key={subject.code}
+                      className="border-b border-secondary/10 bg-white hover:bg-secondary/5 cursor-pointer"
+                      onClick={() => handleRowClick(subject.code)}
+                    >
                       <td className="py-3 px-4 font-mono text-sm font-medium text-navy">{subject.code}</td>
                       <td className="py-3 px-4 font-medium">{subject.name}</td>
                       <td className="py-3 px-4">
                         <Badge className={`${getStandardColor(subject.standard)}`}>{subject.standard}</Badge>
                       </td>
+                      
                       <td className="py-3 px-4 text-right">
                         <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleOpenModal(subject)}
+                            onClick={(e) => handleOpenModal(e, subject)}
                             className="text-navy hover:bg-secondary/10"
                           >
                             <Edit className="h-4 w-4" />
@@ -217,7 +309,7 @@ export default function SubjectsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteSubject(subject.code)}
+                            onClick={(e) => handleDeleteSubject(e, subject.code)}
                             className="text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -235,7 +327,11 @@ export default function SubjectsPage() {
       </Card>
 
       {isModalOpen && selectedSubject && (
-        <SubjectModal subject={selectedSubject} onClose={handleCloseModal} onSave={handleSaveSubject} />
+        <SubjectModal
+          subject={selectedSubject}
+          onClose={handleCloseModal}
+          onSave={handleSaveSubject}
+        />
       )}
     </div>
   )

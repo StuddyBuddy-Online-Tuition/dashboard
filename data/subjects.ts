@@ -1,92 +1,223 @@
 import type { Subject } from "@/types/subject"
+import type { Weekday } from "@/types/timeslot"
 
-export const subjects: Subject[] = [
-  { code: "K1F4", name: "Kimia", standard: "F4" },
-  { code: "K2F4", name: "Kimia", standard: "F4" },
-  { code: "K1F5", name: "Kimia", standard: "F5" },
-  { code: "K2F5", name: "Kimia", standard: "F5" },
-  { code: "B1F4", name: "Biology", standard: "F4" },
-  { code: "B2F4", name: "Biology", standard: "F4" },
-  { code: "B1F5", name: "Biology", standard: "F5" },
-  { code: "B2F5", name: "Biology", standard: "F5" },
-  { code: "F1F4", name: "Fizik", standard: "F4" },
-  { code: "F2F4", name: "Fizik", standard: "F4" },
-  { code: "F1F5", name: "Fizik", standard: "F5" },
-  { code: "F2F5", name: "Fizik", standard: "F5" },
-  { code: "AMF4", name: "Add math", standard: "F4" },
-  { code: "AMDF4", name: "Add math DLP", standard: "F4" },
-  { code: "AMF5", name: "Add math", standard: "F5" },
-  { code: "AMDF5", name: "Add math DLP", standard: "F5" },
-  { code: "PAF4", name: "Prinsip Akaun", standard: "F4" },
-  { code: "PAF5", name: "Prinsip Akaun", standard: "F5" },
-  { code: "BMS1", name: "Bahasa Malaysia", standard: "S1" },
-  { code: "BMS2", name: "Bahasa Malaysia", standard: "S2" },
-  { code: "BMS3", name: "Bahasa Malaysia", standard: "S3" },
-  { code: "BMS4", name: "Bahasa Malaysia", standard: "S4" },
-  { code: "BMS5", name: "Bahasa Malaysia", standard: "S5" },
-  { code: "BMS6", name: "Bahasa Malaysia", standard: "S6" },
-  { code: "BMF1", name: "Bahasa Malaysia", standard: "F1" },
-  { code: "BMF2", name: "Bahasa Malaysia", standard: "F2" },
-  { code: "BMF3", name: "Bahasa Malaysia", standard: "F3" },
-  { code: "BMF4", name: "Bahasa Malaysia", standard: "F4" },
-  { code: "BMF5", name: "Bahasa Malaysia", standard: "F5" },
-  { code: "BIS1", name: "Bahasa Inggeris", standard: "S1" },
-  { code: "BIS2", name: "Bahasa Inggeris", standard: "S2" },
-  { code: "BIS3", name: "Bahasa Inggeris", standard: "S3" },
-  { code: "BIS4", name: "Bahasa Inggeris", standard: "S4" },
-  { code: "BIS5", name: "Bahasa Inggeris", standard: "S5" },
-  { code: "BIS6", name: "Bahasa Inggeris", standard: "S6" },
-  { code: "BIF1", name: "Bahasa Inggeris", standard: "F1" },
-  { code: "BIF2", name: "Bahasa Inggeris", standard: "F2" },
-  { code: "BIF3", name: "Bahasa Inggeris", standard: "F3" },
-  { code: "BIF4", name: "Bahasa Inggeris", standard: "F4" },
-  { code: "BIF5", name: "Bahasa Inggeris", standard: "F5" },
-  { code: "MMS1", name: "Matematik", standard: "S1" },
-  { code: "MMS2", name: "Matematik", standard: "S2" },
-  { code: "MMS3", name: "Matematik", standard: "S3" },
-  { code: "MMS4", name: "Matematik", standard: "S4" },
-  { code: "MMS5", name: "Matematik", standard: "S5" },
-  { code: "MMS6", name: "Matematik", standard: "S6" },
-  { code: "MMF1", name: "Matematik", standard: "F1" },
-  { code: "MMF2", name: "Matematik", standard: "F2" },
-  { code: "MMF3", name: "Matematik", standard: "F3" },
-  { code: "MMF4", name: "Matematik", standard: "F4" },
-  { code: "MMDF4", name: "Matematik DLP", standard: "F4" },
-  { code: "MMF5", name: "Matematik", standard: "F5" },
-  { code: "MMDF5", name: "Matematik DLP", standard: "F5" },
-  { code: "S1S1", name: "Sains", standard: "S1" },
-  { code: "S2S1", name: "Sains", standard: "S1" },
-  { code: "S1S2", name: "Sains", standard: "S2" },
-  { code: "S2S2", name: "Sains", standard: "S2" },
-  { code: "S1S3", name: "Sains", standard: "S3" },
-  { code: "S2S3", name: "Sains", standard: "S3" },
-  { code: "S1S4", name: "Sains", standard: "S4" },
-  { code: "S2S4", name: "Sains", standard: "S4" },
-  { code: "S1S5", name: "Sains", standard: "S5" },
-  { code: "S2S5", name: "Sains", standard: "S5" },
-  { code: "S1S6", name: "Sains", standard: "S6" },
-  { code: "S2S6", name: "Sains", standard: "S6" },
-  { code: "S1F1", name: "Sains", standard: "F1" },
-  { code: "S2F1", name: "Sains", standard: "F1" },
-  { code: "S1F2", name: "Sains", standard: "F2" },
-  { code: "S2F2", name: "Sains", standard: "F2" },
-  { code: "S1F3", name: "Sains", standard: "F3" },
-  { code: "S2F3", name: "Sains", standard: "F3" },
-  { code: "S1F4", name: "Sains", standard: "F4" },
-  { code: "S2F4", name: "Sains", standard: "F4" },
-  { code: "S1F5", name: "Sains", standard: "F5" },
-  { code: "S2F5", name: "Sains", standard: "F5" },
-  { code: "SEJS4", name: "Sejarah", standard: "S4" },
-  { code: "SEJS5", name: "Sejarah", standard: "S5" },
-  { code: "SEJS6", name: "Sejarah", standard: "S6" },
-  { code: "SEJF1", name: "Sejarah", standard: "F1" },
-  { code: "SEJF2", name: "Sejarah", standard: "F2" },
-  { code: "SEJF3", name: "Sejarah", standard: "F3" },
-  { code: "SEJF4", name: "Sejarah", standard: "F4" },
-  { code: "SEJF5", name: "Sejarah", standard: "F5" },
-  { code: "GEOF1", name: "Geografi", standard: "F1" },
-  { code: "GEOF2", name: "Geografi", standard: "F2" },
-  { code: "GEOF3", name: "Geografi", standard: "F3" },
-  { code: "GEOF4", name: "Geografi", standard: "F4" },
-  { code: "GEOF5", name: "Geografi", standard: "F5" },
-]
+// Source of truth copied from data/Subject List.csv
+const CSV_SOURCE = `Code,Subject,Std/Form,Type,Name
+K1F4,Kimia BM,F4,Classroom,Kimia BM F4
+K2F4,Kimia DLP,F4,Classroom,Kimia DLP F4
+K1F5,Kimia BM,F5,Classroom,Kimia BM F5
+K2F5,Kimia DLP,F5,Classroom,Kimia DLP F5
+B1F4,Biology BM,F4,Classroom,Biology BM F4
+B2F4,Biology DLP,F4,Classroom,Biology DLP F4
+B1F5,Biology BM,F5,Classroom,Biology BM F5
+B2F5,Biology DLP,F5,Classroom,Biology DLP F5
+F1F4,Fizik BM,F4,Classroom,Fizik BM F4
+F2F4,Fizik DLP,F4,Classroom,Fizik DLP F4
+F1F5,Fizik BM,F5,Classroom,Fizik BM F5
+F2F5,Fizik DLP,F5,Classroom,Fizik DLP F5
+AMF4,Add math BM,F4,Classroom,Add math BM F4
+AMDF4,Add math DLP,F4,Classroom,Add math DLP F4
+AMF5,Add math BM,F5,Classroom,Add math BM F5
+AMDF5,Add math DLP,F5,Classroom,Add math DLP F5
+PAF4,Prinsip Akaun ,F4,Classroom,Prinsip Akaun  F4
+PAF5,Prinsip Akaun ,F5,Classroom,Prinsip Akaun  F5
+BMS1,Bahasa Malaysia ,S1,Classroom,Bahasa Malaysia  S1
+BMS2,Bahasa Malaysia ,S2,Classroom,Bahasa Malaysia  S2
+BMS3,Bahasa Malaysia ,S3,Classroom,Bahasa Malaysia  S3
+BMS4,Bahasa Malaysia ,S4,Classroom,Bahasa Malaysia  S4
+BMS5,Bahasa Malaysia ,S5,Classroom,Bahasa Malaysia  S5
+BMS6,Bahasa Malaysia ,S6,Classroom,Bahasa Malaysia  S6
+BMF1,Bahasa Malaysia ,F1,Classroom,Bahasa Malaysia  F1
+BMF2,Bahasa Malaysia ,F2,Classroom,Bahasa Malaysia  F2
+BMF3,Bahasa Malaysia ,F3,Classroom,Bahasa Malaysia  F3
+BMF4,Bahasa Malaysia ,F4,Classroom,Bahasa Malaysia  F4
+BMF5,Bahasa Malaysia ,F5,Classroom,Bahasa Malaysia  F5
+BIS1,Bahasa Inggeris ,S1,Classroom,Bahasa Inggeris  S1
+BIS2,Bahasa Inggeris ,S2,Classroom,Bahasa Inggeris  S2
+BIS3,Bahasa Inggeris ,S3,Classroom,Bahasa Inggeris  S3
+BIS4,Bahasa Inggeris ,S4,Classroom,Bahasa Inggeris  S4
+BIS5,Bahasa Inggeris ,S5,Classroom,Bahasa Inggeris  S5
+BIS6,Bahasa Inggeris ,S6,Classroom,Bahasa Inggeris  S6
+BIF1,Bahasa Inggeris ,F1,Classroom,Bahasa Inggeris  F1
+BIF2,Bahasa Inggeris ,F2,Classroom,Bahasa Inggeris  F2
+BIF3,Bahasa Inggeris ,F3,Classroom,Bahasa Inggeris  F3
+BIF4,Bahasa Inggeris ,F4,Classroom,Bahasa Inggeris  F4
+BIF5,Bahasa Inggeris ,F5,Classroom,Bahasa Inggeris  F5
+MMS1,Matematik BM,S1,Classroom,Matematik BM S1
+MMDS1,Matematik DLP,S1,Classroom,Matematik DLP S1
+MMS2,Matematik BM,S2,Classroom,Matematik BM S2
+MMDS2,Matematik DLP,S2,Classroom,Matematik DLP S2
+MMS3,Matematik BM,S3,Classroom,Matematik BM S3
+MMDS3,Matematik DLP,S3,Classroom,Matematik DLP S3
+MMS4,Matematik BM,S4,Classroom,Matematik BM S4
+MMDS4,Matematik DLP,S4,Classroom,Matematik DLP S4
+MMS5,Matematik BM,S5,Classroom,Matematik BM S5
+MMDS5,Matematik DLP,S5,Classroom,Matematik DLP S5
+MMS6,Matematik BM,S6,Classroom,Matematik BM S6
+MMDS6,Matematik DLP,S6,Classroom,Matematik DLP S6
+MMF1,Matematik BM,F1,Classroom,Matematik BM F1
+MMDF1,Matematik DLP,F1,Classroom,Matematik DLP F1
+MMF2,Matematik BM,F2,Classroom,Matematik BM F2
+MMDF2,Matematik DLP,F2,Classroom,Matematik DLP F2
+MMF3,Matematik BM,F3,Classroom,Matematik BM F3
+MMDF3,Matematik DLP,F3,Classroom,Matematik DLP F3
+MMF4,Matematik BM,F4,Classroom,Matematik BM F4
+MMDF4,Matematik DLP,F4,Classroom,Matematik DLP F4
+MMF5,Matematik BM,F5,Classroom,Matematik BM F5
+MMDF5,Matematik DLP,F5,Classroom,Matematik DLP F5
+S1S1,Sains BM,S1,Classroom,Sains BM S1
+S2S1,Sains DLP,S1,Classroom,Sains DLP S1
+S1S2,Sains BM,S2,Classroom,Sains BM S2
+S2S2,Sains DLP,S2,Classroom,Sains DLP S2
+S1S3,Sains BM,S3,Classroom,Sains BM S3
+S2S3,Sains DLP,S3,Classroom,Sains DLP S3
+S1S4,Sains BM,S4,Classroom,Sains BM S4
+S2S4,Sains DLP,S4,Classroom,Sains DLP S4
+S1S5,Sains BM,S5,Classroom,Sains BM S5
+S2S5,Sains DLP,S5,Classroom,Sains DLP S5
+S1S6,Sains BM,S6,Classroom,Sains BM S6
+S2S6,Sains DLP,S6,Classroom,Sains DLP S6
+S1F1,Sains BM,F1,Classroom,Sains BM F1
+S2F1,Sains DLP,F1,Classroom,Sains DLP F1
+S1F2,Sains BM,F2,Classroom,Sains BM F2
+S2F2,Sains DLP,F2,Classroom,Sains DLP F2
+S1F3,Sains BM,F3,Classroom,Sains BM F3
+S2F3,Sains DLP,F3,Classroom,Sains DLP F3
+S1F4,Sains BM,F4,Classroom,Sains BM F4
+S2F4,Sains DLP,F4,Classroom,Sains DLP F4
+S1F5,Sains BM,F5,Classroom,Sains BM F5
+S2F5,Sains DLP,F5,Classroom,Sains DLP F5
+SEJS4,Sejarah ,S4,Classroom,Sejarah  S4
+SEJS5,Sejarah ,S5,Classroom,Sejarah  S5
+SEJS6,Sejarah ,S6,Classroom,Sejarah  S6
+SEJF1,Sejarah ,F1,Classroom,Sejarah  F1
+SEJF2,Sejarah ,F2,Classroom,Sejarah  F2
+SEJF3,Sejarah ,F3,Classroom,Sejarah  F3
+SEJF4,Sejarah ,F4,Classroom,Sejarah  F4
+SEJF5,Sejarah ,F5,Classroom,Sejarah  F5
+GEOF1,Geografi ,F1,Classroom,Geografi  F1
+GEOF2,Geografi ,F2,Classroom,Geografi  F2
+GEOF3,Geografi ,F3,Classroom,Geografi  F3
+GEOF4,Geografi ,F4,Classroom,Geografi  F4
+GEOF5,Geografi ,F5,Classroom,Geografi  F5
+K1F4 1:1,Kimia BM,F4,1 to 1,Kimia BM F4 - 1 to 1
+K2F4 1:1,Kimia DLP,F4,1 to 1,Kimia DLP F4 - 1 to 1
+K1F5 1:1,Kimia BM,F5,1 to 1,Kimia BM F5 - 1 to 1
+K2F5 1:1,Kimia DLP,F5,1 to 1,Kimia DLP F5 - 1 to 1
+B1F4 1:1,Biology BM,F4,1 to 1,Biology BM F4 - 1 to 1
+B2F4 1:1,Biology DLP,F4,1 to 1,Biology DLP F4 - 1 to 1
+B1F5 1:1,Biology BM,F5,1 to 1,Biology BM F5 - 1 to 1
+B2F5 1:1,Biology DLP,F5,1 to 1,Biology DLP F5 - 1 to 1
+F1F4 1:1,Fizik BM,F4,1 to 1,Fizik BM F4 - 1 to 1
+F2F4 1:1,Fizik DLP,F4,1 to 1,Fizik DLP F4 - 1 to 1
+F1F5 1:1,Fizik BM,F5,1 to 1,Fizik BM F5 - 1 to 1
+F2F5 1:1,Fizik DLP,F5,1 to 1,Fizik DLP F5 - 1 to 1
+AMF4 1:1,Add math BM,F4,1 to 1,Add math BM F4 - 1 to 1
+AMDF4 1:1,Add math DLP,F4,1 to 1,Add math DLP F4 - 1 to 1
+AMF5 1:1,Add math BM,F5,1 to 1,Add math BM F5 - 1 to 1
+AMDF5 1:1,Add math DLP,F5,1 to 1,Add math DLP F5 - 1 to 1
+PAF4 1:1,Prinsip Akaun ,F4,1 to 1,Prinsip Akaun  F4 - 1 to 1
+PAF5 1:1,Prinsip Akaun ,F5,1 to 1,Prinsip Akaun  F5 - 1 to 1
+BMS1 1:1,Bahasa Malaysia ,S1,1 to 1,Bahasa Malaysia  S1 - 1 to 1
+BMS2 1:1,Bahasa Malaysia ,S2,1 to 1,Bahasa Malaysia  S2 - 1 to 1
+BMS3 1:1,Bahasa Malaysia ,S3,1 to 1,Bahasa Malaysia  S3 - 1 to 1
+BMS4 1:1,Bahasa Malaysia ,S4,1 to 1,Bahasa Malaysia  S4 - 1 to 1
+BMS5 1:1,Bahasa Malaysia ,S5,1 to 1,Bahasa Malaysia  S5 - 1 to 1
+BMS6 1:1,Bahasa Malaysia ,S6,1 to 1,Bahasa Malaysia  S6 - 1 to 1
+BMF1 1:1,Bahasa Malaysia ,F1,1 to 1,Bahasa Malaysia  F1 - 1 to 1
+BMF2 1:1,Bahasa Malaysia ,F2,1 to 1,Bahasa Malaysia  F2 - 1 to 1
+BMF3 1:1,Bahasa Malaysia ,F3,1 to 1,Bahasa Malaysia  F3 - 1 to 1
+BMF4 1:1,Bahasa Malaysia ,F4,1 to 1,Bahasa Malaysia  F4 - 1 to 1
+BMF5 1:1,Bahasa Malaysia ,F5,1 to 1,Bahasa Malaysia  F5 - 1 to 1
+BIS1 1:1,Bahasa Inggeris ,S1,1 to 1,Bahasa Inggeris  S1 - 1 to 1
+BIS2 1:1,Bahasa Inggeris ,S2,1 to 1,Bahasa Inggeris  S2 - 1 to 1
+BIS3 1:1,Bahasa Inggeris ,S3,1 to 1,Bahasa Inggeris  S3 - 1 to 1
+BIS4 1:1,Bahasa Inggeris ,S4,1 to 1,Bahasa Inggeris  S4 - 1 to 1
+BIS5 1:1,Bahasa Inggeris ,S5,1 to 1,Bahasa Inggeris  S5 - 1 to 1
+BIS6 1:1,Bahasa Inggeris ,S6,1 to 1,Bahasa Inggeris  S6 - 1 to 1
+BIF1 1:1,Bahasa Inggeris ,F1,1 to 1,Bahasa Inggeris  F1 - 1 to 1
+BIF2 1:1,Bahasa Inggeris ,F2,1 to 1,Bahasa Inggeris  F2 - 1 to 1
+BIF3 1:1,Bahasa Inggeris ,F3,1 to 1,Bahasa Inggeris  F3 - 1 to 1
+BIF4 1:1,Bahasa Inggeris ,F4,1 to 1,Bahasa Inggeris  F4 - 1 to 1
+BIF5 1:1,Bahasa Inggeris ,F5,1 to 1,Bahasa Inggeris  F5 - 1 to 1
+MMS1 1:1,Matematik BM,S1,1 to 1,Matematik BM S1 - 1 to 1
+MMDS1 1:1,Matematik DLP,S1,1 to 1,Matematik DLP S1 - 1 to 1
+MMS2 1:1,Matematik BM,S2,1 to 1,Matematik BM S2 - 1 to 1
+MMDS2 1:1,Matematik DLP,S2,1 to 1,Matematik DLP S2 - 1 to 1
+MMS3 1:1,Matematik BM,S3,1 to 1,Matematik BM S3 - 1 to 1
+MMDS3 1:1,Matematik DLP,S3,1 to 1,Matematik DLP S3 - 1 to 1
+MMS4 1:1,Matematik BM,S4,1 to 1,Matematik BM S4 - 1 to 1
+MMDS4 1:1,Matematik DLP,S4,1 to 1,Matematik DLP S4 - 1 to 1
+MMS5 1:1,Matematik BM,S5,1 to 1,Matematik BM S5 - 1 to 1
+MMDS5 1:1,Matematik DLP,S5,1 to 1,Matematik DLP S5 - 1 to 1
+MMS6 1:1,Matematik BM,S6,1 to 1,Matematik BM S6 - 1 to 1
+MMDS6 1:1,Matematik DLP,S6,1 to 1,Matematik DLP S6 - 1 to 1
+MMF1 1:1,Matematik BM,F1,1 to 1,Matematik BM F1 - 1 to 1
+MMDF1 1:1,Matematik DLP,F1,1 to 1,Matematik DLP F1 - 1 to 1
+MMF2 1:1,Matematik BM,F2,1 to 1,Matematik BM F2 - 1 to 1
+MMDF2 1:1,Matematik DLP,F2,1 to 1,Matematik DLP F2 - 1 to 1
+MMF3 1:1,Matematik BM,F3,1 to 1,Matematik BM F3 - 1 to 1
+MMDF3 1:1,Matematik DLP,F3,1 to 1,Matematik DLP F3 - 1 to 1
+MMF4 1:1,Matematik BM,F4,1 to 1,Matematik BM F4 - 1 to 1
+MMDF4 1:1,Matematik DLP,F4,1 to 1,Matematik DLP F4 - 1 to 1
+MMF5 1:1,Matematik BM,F5,1 to 1,Matematik BM F5 - 1 to 1
+MMDF5 1:1,Matematik DLP,F5,1 to 1,Matematik DLP F5 - 1 to 1
+S1S1 1:1,Sains BM,S1,1 to 1,Sains BM S1 - 1 to 1
+S2S1 1:1,Sains DLP,S1,1 to 1,Sains DLP S1 - 1 to 1
+S1S2 1:1,Sains BM,S2,1 to 1,Sains BM S2 - 1 to 1
+S2S2 1:1,Sains DLP,S2,1 to 1,Sains DLP S2 - 1 to 1
+S1S3 1:1,Sains BM,S3,1 to 1,Sains BM S3 - 1 to 1
+S2S3 1:1,Sains DLP,S3,1 to 1,Sains DLP S3 - 1 to 1
+S1S4 1:1,Sains BM,S4,1 to 1,Sains BM S4 - 1 to 1
+S2S4 1:1,Sains DLP,S4,1 to 1,Sains DLP S4 - 1 to 1
+S1S5 1:1,Sains BM,S5,1 to 1,Sains BM S5 - 1 to 1
+S2S5 1:1,Sains DLP,S5,1 to 1,Sains DLP S5 - 1 to 1
+S1S6 1:1,Sains BM,S6,1 to 1,Sains BM S6 - 1 to 1
+S2S6 1:1,Sains DLP,S6,1 to 1,Sains DLP S6 - 1 to 1
+S1F1 1:1,Sains BM,F1,1 to 1,Sains BM F1 - 1 to 1
+S2F1 1:1,Sains DLP,F1,1 to 1,Sains DLP F1 - 1 to 1
+S1F2 1:1,Sains BM,F2,1 to 1,Sains BM F2 - 1 to 1
+S2F2 1:1,Sains DLP,F2,1 to 1,Sains DLP F2 - 1 to 1
+S1F3 1:1,Sains BM,F3,1 to 1,Sains BM F3 - 1 to 1
+S2F3 1:1,Sains DLP,F3,1 to 1,Sains DLP F3 - 1 to 1
+S1F4 1:1,Sains BM,F4,1 to 1,Sains BM F4 - 1 to 1
+S2F4 1:1,Sains DLP,F4,1 to 1,Sains DLP F4 - 1 to 1
+S1F5 1:1,Sains BM,F5,1 to 1,Sains BM F5 - 1 to 1
+S2F5 1:1,Sains DLP,F5,1 to 1,Sains DLP F5 - 1 to 1
+SEJS4 1:1,Sejarah ,S4,1 to 1,Sejarah  S4 - 1 to 1
+SEJS5 1:1,Sejarah ,S5,1 to 1,Sejarah  S5 - 1 to 1
+SEJS6 1:1,Sejarah ,S6,1 to 1,Sejarah  S6 - 1 to 1
+SEJF1 1:1,Sejarah ,F1,1 to 1,Sejarah  F1 - 1 to 1
+SEJF2 1:1,Sejarah ,F2,1 to 1,Sejarah  F2 - 1 to 1
+SEJF3 1:1,Sejarah ,F3,1 to 1,Sejarah  F3 - 1 to 1
+SEJF4 1:1,Sejarah ,F4,1 to 1,Sejarah  F4 - 1 to 1
+SEJF5 1:1,Sejarah ,F5,1 to 1,Sejarah  F5 - 1 to 1
+GEOF1 1:1,Geografi ,F1,1 to 1,Geografi  F1 - 1 to 1
+GEOF2 1:1,Geografi ,F2,1 to 1,Geografi  F2 - 1 to 1
+GEOF3 1:1,Geografi ,F3,1 to 1,Geografi  F3 - 1 to 1
+GEOF4 1:1,Geografi ,F4,1 to 1,Geografi  F4 - 1 to 1
+GEOF5 1:1,Geografi ,F5,1 to 1,Geografi  F5 - 1 to 1` as const
+
+function parseCsvToSubjects(csv: string): Subject[] {
+  const lines = csv.split("\n").map((l) => l.trim()).filter(Boolean)
+  const header = lines.shift()
+  if (!header) return []
+  return lines
+    .map((line) => line.split(","))
+    .filter((parts) => parts.length >= 5)
+    .map((parts) => ({
+      code: parts[0].trim(),
+      subject: parts[1].trim(),
+      standard: parts[2].trim(),
+      type: parts[3].trim(),
+      name: parts[4].trim(),
+    }))
+}
+
+export const subjects: Subject[] = parseCsvToSubjects(CSV_SOURCE)
+
+// Deterministic day assignment for Classroom subjects only (used by data/timeslots.ts)
+const WEEK_DAYS: Weekday[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+export const subjectDaySeed: Array<{ code: string; day: Weekday }> = subjects
+  .filter((s) => s.type === "Classroom")
+  .map((s, idx) => ({ code: s.code, day: WEEK_DAYS[idx % WEEK_DAYS.length] }))

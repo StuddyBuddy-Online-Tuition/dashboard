@@ -9,27 +9,55 @@ import {
   ClipboardList,
   Clock,
   UserX,
-  Settings2,
   ChevronLeft,
   ChevronRight,
+  Check,
+  Edit,
+  Calendar,
+  X,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { RemoveStudentConfirm } from "@/components/student/RemoveStudentConfirm"
 import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
+import { STATUSES } from "@/types/student"
 import { students as mockStudentsData } from "@/data/students"
+import { cn, formatDate, getDlpColor, getGradeColor, toWhatsAppHref } from "@/lib/utils"
+import PaginationControls from "@/components/common/pagination"
+import { TimetableModal } from "@/components/common/timetable-modal"
+import { timeslots as allTimeslots } from "@/data/timeslots"
+import type { Timeslot } from "@/types/timeslot"
+import type { Subject } from "@/types/subject"
+import { subjects as allSubjects } from "@/data/subjects"
+import { STANDARD_OPTIONS } from "@/data/subject-constants"
+import type { StudentMode } from "@/types/student"
+
+type Status = Student["status"]
 
 interface StudentsPageProps {
-  status: "active" | "pending" | "inactive" | "trial"
+  status?: Status
+  showStatusFilter?: boolean
 }
 
 interface ColumnVisibility {
   studentId: boolean
+  ticketId: boolean
   name: boolean
   parentName: boolean
   studentPhone: boolean // Changed from 'phone' to 'studentPhone'
@@ -46,8 +74,9 @@ interface ColumnVisibility {
 }
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
+const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "OTHERS"]
 
-export default function StudentsPage({ status }: StudentsPageProps) {
+export default function StudentsPage({ status, showStatusFilter = false }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
   const [searchQuery, setSearchQuery] = useState("")
   const [students, setStudents] = useState<Student[]>([])
@@ -55,87 +84,174 @@ export default function StudentsPage({ status }: StudentsPageProps) {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [statusFilter, setStatusFilter] = useState<Status[]>(status ? [status] : [...STATUSES])
+  const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
+  const [gradeFilter, setGradeFilter] = useState<string>("")
+
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     studentId: true,
+    ticketId: status === "pending" || status === "trial",
     name: true,
     parentName: false,
-    studentPhone: false, // Changed from 'phone' to 'studentPhone'
+    studentPhone: true, // Changed from 'phone' to 'studentPhone'
     parentPhone: false, // Added parent phone
-    email: false,
-    school: false,
+    email: true,
+    school: true,
     grade: true,
     subjects: true,
     status: true,
-    classInId: false,
-    registeredDate: false,
+    classInId: true,
+    registeredDate: true,
     mode: true,
     dlp: true,
   })
+
+  const [detailView, setDetailView] = useState<"student" | "parent">("student")
+  type SortField = "grade" | "dlp" | "status" | "registeredDate"
+  type SortOrder = "asc" | "desc"
+  type SortRule = { field: SortField; order: SortOrder }
+  const [sortRules, setSortRules] = useState<SortRule[]>([])
+  const [modesFilter, setModesFilter] = useState<StudentMode[]>([...MODE_OPTIONS])
 
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
     setStudents(mockStudentsData)
   }, [])
 
-  // Reset to page 1 when search query or items per page changes
+  // Reset to page 1 when search, items per page, filters, or sorting changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, itemsPerPage])
+  }, [searchQuery, itemsPerPage, statusFilter, sortRules, modesFilter, gradeFilter])
 
   /* ----------------------------- helpers ----------------------------- */
   const filteredStudents = useMemo(
     () =>
-      students.filter(
-        (s) =>
-          s.status === status &&
-          (searchQuery === "" ||
-            s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            s.studentId.toLowerCase().includes(searchQuery.toLowerCase())),
-      ),
-    [students, status, searchQuery],
+      students.filter((s) => {
+        const matchesStatus = statusFilter.length === 0 || statusFilter.includes(s.status)
+        const matchesSearch =
+          searchQuery === "" ||
+          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesModes = modesFilter.length === 0 || s.modes.some((m) => modesFilter.includes(m))
+        const matchesGrade = gradeFilter === "" || s.grade === gradeFilter
+        return matchesStatus && matchesSearch && matchesModes && matchesGrade
+      }),
+    [students, statusFilter, searchQuery, modesFilter, gradeFilter],
   )
+
+  const sortedStudents = useMemo(() => {
+    if (sortRules.length === 0) return filteredStudents
+
+    const gradeOrder = new Map(STANDARD_OPTIONS.map((g, i) => [g, i]))
+    const statusOrder = new Map(STATUSES.map((st, i) => [st, i]))
+    const dlpOrder = new Map([
+      ["DLP", 0],
+      ["non-DLP", 1],
+    ])
+
+    const arr = [...filteredStudents]
+    arr.sort((a, b) => {
+      for (const rule of sortRules) {
+        const direction = rule.order === "asc" ? 1 : -1
+        let cmp = 0
+
+        if (rule.field === "grade") {
+          const ai = gradeOrder.get(a.grade) ?? Number.POSITIVE_INFINITY
+          const bi = gradeOrder.get(b.grade) ?? Number.POSITIVE_INFINITY
+          cmp = ai - bi
+        } else if (rule.field === "dlp") {
+          const ai = dlpOrder.get(a.dlp) ?? Number.POSITIVE_INFINITY
+          const bi = dlpOrder.get(b.dlp) ?? Number.POSITIVE_INFINITY
+          cmp = ai - bi
+        } else if (rule.field === "status") {
+          const ai = statusOrder.get(a.status) ?? Number.POSITIVE_INFINITY
+          const bi = statusOrder.get(b.status) ?? Number.POSITIVE_INFINITY
+          cmp = ai - bi
+        } else if (rule.field === "registeredDate") {
+          cmp = a.registeredDate.localeCompare(b.registeredDate)
+        }
+
+        if (cmp !== 0) return cmp * direction
+      }
+
+      // Final tie-breaker by name
+      return a.name.localeCompare(b.name)
+    })
+    return arr
+  }, [filteredStudents, sortRules])
 
   // Pagination calculations
   const totalItems = filteredStudents.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const paginatedStudents = filteredStudents.slice(startIndex, endIndex)
+  const paginatedStudents = sortedStudents.slice(startIndex, endIndex)
 
-  const getStatusColor = (st: string) =>
+  const getStatusColor = (st: string) => //this function is here to solve a bug, dont move to utils like the rest
     ({
-      active: "bg-secondary/20 text-secondary-foreground border-secondary/30",
-      pending: "bg-accent/20 text-accent-foreground border-accent/30",
-      trial: "bg-blue-100 text-blue-800 border-blue-300",
-      inactive: "bg-destructive/20 text-destructive-foreground border-destructive/30",
-    })[st] || "bg-muted text-muted-foreground"
-
-  const getGradeColor = (g: string) =>
-    g.startsWith("S")
-      ? "bg-green-100 text-green-800 border-green-300"
-      : g.startsWith("F")
-        ? "bg-blue-100 text-blue-800 border-blue-300"
-        : g === "CP"
-          ? "bg-purple-100 text-purple-800 border-purple-300"
-          : "bg-gray-100 text-gray-800 border-gray-300"
+      active: "bg-secondary/20 text-black border-secondary/30",
+      pending: "bg-accent/20 text-black border-accent/30",
+      trial: "bg-blue-100 text-black border-blue-300",
+      inactive: "bg-destructive/20 text-black border-destructive/30",
+      removed: "bg-gray-200 text-black border-gray-300",
+    })[st] || "bg-muted text-black"
 
   const getModeColor = (m: string) =>
-    m === "1 to 1" ? "bg-orange-100 text-orange-800 border-orange-300" : "bg-gray-100 text-gray-800 border-gray-300"
+    (
+      {
+        NORMAL: "bg-gray-100 text-gray-800 border-gray-300",
+        "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
+        OTHERS: "bg-slate-100 text-slate-800 border-slate-300",
+      } as Record<string, string>
+    )[m] || "bg-gray-100 text-gray-800 border-gray-300"
 
-  const getDlpColor = (d: string) =>
-    d === "DLP" ? "bg-purple-100 text-purple-800 border-purple-300" : "bg-gray-100 text-gray-800 border-gray-300"
+    /* ----------------------- column visibility UX ---------------------- */
+  const applyColumnsPreset = (view: "student" | "parent") => {
+    if (view === "student") {
+      setColumnVisibility({
+        studentId: true,
+        ticketId: status === "pending" || status === "trial",
+        name: true,
+        parentName: false,
+        studentPhone: true,
+        parentPhone: false,
+        email: false,
+        school: true,
+        grade: true,
+        subjects: true,
+        status: true,
+        classInId: true,
+        registeredDate: true,
+        mode: true,
+        dlp: true,
+      })
+    } else {
+      setColumnVisibility({
+        studentId: true,
+        ticketId: false,
+        name: true,
+        parentName: true,
+        studentPhone: false,
+        parentPhone: true,
+        email: true,
+        school: false,
+        grade: false,
+        subjects: false,
+        status: true,
+        classInId: false,
+        registeredDate: false,
+        mode: false,
+        dlp: false,
+      })
+    }
+  }
 
-  const formatDate = (ds: string) =>
-    new Date(ds).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
-
-  /* ----------------------- column visibility UX ---------------------- */
-  const handleColumnVisibilityChange = (key: keyof ColumnVisibility, v: boolean) =>
-    setColumnVisibility((prev) => ({ ...prev, [key]: v }))
+  const handleDetailViewChange = (value: string) => {
+    const view = value === "parent" ? "parent" : "student"
+    setDetailView(view)
+    applyColumnsPreset(view)
+  }
 
   /* -------------------------- pagination UX -------------------------- */
   const handlePageChange = (page: number) => {
@@ -148,27 +264,6 @@ export default function StudentsPage({ status }: StudentsPageProps) {
     setItemsPerPage(Number(value))
   }
 
-  // Generate page numbers for pagination
-  const getPageNumbers = () => {
-    const pages = []
-    const maxVisiblePages = 5
-
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i)
-      }
-    } else {
-      const startPage = Math.max(1, currentPage - 2)
-      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
-
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i)
-      }
-    }
-
-    return pages
-  }
-
   /* ---------------------------- modal UX ----------------------------- */
   const openModal = (student?: Student) => {
     if (student) {
@@ -179,6 +274,7 @@ export default function StudentsPage({ status }: StudentsPageProps) {
         id: Date.now().toString(),
         studentId: "NEW",
         name: "",
+        fullName: null,
         parentName: "",
         studentPhone: "", // Changed from 'phone' to 'studentPhone'
         parentPhone: "", // Added parent phone
@@ -186,14 +282,11 @@ export default function StudentsPage({ status }: StudentsPageProps) {
         school: "",
         grade: "",
         subjects: [],
-        status,
+        status: status || "pending",
         classInId: null,
         registeredDate: new Date().toISOString().split("T")[0],
-        mode: "normal",
+        modes: ["NORMAL"],
         dlp: "non-DLP",
-        nextRecurringPaymentDate: "",
-        recurringPayment: false,
-        lastPaymentMadeDate: "",
       })
     }
     setIsModalOpen(true)
@@ -217,10 +310,16 @@ export default function StudentsPage({ status }: StudentsPageProps) {
     closeModal()
   }
 
+  const handleViewTimetable = (student: Student) => {
+    setSelectedStudent(student)
+    setIsTimetableModalOpen(true)
+  }
+
   /* ------------------------------ render ----------------------------- */
 
   /* ----- page icon / title per-status ----- */
   const pageMeta = {
+    all: { icon: Users, color: "text-primary", title: "All Students", desc: "Browse all students" },
     active: { icon: Users, color: "text-secondary", title: "Active Students", desc: "Currently enrolled students" },
     pending: {
       icon: ClipboardList,
@@ -230,7 +329,8 @@ export default function StudentsPage({ status }: StudentsPageProps) {
     },
     inactive: { icon: UserX, color: "text-destructive", title: "Inactive Students", desc: "Past students" },
     trial: { icon: Clock, color: "text-blue-600", title: "Trial Students", desc: "Trial-period learners" },
-  }[status]
+    removed: { icon: UserX, color: "text-destructive", title: "Removed Students", desc: "Soft-deleted students" },
+  }[status || "all"]
 
   const VisibleColumns = Object.entries(columnVisibility)
     .filter(([, v]) => v)
@@ -271,59 +371,195 @@ export default function StudentsPage({ status }: StudentsPageProps) {
               />
             </div>
 
-            {/* Items per page selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">Show:</span>
-              <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-                <SelectTrigger className="w-20 border-secondary/20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ITEMS_PER_PAGE_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option.toString()}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {showStatusFilter && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
+                    <span className="mr-2">Status</span>
+                    {statusFilter.length > 0 && (
+                      <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                        {statusFilter.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0" align="start">
+                  <div className="p-1">
+                    {STATUSES.map((s) => {
+                      const isSelected = statusFilter.includes(s)
+                      return (
+                        <Button
+                          key={s}
+                          variant="ghost"
+                          className="w-full justify-start"
+                          onClick={() => {
+                            if (isSelected) {
+                              setStatusFilter(statusFilter.filter((fs) => fs !== s))
+                            } else {
+                              setStatusFilter([...statusFilter, s])
+                            }
+                          }}
+                        >
+                          <div
+                            className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                              isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : "opacity-50 [&_svg]:invisible",
+                            )}
+                          >
+                            <Check className={cn("h-4 w-4")} />
+                          </div>
+                          <span>{s.charAt(0).toUpperCase() + s.slice(1)}</span>
+                        </Button>
+                      )
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
 
-            {/* Column visibility toggle */}
+            {/* Modes filter */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="border-secondary/20 bg-transparent">
-                  <Settings2 className="mr-2 h-4 w-4" /> Columns
+                <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
+                  <span className="mr-2">Modes</span>
+                  {modesFilter.length > 0 && (
+                    <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                      {modesFilter.length}
+                    </Badge>
+                  )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-60 max-h-80 overflow-y-auto" align="end">
-                {(Object.keys(columnVisibility) as (keyof ColumnVisibility)[]).map((col) => (
-                  <div key={col} className="flex items-center space-x-2 py-1">
-                    <Checkbox
-                      id={col}
-                      checked={columnVisibility[col]}
-                      onCheckedChange={(v) => handleColumnVisibilityChange(col, v as boolean)}
-                    />
-                    <label htmlFor={col} className="text-sm capitalize cursor-pointer">
-                      {col === "studentId"
-                        ? "Student ID"
-                        : col === "parentName"
-                          ? "Parent Name"
-                          : col === "studentPhone"
-                            ? "Student Phone"
-                            : col === "parentPhone"
-                              ? "Parent Phone"
-                              : col === "classInId"
-                                ? "ClassIn ID"
-                                : col === "registeredDate"
-                                  ? "Registered Date"
-                                  : col.toUpperCase() === "DLP"
-                                    ? "DLP"
-                                    : col.replace(/([A-Z])/g, " $1").trim()}
-                    </label>
-                  </div>
-                ))}
+              <PopoverContent className="w-[220px] p-0" align="start">
+                <div className="p-1">
+                  {MODE_OPTIONS.map((m) => {
+                    const isSelected = modesFilter.includes(m)
+                    return (
+                      <Button
+                        key={m}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          if (isSelected) {
+                            setModesFilter(modesFilter.filter((fm) => fm !== m))
+                          } else {
+                            setModesFilter([...modesFilter, m])
+                          }
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            isSelected
+                              ? "bg-primary text-primary-foreground"
+                              : "opacity-50 [&_svg]:invisible",
+                          )}
+                        >
+                          <Check className={cn("h-4 w-4")} />
+                        </div>
+                        <span>{m}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
               </PopoverContent>
             </Popover>
+
+        {/* Grade filter */}
+        <Select value={gradeFilter} onValueChange={(v) => setGradeFilter(v === "__ALL__" ? "" : v)}>
+          <SelectTrigger className="w-[160px] border-secondary/20 text-left font-normal">
+            <SelectValue placeholder="Grade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__ALL__">All Grades</SelectItem>
+            {STANDARD_OPTIONS.map((g) => (
+              <SelectItem key={g} value={g}>
+                {g}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+            {/* Detail view dropdown */}
+            <Select value={detailView} onValueChange={handleDetailViewChange}>
+              <SelectTrigger className="w-[180px] border-secondary/20 text-left font-normal">
+                <SelectValue placeholder="View" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="student">Student details</SelectItem>
+                <SelectItem value="parent">Parent details</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sorting controls (multi-criteria, persist across views) */}
+            <div className="flex flex-col gap-2">
+              {sortRules.length === 0 && (
+                <span className="text-sm text-muted-foreground">No sorting applied</span>
+              )}
+              {sortRules.map((rule, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <Select
+                    value={rule.field}
+                    onValueChange={(v) =>
+                      setSortRules((prev) => prev.map((r, i) => (i === idx ? { ...r, field: v as SortField } : r)))
+                    }
+                  >
+                    <SelectTrigger className="w-[180px] border-secondary/20 text-left font-normal">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="grade">Grade</SelectItem>
+                      <SelectItem value="dlp">DLP</SelectItem>
+                      <SelectItem value="status">Status</SelectItem>
+                      <SelectItem value="registeredDate">Registered Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={rule.order}
+                    onValueChange={(v) =>
+                      setSortRules((prev) => prev.map((r, i) => (i === idx ? { ...r, order: v as SortOrder } : r)))
+                    }
+                  >
+                    <SelectTrigger className="w-[140px] border-secondary/20 text-left font-normal">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                      <SelectItem value="desc">Descending</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="border-secondary/20"
+                    onClick={() => setSortRules((prev) => prev.filter((_, i) => i !== idx))}
+                    aria-label="Remove sort rule"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="border-secondary/20"
+                  onClick={() => setSortRules((prev) => [...prev, { field: "registeredDate", order: "asc" }])}
+                >
+                  Add sort
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-secondary/20"
+                  onClick={() => setSortRules([])}
+                >
+                  Reset Sort
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* ---------- mobile cards ---------- */}
@@ -340,9 +576,11 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                     </div>
                     <div className="flex flex-wrap gap-1">
                       <Badge className={getGradeColor(s.grade)}>{s.grade}</Badge>
-                      <Badge className={getModeColor(s.mode)}>{s.mode}</Badge>
+                      {s.modes.map((m) => (
+                        <Badge key={m} className={getModeColor(m)}>{m}</Badge>
+                      ))}
                       <Badge className={getDlpColor(s.dlp)}>{s.dlp}</Badge>
-                      <Badge className={getStatusColor(s.status)}>{s.status}</Badge>
+                      <Badge className={getStatusColor(s.status)}>{s.status.toUpperCase()}</Badge>
                     </div>
                   </div>
 
@@ -350,8 +588,26 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                   <div className="space-y-1 text-sm">
                     {columnVisibility.parentName && <p>Parent: {s.parentName}</p>}
                     {columnVisibility.studentPhone && <p>Student Phone: {s.studentPhone}</p>}
-                    {columnVisibility.parentPhone && <p>Parent Phone: {s.parentPhone}</p>}
+                    {columnVisibility.parentPhone && (
+                      <p>
+                        Parent Phone: {toWhatsAppHref(s.parentPhone) ? (
+                          <a
+                            href={toWhatsAppHref(s.parentPhone)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline"
+                          >
+                            {s.parentPhone}
+                          </a>
+                        ) : (
+                          s.parentPhone || "-"
+                        )}
+                      </p>
+                    )}
                     {columnVisibility.email && <p>Email: {s.email}</p>}
+                    {columnVisibility.ticketId && (s.status === "pending" || s.status === "trial") && (
+                      <p>Ticket ID: {"TICKET-PLACEHOLDER"}</p>
+                    )}
                     {columnVisibility.school && <p>School: {s.school}</p>}
                     {columnVisibility.classInId && s.classInId && <p>ClassIn: {s.classInId}</p>}
                     {columnVisibility.registeredDate && <p>Registered: {formatDate(s.registeredDate)}</p>}
@@ -379,7 +635,7 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                       onClick={() => openModal(s)}
                       className="border-secondary/20 text-navy hover:bg-secondary/10"
                     >
-                      <Eye className="h-4 w-4 mr-1" /> View
+                      <Edit className="h-4 w-4 mr-1" /> View/Edit
                     </Button>
                   </div>
                 </div>
@@ -394,6 +650,9 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                 <tr className="border-b border-secondary/20">
                   {columnVisibility.studentId && (
                     <th className="py-3 px-4 text-left font-medium text-navy">Student&nbsp;ID</th>
+                  )}
+                  {columnVisibility.ticketId && (
+                    <th className="py-3 px-4 text-left font-medium text-navy">Ticket&nbsp;ID</th>
                   )}
                   {columnVisibility.name && <th className="py-3 px-4 text-left font-medium text-navy">Name</th>}
                   {columnVisibility.parentName && (
@@ -417,7 +676,7 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                   {columnVisibility.registeredDate && (
                     <th className="py-3 px-4 text-left font-medium text-navy">Registered</th>
                   )}
-                  {columnVisibility.mode && <th className="py-3 px-4 text-left font-medium text-navy">Mode</th>}
+                  {columnVisibility.mode && <th className="py-3 px-4 text-left font-medium text-navy">Modes</th>}
                   <th className="py-3 px-4 text-right font-medium text-navy">Actions</th>
                 </tr>
               </thead>
@@ -432,10 +691,30 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                   paginatedStudents.map((s) => (
                     <tr key={s.id} className="border-b border-secondary/10 bg-white hover:bg-secondary/5">
                       {columnVisibility.studentId && <td className="py-3 px-4 font-mono text-sm">{s.studentId}</td>}
+                      {columnVisibility.ticketId && (
+                        <td className="py-3 px-4 font-mono text-sm">
+                          {s.status === "pending" || s.status === "trial" ? "TICKET-PLACEHOLDER" : "-"}
+                        </td>
+                      )}
                       {columnVisibility.name && <td className="py-3 px-4 font-medium">{s.name}</td>}
                       {columnVisibility.parentName && <td className="py-3 px-4">{s.parentName}</td>}
                       {columnVisibility.studentPhone && <td className="py-3 px-4">{s.studentPhone}</td>}
-                      {columnVisibility.parentPhone && <td className="py-3 px-4">{s.parentPhone}</td>}
+                      {columnVisibility.parentPhone && (
+                        <td className="py-3 px-4">
+                          {toWhatsAppHref(s.parentPhone) ? (
+                            <a
+                              href={toWhatsAppHref(s.parentPhone)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {s.parentPhone}
+                            </a>
+                          ) : (
+                            s.parentPhone || "-"
+                          )}
+                        </td>
+                      )}
                       {columnVisibility.email && <td className="py-3 px-4">{s.email}</td>}
                       {columnVisibility.school && <td className="py-3 px-4">{s.school}</td>}
                       {columnVisibility.grade && (
@@ -464,7 +743,7 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                       )}
                       {columnVisibility.status && (
                         <td className="py-3 px-4">
-                          <Badge className={getStatusColor(s.status)}>{s.status}</Badge>
+                          <Badge className={getStatusColor(s.status)}>{s.status.toUpperCase()}</Badge>
                         </td>
                       )}
                       {columnVisibility.classInId && (
@@ -473,7 +752,11 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                       {columnVisibility.registeredDate && <td className="py-3 px-4">{formatDate(s.registeredDate)}</td>}
                       {columnVisibility.mode && (
                         <td className="py-3 px-4">
-                          <Badge className={getModeColor(s.mode)}>{s.mode}</Badge>
+                          <div className="flex flex-wrap gap-1">
+                            {s.modes.map((m) => (
+                              <Badge key={m} className={getModeColor(m)}>{m}</Badge>
+                            ))}
+                          </div>
                         </td>
                       )}
                       <td className="py-3 px-4 text-right">
@@ -483,8 +766,28 @@ export default function StudentsPage({ status }: StudentsPageProps) {
                           onClick={() => openModal(s)}
                           className="text-navy hover:bg-secondary/10"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewTimetable(s)}
+                          className="text-navy hover:bg-secondary/10"
+                        >
+                          <Calendar className="h-4 w-4" />
+                        </Button>
+                        {status !== "removed" && (
+                          <RemoveStudentConfirm
+                            studentName={s.name}
+                            triggerVariant="ghost"
+                            triggerClassName="text-destructive hover:bg-destructive/10"
+                            onConfirm={() =>
+                              setStudents((prev) =>
+                                prev.map((stu) => (stu.id === s.id ? { ...stu, status: "removed" } : stu)),
+                              )
+                            }
+                          />
+                        )}
                       </td>
                     </tr>
                   ))
@@ -495,62 +798,38 @@ export default function StudentsPage({ status }: StudentsPageProps) {
 
           {/* ---------- pagination ---------- */}
           {totalPages > 1 && (
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} students
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* Previous button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="border-secondary/20"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-
-                {/* Page numbers */}
-                <div className="flex items-center gap-1">
-                  {getPageNumbers().map((pageNum) => (
-                    <Button
-                      key={pageNum}
-                      variant={currentPage === pageNum ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(pageNum)}
-                      className={
-                        currentPage === pageNum
-                          ? "bg-primary text-primary-foreground"
-                          : "border-secondary/20 hover:bg-secondary/10"
-                      }
-                    >
-                      {pageNum}
-                    </Button>
-                  ))}
-                </div>
-
-                {/* Next button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="border-secondary/20"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
           )}
         </CardContent>
       </Card>
 
       {isModalOpen && selectedStudent && (
-        <StudentModal student={selectedStudent} onClose={closeModal} onSave={saveStudent} />
+        <StudentModal
+          student={selectedStudent}
+          onClose={closeModal}
+          onSave={saveStudent}
+          onRemove={(studentId) => {
+            setStudents((prev) => prev.map((stu) => (stu.id === studentId ? { ...stu, status: "removed" } : stu)))
+          }}
+        />
+      )}
+      {isTimetableModalOpen && selectedStudent && (
+        <TimetableModal
+          title={`Timetable for ${selectedStudent.name}`}
+          subjects={allSubjects.filter((subject) => selectedStudent.subjects.includes(subject.code))}
+          isOpen={isTimetableModalOpen}
+          onClose={() => setIsTimetableModalOpen(false)}
+          normalSlots={allTimeslots.filter(
+            (t) => selectedStudent.subjects.includes(t.subjectCode) && t.studentId === null && t.studentName === null,
+          ) as Timeslot[]}
+        />
       )}
     </div>
   )

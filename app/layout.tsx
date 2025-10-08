@@ -3,7 +3,8 @@ import './globals.css'
 import NextAuthSessionProvider from "@/components/session-provider";
 
 export const metadata: Metadata = {
-  title: 'StudyBuddy Dashboard',
+  title: 'Student Dashboard',
+  description: 'StudyBuddy Student Dashboard',
 }
 
 export default function RootLayout({
