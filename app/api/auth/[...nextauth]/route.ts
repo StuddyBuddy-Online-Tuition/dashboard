@@ -22,6 +22,22 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        // Dev override: approve if credentials match environment variables
+        const envEmail = process.env.NEXTAUTH_DEV_EMAIL || process.env.ADMIN_EMAIL;
+        const envPassword = process.env.NEXTAUTH_DEV_PASSWORD || process.env.ADMIN_PASSWORD;
+        if (
+          envEmail &&
+          envPassword &&
+          credentials.email === envEmail &&
+          credentials.password === envPassword
+        ) {
+          return {
+            id: `env:${envEmail}`,
+            name: "Admin",
+            email: envEmail,
+          };
+        }
+
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!,
