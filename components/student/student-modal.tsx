@@ -545,9 +545,11 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
               <Button
                 onClick={() => {
                   setConfirmOpen(false)
-                  // Call API to persist changes, then surface via onSave
-                  fetch(`/api/students/${formData.id}`, {
-                    method: "PATCH",
+                  const isCreate = !formData.id || formData.id.trim() === ""
+                  const url = isCreate ? "/api/students" : `/api/students/${formData.id}`
+                  const method = isCreate ? "POST" : "PATCH"
+                  fetch(url, {
+                    method,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(formData),
                   })
@@ -555,8 +557,8 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
                       if (!res.ok) throw new Error(await res.text())
                       return res.json()
                     })
-                    .then((updated) => {
-                      onSave(updated)
+                    .then((saved) => {
+                      onSave(saved)
                     })
                     .catch(() => {
                       onSave(formData)

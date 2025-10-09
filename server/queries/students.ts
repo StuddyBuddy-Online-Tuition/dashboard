@@ -137,6 +137,54 @@ export async function getAllStudents(
 }
 
 
+export async function createStudent(input: Student): Promise<Student> {
+  const supabase = getSupabaseServerClient();
+
+  const status = (input.status?.toLowerCase() as Student["status"]) ?? "pending";
+  if (!(STATUSES as readonly string[]).includes(status)) {
+    throw new Error("Invalid status");
+  }
+  const dlp = input.dlp === "DLP" ? "DLP" : "non-DLP";
+  const modes = (Array.isArray(input.modes) ? input.modes : []) as StudentMode[];
+
+  const { data: insertedRow, error: insertError } = await supabase
+    .from("students")
+    .insert({
+      studentid: input.studentId,
+      name: input.name,
+      full_name: input.fullName ?? null,
+      parentname: input.parentName,
+      studentphone: input.studentPhone,
+      parentphone: input.parentPhone,
+      email: input.email,
+      school: input.school,
+      grade: input.grade,
+      status,
+      classinid: input.classInId,
+      registereddate: input.registeredDate,
+      modes,
+      dlp,
+    })
+    .select(
+      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name"
+    )
+    .single();
+
+  if (insertError) throw insertError;
+  const created = mapDbStudentToStudent(insertedRow as DbStudent);
+
+  const subjects = input.subjects ?? [];
+  if (subjects.length > 0) {
+    const rows = subjects.map((code) => ({ studentid: created.id, subjectcode: code }));
+    const { error: subjErr } = await supabase.from("student_subjects").insert(rows);
+    if (subjErr) throw subjErr;
+    created.subjects = [...subjects];
+  }
+
+  return created;
+}
+
+
 export async function updateStudent(input: Student): Promise<Student> {
   const supabase = getSupabaseServerClient();
 

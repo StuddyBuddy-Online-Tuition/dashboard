@@ -307,7 +307,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     } else {
       // create skeleton for new student
       setSelectedStudent({
-        id: Date.now().toString(),
+        id: "",
         studentId: "NEW",
         name: "",
         fullName: null,
@@ -808,7 +808,10 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
           onSave={saveStudent}
           subjects={subjects}
           onRemove={(studentId) => {
-            setStudents((prev) => prev.map((stu) => (stu.id === studentId ? { ...stu, status: "removed" } : stu)))
+            const stu = students.find((s) => s.id === studentId)
+            if (stu) {
+              void handleRemoveStudent(stu)
+            }
           }}
         />
       )}
