@@ -38,7 +38,9 @@ export default async function AllStudentsPage({
     })
     .filter(Boolean) as { field: "registeredDate" | "status" | "grade" | "dlp" | "name"; order: "asc" | "desc" }[]
 
-  const { students, totalCount } = await getAllStudents({ page, pageSize, status: statusFilter, sort: sortRules })
+  const keyword = (sp as Record<string, string | undefined>)["keyword"]?.toString()?.trim() || undefined
+
+  const { students, totalCount } = await getAllStudents({ page, pageSize, status: statusFilter, sort: sortRules, keyword })
   const subjects = await getAllSubjects()
   return (
     <div className="w-full">

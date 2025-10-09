@@ -32,7 +32,7 @@ type SortOrder = "asc" | "desc";
 type SortRule = { field: SortField; order: SortOrder };
 
 export async function getAllStudents(
-  opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][]; sort?: SortRule[] }
+  opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][]; sort?: SortRule[]; keyword?: string }
 ): Promise<{ students: Student[]; totalCount: number }> {
   const pageUnsafe = opts?.page ?? 1;
   const pageSizeUnsafe = opts?.pageSize ?? 10;
@@ -65,6 +65,26 @@ export async function getAllStudents(
 
   if (normalizedStatuses && normalizedStatuses.length > 0) {
     query = query.in("status", normalizedStatuses);
+  }
+
+  // Keyword filter across multiple columns
+  const rawKeyword = (opts?.keyword ?? "").trim();
+  if (rawKeyword) {
+    // Supabase OR syntax uses commas as separators; avoid breaking when keyword contains commas
+    const safe = rawKeyword.replace(/[,]/g, " ");
+    const pattern = `%${safe}%`;
+    query = query.or(
+      [
+        `name.ilike.${pattern}`,
+        `email.ilike.${pattern}`,
+        `parentname.ilike.${pattern}`,
+        `studentphone.ilike.${pattern}`,
+        `parentphone.ilike.${pattern}`,
+        `school.ilike.${pattern}`,
+        `classinid.ilike.${pattern}`,
+        `full_name.ilike.${pattern}`,
+      ].join(",")
+    );
   }
 
   // Apply sorting rules if provided; fall back to createdat desc

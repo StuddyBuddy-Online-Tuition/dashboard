@@ -123,12 +123,19 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     setCurrentPage(1)
   }, [status])
 
+  // Reset to page 1 when keyword changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
   // Sync state from URL if it changes (e.g., back/forward nav or server nav)
   useEffect(() => {
     const p = Math.max(parseInt(searchParams?.get("page") ?? "1", 10) || 1, 1)
     const ps = Math.max(parseInt(searchParams?.get("pageSize") ?? "10", 10) || 10, 1)
     if (p !== currentPage) setCurrentPage(p)
     if (ps !== itemsPerPage) setItemsPerPage(ps)
+    const kw = searchParams?.get("keyword") ?? ""
+    if (kw !== searchQuery) setSearchQuery(kw)
   }, [searchParams])
 
   // When on All Students (showStatusFilter), mirror status from URL into local state
@@ -181,6 +188,12 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     const sp = new URLSearchParams(searchParams?.toString() ?? "")
     sp.set("page", String(currentPage))
     sp.set("pageSize", String(itemsPerPage))
+    const kw = (searchQuery ?? "").trim()
+    if (kw) {
+      sp.set("keyword", kw)
+    } else {
+      sp.delete("keyword")
+    }
     if (sortRules.length > 0) {
       sp.set("sort", sortRules.map((r) => `${r.field}:${r.order}`).join(","))
     } else {
@@ -199,7 +212,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       sp.delete("status")
     }
     router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
-  }, [currentPage, itemsPerPage, pathname, router, searchParams, status, showStatusFilter, statusFilter, sortRules])
+  }, [currentPage, itemsPerPage, pathname, router, searchParams, status, showStatusFilter, statusFilter, sortRules, searchQuery])
 
   /* ----------------------------- helpers ----------------------------- */
   const sortedStudents = useMemo(() => students, [students])

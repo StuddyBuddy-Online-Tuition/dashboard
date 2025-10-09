@@ -24,7 +24,7 @@ export default async function RemovedStudentsPage({
     })
     .filter(Boolean) as { field: "registeredDate" | "status" | "grade" | "dlp" | "name"; order: "asc" | "desc" }[]
 
-  const { students, totalCount } = await getAllStudents({ page, pageSize, status: "removed", sort: sortRules })
+  const { students, totalCount } = await getAllStudents({ page, pageSize, status: "removed", sort: sortRules, keyword: (sp as Record<string, string | undefined>)["keyword"]?.toString()?.trim() || undefined })
   const subjects = await getAllSubjects()
   return (
     <div className="w-full">
