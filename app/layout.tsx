@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="light" style={{ colorScheme: "light" }} suppressHydrationWarning>
       <body>
         <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
       </body>

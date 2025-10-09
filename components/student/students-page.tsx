@@ -1,16 +1,14 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   Search,
   Plus,
-  Eye,
   Users,
   ClipboardList,
   Clock,
   UserX,
-  ChevronLeft,
-  ChevronRight,
   Check,
   Edit,
   Calendar,
@@ -22,28 +20,15 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { RemoveStudentConfirm } from "@/components/student/RemoveStudentConfirm"
 import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
 import { STATUSES } from "@/types/student"
-import { students as mockStudentsData } from "@/data/students"
 import { cn, formatDate, getDlpColor, getGradeColor, toWhatsAppHref } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
 import { TimetableModal } from "@/components/common/timetable-modal"
 import { timeslots as allTimeslots } from "@/data/timeslots"
 import type { Timeslot } from "@/types/timeslot"
-import type { Subject } from "@/types/subject"
 import { subjects as allSubjects } from "@/data/subjects"
 import { STANDARD_OPTIONS } from "@/data/subject-constants"
 import type { StudentMode } from "@/types/student"
@@ -53,6 +38,8 @@ type Status = Student["status"]
 interface StudentsPageProps {
   status?: Status
   showStatusFilter?: boolean
+  initialStudents?: Student[]
+  totalItems?: number
 }
 
 interface ColumnVisibility {
@@ -76,14 +63,19 @@ interface ColumnVisibility {
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
 const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "OTHERS"]
 
-export default function StudentsPage({ status, showStatusFilter = false }: StudentsPageProps) {
+export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState("")
-  const [students, setStudents] = useState<Student[]>([])
+  const [students, setStudents] = useState<Student[]>(initialStudents ?? [])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const initialPageFromUrl = Math.max(parseInt(searchParams?.get("page") ?? "1", 10) || 1, 1)
+  const initialPageSizeFromUrl = Math.max(parseInt(searchParams?.get("pageSize") ?? "10", 10) || 10, 1)
+  const [currentPage, setCurrentPage] = useState(initialPageFromUrl)
+  const [itemsPerPage, setItemsPerPage] = useState(initialPageSizeFromUrl)
   const [statusFilter, setStatusFilter] = useState<Status[]>(status ? [status] : [...STATUSES])
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
   const [gradeFilter, setGradeFilter] = useState<string>("")
@@ -115,33 +107,44 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
 
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
-    setStudents(mockStudentsData)
-  }, [])
+    if (initialStudents) setStudents(initialStudents)
+      console.log(students)
+  }, [initialStudents])
 
-  // Reset to page 1 when search, items per page, filters, or sorting changes
+  // Reset to page 1 when items per page or sorting changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, itemsPerPage, statusFilter, sortRules, modesFilter, gradeFilter])
+  }, [itemsPerPage, sortRules])
+
+  // Reset to page 1 when status view changes (e.g., all -> inactive)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [status])
+
+  // Sync state from URL if it changes (e.g., back/forward nav or server nav)
+  useEffect(() => {
+    const p = Math.max(parseInt(searchParams?.get("page") ?? "1", 10) || 1, 1)
+    const ps = Math.max(parseInt(searchParams?.get("pageSize") ?? "10", 10) || 10, 1)
+    if (p !== currentPage) setCurrentPage(p)
+    if (ps !== itemsPerPage) setItemsPerPage(ps)
+  }, [searchParams])
+
+  // Sync pagination to URL search params (only page, pageSize)
+  useEffect(() => {
+    const sp = new URLSearchParams(searchParams?.toString() ?? "")
+    sp.set("page", String(currentPage))
+    sp.set("pageSize", String(itemsPerPage))
+    if (status) {
+      sp.set("status", status)
+    } else {
+      sp.delete("status")
+    }
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
+  }, [currentPage, itemsPerPage, pathname, router, searchParams, status])
 
   /* ----------------------------- helpers ----------------------------- */
-  const filteredStudents = useMemo(
-    () =>
-      students.filter((s) => {
-        const matchesStatus = statusFilter.length === 0 || statusFilter.includes(s.status)
-        const matchesSearch =
-          searchQuery === "" ||
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesModes = modesFilter.length === 0 || s.modes.some((m) => modesFilter.includes(m))
-        const matchesGrade = gradeFilter === "" || s.grade === gradeFilter
-        return matchesStatus && matchesSearch && matchesModes && matchesGrade
-      }),
-    [students, statusFilter, searchQuery, modesFilter, gradeFilter],
-  )
-
   const sortedStudents = useMemo(() => {
-    if (sortRules.length === 0) return filteredStudents
+    if (sortRules.length === 0) return students
 
     const gradeOrder = new Map(STANDARD_OPTIONS.map((g, i) => [g, i]))
     const statusOrder = new Map(STATUSES.map((st, i) => [st, i]))
@@ -150,7 +153,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       ["non-DLP", 1],
     ])
 
-    const arr = [...filteredStudents]
+    const arr = [...students]
     arr.sort((a, b) => {
       for (const rule of sortRules) {
         const direction = rule.order === "asc" ? 1 : -1
@@ -179,14 +182,14 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       return a.name.localeCompare(b.name)
     })
     return arr
-  }, [filteredStudents, sortRules])
+  }, [students, sortRules])
 
   // Pagination calculations
-  const totalItems = filteredStudents.length
+  const totalItems = totalItemsFromServer ?? students.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const paginatedStudents = sortedStudents.slice(startIndex, endIndex)
+  const paginatedStudents = sortedStudents // server provides the correct slice; don't slice again client-side
 
   const getStatusColor = (st: string) => //this function is here to solve a bug, dont move to utils like the rest
     ({
@@ -419,67 +422,10 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
               </Popover>
             )}
 
-            {/* Modes filter */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
-                  <span className="mr-2">Modes</span>
-                  {modesFilter.length > 0 && (
-                    <Badge variant="secondary" className="rounded-sm px-1 font-mono">
-                      {modesFilter.length}
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[220px] p-0" align="start">
-                <div className="p-1">
-                  {MODE_OPTIONS.map((m) => {
-                    const isSelected = modesFilter.includes(m)
-                    return (
-                      <Button
-                        key={m}
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          if (isSelected) {
-                            setModesFilter(modesFilter.filter((fm) => fm !== m))
-                          } else {
-                            setModesFilter([...modesFilter, m])
-                          }
-                        }}
-                      >
-                        <div
-                          className={cn(
-                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "opacity-50 [&_svg]:invisible",
-                          )}
-                        >
-                          <Check className={cn("h-4 w-4")} />
-                        </div>
-                        <span>{m}</span>
-                      </Button>
-                    )
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* Modes filter - client-side filter removed; keeping UI disabled */}
+            {/* If needed later, re-enable and wire to server */}
 
-        {/* Grade filter */}
-        <Select value={gradeFilter} onValueChange={(v) => setGradeFilter(v === "__ALL__" ? "" : v)}>
-          <SelectTrigger className="w-[160px] border-secondary/20 text-left font-normal">
-            <SelectValue placeholder="Grade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__ALL__">All Grades</SelectItem>
-            {STANDARD_OPTIONS.map((g) => (
-              <SelectItem key={g} value={g}>
-                {g}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Grade filter - client-side filter removed */}
 
             {/* Detail view dropdown */}
             <Select value={detailView} onValueChange={handleDetailViewChange}>
