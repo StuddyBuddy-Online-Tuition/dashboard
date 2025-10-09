@@ -27,7 +27,9 @@ function mapDbStudentToStudent(row: DbStudent): Student {
   };
 }
 
-export async function getAllStudents(opts?: { page?: number; pageSize?: number; status?: Student["status"] }): Promise<{ students: Student[]; totalCount: number }> {
+export async function getAllStudents(
+  opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][] }
+): Promise<{ students: Student[]; totalCount: number }> {
   const pageUnsafe = opts?.page ?? 1;
   const pageSizeUnsafe = opts?.pageSize ?? 20;
   const page = Number.isFinite(pageUnsafe) && pageUnsafe > 0 ? Math.floor(pageUnsafe) : 1;
@@ -45,10 +47,20 @@ export async function getAllStudents(opts?: { page?: number; pageSize?: number; 
       { count: "exact" }
     );
 
-  const normalizedStatus = (opts?.status as string | undefined)?.toLowerCase() as Student["status"] | undefined;
-  const statusFilter = normalizedStatus && (STATUSES as readonly string[]).includes(normalizedStatus) ? normalizedStatus : undefined;
-  if (statusFilter) {
-    query = query.eq("status", statusFilter);
+  const rawStatus = opts?.status;
+  const normalizedStatuses: Student["status"][] | undefined = Array.isArray(rawStatus)
+    ? (rawStatus
+        .map((s) => (typeof s === "string" ? (s.toLowerCase() as Student["status"]) : s))
+        .filter((s): s is Student["status"] => (STATUSES as readonly string[]).includes(s)) as Student["status"][])
+    : (typeof rawStatus === "string"
+        ? ((() => {
+            const s = rawStatus.toLowerCase() as Student["status"];
+            return (STATUSES as readonly string[]).includes(s) ? ([s] as Student["status"][]) : undefined;
+          })())
+        : undefined);
+
+  if (normalizedStatuses && normalizedStatuses.length > 0) {
+    query = query.in("status", normalizedStatuses);
   }
 
   const { data, count, error } = await query.order("createdat", { ascending: false }).range(start, end);

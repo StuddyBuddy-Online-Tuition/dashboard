@@ -129,18 +129,49 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     if (ps !== itemsPerPage) setItemsPerPage(ps)
   }, [searchParams])
 
-  // Sync pagination to URL search params (only page, pageSize)
+  // When on All Students (showStatusFilter), mirror status from URL into local state
+  useEffect(() => {
+    if (!showStatusFilter) return
+    const raw = searchParams?.get("status")?.trim().toLowerCase() ?? null
+    let next: Status[]
+    if (!raw || raw === "all") {
+      next = [...STATUSES]
+    } else {
+      const parsed = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s): s is Status => (STATUSES as readonly string[]).includes(s)) as Status[]
+      next = parsed.length > 0 ? parsed : [...STATUSES]
+    }
+    const normalized = (STATUSES as readonly string[]).filter((s) => next.includes(s as Status)) as Status[]
+    const equal = normalized.length === statusFilter.length && normalized.every((s, i) => s === statusFilter[i])
+    if (!equal) setStatusFilter(normalized)
+  }, [searchParams, showStatusFilter])
+
+  // Reset to page 1 when status filter changes (All Students page)
+  useEffect(() => {
+    if (showStatusFilter) setCurrentPage(1)
+  }, [showStatusFilter, statusFilter])
+
+  // Sync pagination and status to URL search params
   useEffect(() => {
     const sp = new URLSearchParams(searchParams?.toString() ?? "")
     sp.set("page", String(currentPage))
     sp.set("pageSize", String(itemsPerPage))
-    if (status) {
+    if (showStatusFilter) {
+      const allSelected = statusFilter.length === STATUSES.length
+      if (allSelected) {
+        sp.delete("status")
+      } else {
+        sp.set("status", statusFilter.join(","))
+      }
+    } else if (status) {
       sp.set("status", status)
     } else {
       sp.delete("status")
     }
     router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
-  }, [currentPage, itemsPerPage, pathname, router, searchParams, status])
+  }, [currentPage, itemsPerPage, pathname, router, searchParams, status, showStatusFilter, statusFilter])
 
   /* ----------------------------- helpers ----------------------------- */
   const sortedStudents = useMemo(() => {
