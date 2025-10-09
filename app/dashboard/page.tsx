@@ -4,10 +4,11 @@ import { getAllStudents } from "@/server/queries/students"
 export default async function ActiveStudentsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; pageSize?: string; status?: string }
+  searchParams: Promise<{ page?: string; pageSize?: string; status?: string }>
 }) {
-  const page = Math.max(parseInt(searchParams?.page ?? "1", 10) || 1, 1)
-  const pageSizeRaw = parseInt(searchParams?.pageSize ?? "20", 10) || 20
+  const sp = await searchParams
+  const page = Math.max(parseInt(sp?.page ?? "1", 10) || 1, 1)
+  const pageSizeRaw = parseInt(sp?.pageSize ?? "10", 10) || 10
   const pageSize = Math.min(Math.max(pageSizeRaw, 1), 100)
   const { students, totalCount } = await getAllStudents({ page, pageSize, status: "active" })
   return (

@@ -31,9 +31,9 @@ export async function getAllStudents(
   opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][] }
 ): Promise<{ students: Student[]; totalCount: number }> {
   const pageUnsafe = opts?.page ?? 1;
-  const pageSizeUnsafe = opts?.pageSize ?? 20;
+  const pageSizeUnsafe = opts?.pageSize ?? 10;
   const page = Number.isFinite(pageUnsafe) && pageUnsafe > 0 ? Math.floor(pageUnsafe) : 1;
-  const pageSizeBase = Number.isFinite(pageSizeUnsafe) && pageSizeUnsafe > 0 ? Math.floor(pageSizeUnsafe) : 20;
+  const pageSizeBase = Number.isFinite(pageSizeUnsafe) && pageSizeUnsafe > 0 ? Math.floor(pageSizeUnsafe) : 10;
   const pageSize = Math.min(pageSizeBase, 100);
 
   const start = (page - 1) * pageSize;

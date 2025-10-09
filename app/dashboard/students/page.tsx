@@ -9,7 +9,7 @@ export default async function AllStudentsPage({
 }) {
   const sp = await searchParams
   const page = Math.max(parseInt(sp?.page ?? "1", 10) || 1, 1)
-  const pageSizeRaw = parseInt(sp?.pageSize ?? "20", 10) || 20
+  const pageSizeRaw = parseInt(sp?.pageSize ?? "10", 10) || 10
   const pageSize = Math.min(Math.max(pageSizeRaw, 1), 100)
 
   const statusParamDecoded = sp?.status ? decodeURIComponent(sp.status) : undefined
