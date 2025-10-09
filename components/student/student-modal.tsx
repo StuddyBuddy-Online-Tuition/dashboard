@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { X, Plus, UserX } from "lucide-react"
 import type { Student, StudentMode } from "@/types/student"
-import { subjects as allSubjects } from "@/data/subjects"
+import type { Subject } from "@/types/subject"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import {
@@ -31,11 +31,12 @@ interface StudentModalProps {
   onClose: () => void
   onSave: (student: Student) => void
   onRemove?: (studentId: string) => void
+  subjects?: Subject[]
 }
 
 const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5", "CP"]
 
-export default function StudentModal({ student, onClose, onSave, onRemove }: StudentModalProps) {
+export default function StudentModal({ student, onClose, onSave, onRemove, subjects }: StudentModalProps) {
   const [formData, setFormData] = useState<Student>(student)
   const [newSubject, setNewSubject] = useState("")
   const [subjectPopoverOpen, setSubjectPopoverOpen] = useState(false)
@@ -134,18 +135,20 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
   }
 
   const pickerSubjects = useMemo(() => {
-    const candidates = allSubjects.filter((s) => !formData.subjects.includes(s.code))
+    const source = (subjects ?? [])
+    const candidates = source.filter((s) => !formData.subjects.includes(s.code))
     const query = subjectSearch.trim()
     if (query.length === 0) {
       if (!formData.grade) return candidates
-      return candidates.filter((s) => s.standard === formData.grade)
+      const g = formData.grade.toLowerCase()
+      return candidates.filter((s) => (s.standard ?? "").toLowerCase() === g)
     }
     return candidates
       .map((s) => ({ s, score: getRelevanceScore(s.code, s.name, s.standard, query) }))
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .map((x) => x.s)
-  }, [formData.subjects, formData.grade, subjectSearch])
+  }, [subjects, formData.subjects, formData.grade, subjectSearch])
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -213,7 +216,6 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
                 value={formData.studentPhone}
                 onChange={handleChange}
                 className="sm:col-span-3 border-secondary/20"
-                required
               />
             </div>
 
@@ -228,7 +230,6 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
                 value={formData.school}
                 onChange={handleChange}
                 className="sm:col-span-3 border-secondary/20"
-                required
               />
             </div>
 
@@ -544,7 +545,22 @@ export default function StudentModal({ student, onClose, onSave, onRemove }: Stu
               <Button
                 onClick={() => {
                   setConfirmOpen(false)
-                  onSave(formData)
+                  // Call API to persist changes, then surface via onSave
+                  fetch(`/api/students/${formData.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData),
+                  })
+                    .then(async (res) => {
+                      if (!res.ok) throw new Error(await res.text())
+                      return res.json()
+                    })
+                    .then((updated) => {
+                      onSave(updated)
+                    })
+                    .catch(() => {
+                      onSave(formData)
+                    })
                 }}
               >
                 Confirm

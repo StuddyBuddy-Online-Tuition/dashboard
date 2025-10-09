@@ -1,5 +1,6 @@
 import StudentsPage from "@/components/student/students-page"
 import { getAllStudents } from "@/server/queries/students"
+import { getAllSubjects } from "@/server/queries/subjects"
 
 export default async function InactiveStudentsPage({
   searchParams,
@@ -24,9 +25,10 @@ export default async function InactiveStudentsPage({
     .filter(Boolean) as { field: "registeredDate" | "status" | "grade" | "dlp" | "name"; order: "asc" | "desc" }[]
 
   const { students, totalCount } = await getAllStudents({ page, pageSize, status: "inactive", sort: sortRules })
+  const subjects = await getAllSubjects()
   return (
     <div className="w-full">
-      <StudentsPage status="inactive" initialStudents={students} totalItems={totalCount} />
+      <StudentsPage status="inactive" initialStudents={students} totalItems={totalCount} subjects={subjects} />
     </div>
   )
 }

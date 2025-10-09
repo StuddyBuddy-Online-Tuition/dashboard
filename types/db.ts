@@ -38,4 +38,11 @@ export type DbTimeslot = {
   studentname: string | null;
 };
 
+export type DbStudentSubject = {
+  studentid: string;
+  subjectcode: string;
+  createdat: string | null;
+  updatedat: string | null;
+};
+
 

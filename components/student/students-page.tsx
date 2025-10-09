@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RemoveStudentConfirm } from "@/components/student/RemoveStudentConfirm"
 import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
+import type { Subject } from "@/types/subject"
 import { STATUSES } from "@/types/student"
 import { cn, formatDate, getDlpColor, getGradeColor, toWhatsAppHref } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
@@ -40,6 +41,7 @@ interface StudentsPageProps {
   showStatusFilter?: boolean
   initialStudents?: Student[]
   totalItems?: number
+  subjects?: Subject[]
 }
 
 interface ColumnVisibility {
@@ -63,7 +65,7 @@ interface ColumnVisibility {
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
 const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "OTHERS"]
 
-export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer }: StudentsPageProps) {
+export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
   const router = useRouter()
   const pathname = usePathname()
@@ -334,6 +336,22 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   const handleViewTimetable = (student: Student) => {
     setSelectedStudent(student)
     setIsTimetableModalOpen(true)
+  }
+
+  const handleRemoveStudent = async (student: Student) => {
+    try {
+      const payload: Student = { ...student, status: "removed" }
+      const res = await fetch(`/api/students/${student.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const updated: Student = await res.json()
+      setStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+    } catch (_e) {
+      setStudents((prev) => prev.map((s) => (s.id === student.id ? { ...s, status: "removed" } : s)))
+    }
   }
 
   /* ------------------------------ render ----------------------------- */
@@ -745,11 +763,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                             studentName={s.name}
                             triggerVariant="ghost"
                             triggerClassName="text-destructive hover:bg-destructive/10"
-                            onConfirm={() =>
-                              setStudents((prev) =>
-                                prev.map((stu) => (stu.id === s.id ? { ...stu, status: "removed" } : stu)),
-                              )
-                            }
+                            onConfirm={() => handleRemoveStudent(s)}
                           />
                         )}
                       </td>
@@ -779,6 +793,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
           student={selectedStudent}
           onClose={closeModal}
           onSave={saveStudent}
+          subjects={subjects}
           onRemove={(studentId) => {
             setStudents((prev) => prev.map((stu) => (stu.id === studentId ? { ...stu, status: "removed" } : stu)))
           }}

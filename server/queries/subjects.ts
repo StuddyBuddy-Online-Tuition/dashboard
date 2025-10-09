@@ -13,7 +13,8 @@ export async function getAllSubjects(): Promise<Subject[]> {
     .order("code", { ascending: true });
 
   if (error) throw error;
-  return (data as DbSubject[] | null) ?? [];
+  const rows = (data as DbSubject[] | null) ?? [];
+  return rows.map((r) => ({ ...r, standard: (r.standard ?? "").toLowerCase() }));
 }
 
 

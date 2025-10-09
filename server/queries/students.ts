@@ -4,7 +4,7 @@ import "server-only";
 import type { Student, StudentMode } from "@/types/student";
 import { STATUSES } from "@/types/student";
 import { getSupabaseServerClient } from "@/server/supabase/client";
-import type { DbStudent } from "@/types/db";
+import type { DbStudent, DbStudentSubject } from "@/types/db";
 
 function mapDbStudentToStudent(row: DbStudent): Student {
   return {
@@ -91,7 +91,102 @@ export async function getAllStudents(
   const { data, count, error } = await query.range(start, end);
 
   if (error) throw error;
-  return { students: (data ?? []).map(mapDbStudentToStudent), totalCount: count ?? 0 };
+  const baseStudents = ((data as DbStudent[] | null) ?? []).map(mapDbStudentToStudent);
+
+  // Populate subjects for the current page of students using a single bulk query
+  if (baseStudents.length > 0) {
+    const studentIds = baseStudents.map((s) => s.id);
+    const supabase2 = getSupabaseServerClient();
+    const { data: subjData, error: subjError } = await supabase2
+      .from("student_subjects")
+      .select("studentid, subjectcode")
+      .in("studentid", studentIds);
+    if (subjError) throw subjError;
+    const byStudentId = new Map<string, string[]>();
+    for (const row of (subjData as DbStudentSubject[] | null) ?? []) {
+      const arr = byStudentId.get(row.studentid) ?? [];
+      arr.push(row.subjectcode);
+      byStudentId.set(row.studentid, arr);
+    }
+    for (const s of baseStudents) {
+      s.subjects = byStudentId.get(s.id) ?? [];
+    }
+  }
+
+  return { students: baseStudents, totalCount: count ?? 0 };
+}
+
+
+export async function updateStudent(input: Student): Promise<Student> {
+  const supabase = getSupabaseServerClient();
+
+  // Validate enums minimally
+  const status = (input.status?.toLowerCase() as Student["status"]) ?? "pending";
+  if (!(STATUSES as readonly string[]).includes(status)) {
+    throw new Error("Invalid status");
+  }
+  const dlp = input.dlp === "DLP" ? "DLP" : "non-DLP";
+  const modes = (Array.isArray(input.modes) ? input.modes : []) as StudentMode[];
+
+  // Update student record
+  const { data: updatedRow, error: updateError } = await supabase
+    .from("students")
+    .update({
+      studentid: input.studentId,
+      name: input.name,
+      full_name: input.fullName ?? null,
+      parentname: input.parentName,
+      studentphone: input.studentPhone,
+      parentphone: input.parentPhone,
+      email: input.email,
+      school: input.school,
+      grade: input.grade,
+      status,
+      classinid: input.classInId,
+      registereddate: input.registeredDate,
+      modes,
+      dlp,
+    })
+    .eq("id", input.id)
+    .select(
+      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name"
+    )
+    .single();
+
+  if (updateError) throw updateError;
+  const updatedStudent = mapDbStudentToStudent(updatedRow as DbStudent);
+
+  // Sync subjects: fetch existing, compute diffs, apply
+  const { data: existingRows, error: existingErr } = await supabase
+    .from("student_subjects")
+    .select("studentid, subjectcode")
+    .eq("studentid", input.id);
+  if (existingErr) throw existingErr;
+  const existing = new Set(((existingRows as DbStudentSubject[] | null) ?? []).map((r) => r.subjectcode));
+  const desired = new Set(input.subjects ?? []);
+
+  const toAdd: string[] = [];
+  const toRemove: string[] = [];
+  for (const code of desired) if (!existing.has(code)) toAdd.push(code);
+  for (const code of existing) if (!desired.has(code)) toRemove.push(code);
+
+  if (toAdd.length > 0) {
+    const rows = toAdd.map((code) => ({ studentid: input.id, subjectcode: code }));
+    const { error: addErr } = await supabase.from("student_subjects").insert(rows);
+    if (addErr) throw addErr;
+  }
+
+  if (toRemove.length > 0) {
+    const { error: delErr } = await supabase
+      .from("student_subjects")
+      .delete()
+      .eq("studentid", input.id)
+      .in("subjectcode", toRemove);
+    if (delErr) throw delErr;
+  }
+
+  updatedStudent.subjects = Array.from(desired);
+  return updatedStudent;
 }
 
 
