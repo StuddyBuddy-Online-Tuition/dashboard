@@ -148,16 +148,42 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     if (!equal) setStatusFilter(normalized)
   }, [searchParams, showStatusFilter])
 
+  // Mirror sort rules from URL → local state
+  useEffect(() => {
+    const raw = searchParams?.get("sort") ?? ""
+    const parsed = raw
+      .split(",")
+      .map((pair) => pair.trim())
+      .filter(Boolean)
+      .map((pair) => {
+        const [field, order] = pair.split(":").map((s) => s.trim())
+        const validField = ["grade", "dlp", "status", "registeredDate"].includes(field)
+        const validOrder = order === "asc" || order === "desc"
+        return validField && validOrder ? ({ field: field as SortField, order: order as SortOrder } as SortRule) : undefined
+      })
+      .filter(Boolean) as SortRule[]
+
+    const toKey = (rules: SortRule[]) => rules.map((r) => `${r.field}:${r.order}`).join(",")
+    if (toKey(parsed) !== toKey(sortRules)) {
+      setSortRules(parsed)
+    }
+  }, [searchParams])
+
   // Reset to page 1 when status filter changes (All Students page)
   useEffect(() => {
     if (showStatusFilter) setCurrentPage(1)
   }, [showStatusFilter, statusFilter])
 
-  // Sync pagination and status to URL search params
+  // Sync pagination, status and sort to URL search params
   useEffect(() => {
     const sp = new URLSearchParams(searchParams?.toString() ?? "")
     sp.set("page", String(currentPage))
     sp.set("pageSize", String(itemsPerPage))
+    if (sortRules.length > 0) {
+      sp.set("sort", sortRules.map((r) => `${r.field}:${r.order}`).join(","))
+    } else {
+      sp.delete("sort")
+    }
     if (showStatusFilter) {
       const allSelected = statusFilter.length === STATUSES.length
       if (allSelected) {
@@ -171,49 +197,10 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       sp.delete("status")
     }
     router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
-  }, [currentPage, itemsPerPage, pathname, router, searchParams, status, showStatusFilter, statusFilter])
+  }, [currentPage, itemsPerPage, pathname, router, searchParams, status, showStatusFilter, statusFilter, sortRules])
 
   /* ----------------------------- helpers ----------------------------- */
-  const sortedStudents = useMemo(() => {
-    if (sortRules.length === 0) return students
-
-    const gradeOrder = new Map(STANDARD_OPTIONS.map((g, i) => [g, i]))
-    const statusOrder = new Map(STATUSES.map((st, i) => [st, i]))
-    const dlpOrder = new Map([
-      ["DLP", 0],
-      ["non-DLP", 1],
-    ])
-
-    const arr = [...students]
-    arr.sort((a, b) => {
-      for (const rule of sortRules) {
-        const direction = rule.order === "asc" ? 1 : -1
-        let cmp = 0
-
-        if (rule.field === "grade") {
-          const ai = gradeOrder.get(a.grade) ?? Number.POSITIVE_INFINITY
-          const bi = gradeOrder.get(b.grade) ?? Number.POSITIVE_INFINITY
-          cmp = ai - bi
-        } else if (rule.field === "dlp") {
-          const ai = dlpOrder.get(a.dlp) ?? Number.POSITIVE_INFINITY
-          const bi = dlpOrder.get(b.dlp) ?? Number.POSITIVE_INFINITY
-          cmp = ai - bi
-        } else if (rule.field === "status") {
-          const ai = statusOrder.get(a.status) ?? Number.POSITIVE_INFINITY
-          const bi = statusOrder.get(b.status) ?? Number.POSITIVE_INFINITY
-          cmp = ai - bi
-        } else if (rule.field === "registeredDate") {
-          cmp = a.registeredDate.localeCompare(b.registeredDate)
-        }
-
-        if (cmp !== 0) return cmp * direction
-      }
-
-      // Final tie-breaker by name
-      return a.name.localeCompare(b.name)
-    })
-    return arr
-  }, [students, sortRules])
+  const sortedStudents = useMemo(() => students, [students])
 
   // Pagination calculations
   const totalItems = totalItemsFromServer ?? students.length

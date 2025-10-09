@@ -27,8 +27,12 @@ function mapDbStudentToStudent(row: DbStudent): Student {
   };
 }
 
+type SortField = "registeredDate" | "status" | "grade" | "dlp" | "name";
+type SortOrder = "asc" | "desc";
+type SortRule = { field: SortField; order: SortOrder };
+
 export async function getAllStudents(
-  opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][] }
+  opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][]; sort?: SortRule[] }
 ): Promise<{ students: Student[]; totalCount: number }> {
   const pageUnsafe = opts?.page ?? 1;
   const pageSizeUnsafe = opts?.pageSize ?? 10;
@@ -63,7 +67,28 @@ export async function getAllStudents(
     query = query.in("status", normalizedStatuses);
   }
 
-  const { data, count, error } = await query.order("createdat", { ascending: false }).range(start, end);
+  // Apply sorting rules if provided; fall back to createdat desc
+  const colMap: Record<SortField, string> = {
+    registeredDate: "registereddate",
+    status: "status",
+    grade: "grade",
+    dlp: "dlp",
+    name: "name",
+  };
+
+  const sortRules = (opts?.sort ?? []).filter(
+    (r): r is SortRule => !!r && r.field in colMap && (r.order === "asc" || r.order === "desc")
+  );
+
+  if (sortRules.length > 0) {
+    for (const rule of sortRules) {
+      query = query.order(colMap[rule.field], { ascending: rule.order === "asc" });
+    }
+  } else {
+    query = query.order("createdat", { ascending: false });
+  }
+
+  const { data, count, error } = await query.range(start, end);
 
   if (error) throw error;
   return { students: (data ?? []).map(mapDbStudentToStudent), totalCount: count ?? 0 };

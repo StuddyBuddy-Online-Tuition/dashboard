@@ -23,7 +23,21 @@ export default async function AllStudentsPage({
     statusFilter = parsed.length > 0 ? parsed : undefined
   }
 
-  const { students, totalCount } = await getAllStudents({ page, pageSize, status: statusFilter })
+  // Parse sort rules from URL: sort=field:order,field2:order2
+  const rawSort = (sp as Record<string, string | undefined>)["sort"] ?? undefined
+  const sortRules = (rawSort ? String(rawSort) : "")
+    .split(",")
+    .map((pair) => pair.trim())
+    .filter(Boolean)
+    .map((pair) => {
+      const [field, order] = pair.split(":").map((s) => s.trim())
+      const f = field as "registeredDate" | "status" | "grade" | "dlp" | "name"
+      const o = order === "asc" || order === "desc" ? order : undefined
+      return f && o ? { field: f, order: o } : undefined
+    })
+    .filter(Boolean) as { field: "registeredDate" | "status" | "grade" | "dlp" | "name"; order: "asc" | "desc" }[]
+
+  const { students, totalCount } = await getAllStudents({ page, pageSize, status: statusFilter, sort: sortRules })
   return (
     <div className="w-full">
       <StudentsPage showStatusFilter={true} initialStudents={students} totalItems={totalCount} />
