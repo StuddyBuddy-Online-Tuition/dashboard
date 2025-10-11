@@ -247,12 +247,62 @@ export default function SubjectDetailPage() {
 
   const activeSlots = showOneToOne ? oneToOneSlots : normalSlots
 
-  const handleSaveTimeSlots = (updatedTimeSlots: Timeslot[]) => {
-    setNormalSlots(updatedTimeSlots)
+  const handleSaveTimeSlots = async (updatedTimeSlots: Timeslot[]) => {
+    try {
+      const payload = {
+        mode: "normal",
+        timeslots: updatedTimeSlots.map((t) => ({
+          day: t.day,
+          startTime: t.startTime,
+          endTime: t.endTime,
+          teacherName: t.teacherName,
+          studentId: null,
+          studentName: null,
+        })),
+      }
+      const res = await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/timeslots`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error("Failed to save timeslots")
+      const data = await res.json()
+      const all: Timeslot[] = data.timeslots as Timeslot[]
+      const normal = all.filter((t) => t.studentId === null && t.studentName === null)
+      setNormalSlots(normal)
+      setIsTimeSlotModalOpen(false)
+    } catch {
+      // no-op
+    }
   }
 
-  const handleSaveOneToOneSlots = (updated: Timeslot[]) => {
-    setOneToOneSlots(updated)
+  const handleSaveOneToOneSlots = async (updated: Timeslot[]) => {
+    try {
+      const payload = {
+        mode: "oneToOne",
+        timeslots: updated.map((t) => ({
+          day: t.day,
+          startTime: t.startTime,
+          endTime: t.endTime,
+          teacherName: t.teacherName,
+          studentId: t.studentId,
+          studentName: t.studentName,
+        })),
+      }
+      const res = await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/timeslots`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error("Failed to save 1-to-1 timeslots")
+      const data = await res.json()
+      const all: Timeslot[] = data.timeslots as Timeslot[]
+      const oneToOne = all.filter((t) => t.studentId !== null && t.studentName !== null)
+      setOneToOneSlots(oneToOne)
+      setIsTimeSlotModalOpen(false)
+    } catch {
+      // no-op
+    }
   }
 
   const handleDeleteStudent = async (studentId: string) => {
@@ -427,6 +477,8 @@ export default function SubjectDetailPage() {
           isOneToOneMode={showOneToOne}
           onSaveOneToOne={handleSaveOneToOneSlots}
           enrolledStudents={enrolledStudents}
+          normalSlots={normalSlots}
+          oneToOneSlots={oneToOneSlots}
         />
       )}
 

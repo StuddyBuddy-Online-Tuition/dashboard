@@ -28,8 +28,6 @@ import { DAY_OPTIONS } from "@/data/subject-constants"
 import { Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { timeslots as allTimeslots } from "@/data/timeslots"
-import { students as allStudents } from "@/data/students"
 import type { Timeslot as OneToOneTimeslot } from "@/types/timeslot"
 import type { Student } from "@/types/student"
 
@@ -78,9 +76,11 @@ interface TimeSlotModalProps {
   isOneToOneMode?: boolean
   onSaveOneToOne?: (slots: OneToOneTimeslot[]) => void
   enrolledStudents?: Student[]
+  normalSlots?: Timeslot[]
+  oneToOneSlots?: OneToOneTimeslot[]
 }
 
-export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode = false, onSaveOneToOne, enrolledStudents: enrolledStudentsProp }: TimeSlotModalProps) {
+export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode = false, onSaveOneToOne, enrolledStudents: enrolledStudentsProp, normalSlots: normalSlotsProp, oneToOneSlots: oneToOneSlotsProp }: TimeSlotModalProps) {
   const [timeSlots, setTimeSlots] = useState<Timeslot[]>([])
   const [oneToOneStudents, setOneToOneStudents] = useState<Student[]>([])
   const [oneToOneSlots, setOneToOneSlots] = useState<OneToOneTimeslot[]>([])
@@ -88,24 +88,22 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
   useEffect(() => {
     if (!subject) return
 
-    // Initialize normal mode time slots from unified dataset
-    const normal = allTimeslots.filter(
+    // Initialize normal mode time slots from props (DB-backed)
+    const normal = (normalSlotsProp ?? []).filter(
       (t) => t.subjectCode === subject.code && t.studentId === null && t.studentName === null,
     )
     setTimeSlots(JSON.parse(JSON.stringify(normal)))
 
-    // Initialize 1-to-1 students and slots
-    const baseCandidates = Array.isArray(enrolledStudentsProp) && enrolledStudentsProp.length > 0
-      ? enrolledStudentsProp
-      : allStudents.filter((s) => Array.isArray(s.subjects) && s.subjects.includes(subject.code))
+    // Initialize 1-to-1 students and slots from props
+    const baseCandidates = Array.isArray(enrolledStudentsProp) ? enrolledStudentsProp : []
     const eligibleStudents = baseCandidates.filter((s) => Array.isArray(s.modes) && s.modes.includes("1 TO 1"))
     setOneToOneStudents(eligibleStudents)
 
-    const slotsForSubject = allTimeslots.filter(
+    const slotsForSubject = (oneToOneSlotsProp ?? []).filter(
       (t) => t.subjectCode === subject.code && t.studentId !== null && t.studentName !== null,
     )
     setOneToOneSlots(JSON.parse(JSON.stringify(slotsForSubject)))
-  }, [subject, enrolledStudentsProp])
+  }, [subject, enrolledStudentsProp, normalSlotsProp, oneToOneSlotsProp])
 
   const handleTimeSlotChange = useCallback((index: number, field: keyof Timeslot, value: string) => {
     setTimeSlots((prev) => {
@@ -132,9 +130,18 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
     ])
   }, [subject.code])
 
-  const removeTimeSlot = useCallback((index: number) => {
-    setTimeSlots((prev) => prev.filter((_, i) => i !== index))
-  }, [])
+  const removeTimeSlot = useCallback(async (index: number) => {
+    setTimeSlots((prev) => {
+      const slot = prev[index]
+      // Fire-and-forget delete for existing slots
+      if (slot && slot.timeslotId && !String(slot.timeslotId).startsWith("new-")) {
+        fetch(`/api/subjects/${encodeURIComponent(subject.code)}/timeslots/${encodeURIComponent(String(slot.timeslotId))}`, {
+          method: "DELETE",
+        }).catch(() => {})
+      }
+      return prev.filter((_, i) => i !== index)
+    })
+  }, [subject.code])
 
   // 1-to-1 handlers
   const handleOneToOneSlotChange = useCallback(
@@ -173,9 +180,17 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
     ])
   }, [oneToOneStudents, subject.code])
 
-  const removeOneToOneSlot = useCallback((index: number) => {
-    setOneToOneSlots((prev) => prev.filter((_, i) => i !== index))
-  }, [])
+  const removeOneToOneSlot = useCallback(async (index: number) => {
+    setOneToOneSlots((prev) => {
+      const slot = prev[index]
+      if (slot && slot.timeslotId && !String(slot.timeslotId).startsWith("new-")) {
+        fetch(`/api/subjects/${encodeURIComponent(subject.code)}/timeslots/${encodeURIComponent(String(slot.timeslotId))}`, {
+          method: "DELETE",
+        }).catch(() => {})
+      }
+      return prev.filter((_, i) => i !== index)
+    })
+  }, [subject.code])
 
   const handleSave = () => {
     if (isOneToOneMode) {
