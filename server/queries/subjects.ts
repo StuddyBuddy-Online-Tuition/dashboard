@@ -3,7 +3,8 @@
 import "server-only";
 import type { Subject } from "@/types/subject";
 import { getSupabaseServerClient } from "@/server/supabase/client";
-import type { DbSubject } from "@/types/db";
+import type { DbSubject, DbStudent, DbStudentSubject } from "@/types/db";
+import type { Student, StudentMode } from "@/types/student";
 
 export async function getAllSubjects(): Promise<Subject[]> {
   const supabase = getSupabaseServerClient();
@@ -17,4 +18,56 @@ export async function getAllSubjects(): Promise<Subject[]> {
   return rows.map((r) => ({ ...r, standard: (r.standard ?? "").toLowerCase() }));
 }
 
+export async function getSingleSubjectDetail(code: string): Promise<{ subject: Subject | null; enrolledStudents: Student[] }> {
+  const supabase = getSupabaseServerClient();
 
+  // Fetch subject
+  const { data: subjectRow, error: subjErr } = await supabase
+    .from("subjects")
+    .select("code, name, standard, type, subject")
+    .eq("code", code)
+    .maybeSingle();
+  if (subjErr) throw subjErr;
+
+  const subject: Subject | null = subjectRow
+    ? ({
+        code: (subjectRow as DbSubject).code,
+        name: (subjectRow as DbSubject).name,
+        standard: ((subjectRow as DbSubject).standard ?? "").toLowerCase(),
+        type: (subjectRow as DbSubject).type,
+        subject: (subjectRow as DbSubject).subject,
+      } as Subject)
+    : null;
+
+  if (!subject) {
+    return { subject: null, enrolledStudents: [] };
+  }
+
+  // Fetch students enrolled in this subject using inner join on student_subjects
+  const { data: joined, error: joinErr } = await supabase
+    .from("students")
+    .select("id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, student_subjects!inner(subjectcode)")
+    .eq("student_subjects.subjectcode", code);
+  if (joinErr) throw joinErr;
+
+  const enrolledStudents: Student[] = ((joined as DbStudent[] | null) ?? []).map((row) => ({
+    id: row.id,
+    studentId: row.studentid,
+    name: row.name,
+    fullName: row.full_name ?? null,
+    parentName: row.parentname ?? "",
+    studentPhone: row.studentphone ?? "",
+    parentPhone: row.parentphone ?? "",
+    email: row.email ?? "",
+    school: row.school ?? "",
+    grade: row.grade ?? "",
+    subjects: [],
+    status: row.status as Student["status"],
+    classInId: row.classinid,
+    registeredDate: row.registereddate ?? "",
+    modes: (row.modes ?? []) as StudentMode[],
+    dlp: (row.dlp?.toUpperCase() === "DLP" ? "DLP" : "non-DLP") as Student["dlp"],
+  }));
+
+  return { subject, enrolledStudents };
+}

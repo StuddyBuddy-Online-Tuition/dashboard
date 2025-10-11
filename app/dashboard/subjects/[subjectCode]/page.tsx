@@ -1,8 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { students } from "@/data/students"
 import { subjects as initialSubjects } from "@/data/subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -162,11 +161,23 @@ export default function SubjectDetailPage() {
 
   const subject = subjects.find((s) => s.code === subjectCode)
   const showOneToOne = subject?.type === "1 to 1"
-  const [enrolledStudents, setEnrolledStudents] = useState(() =>
-    students.filter((student) => student.subjects.includes(subjectCode)),
-  )
+  const [enrolledStudents, setEnrolledStudents] = useState<Student[]>([])
 
-  
+  useEffect(() => {
+    let cancelled = false
+    if (!subjectCode) return
+    fetch(`/api/subjects/${encodeURIComponent(subjectCode)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.enrolledStudents) {
+          setEnrolledStudents(data.enrolledStudents as Student[])
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [subjectCode])
 
   const excludeStudentIds = useMemo(() => enrolledStudents.map((s) => s.id), [enrolledStudents])
 
@@ -194,12 +205,28 @@ export default function SubjectDetailPage() {
   }
 
   // Local state for normal and 1-to-1 timeslots of this subject
-  const [normalSlots, setNormalSlots] = useState<Timeslot[]>(() =>
-    allTimeslots.filter((t) => t.subjectCode === subjectCode && t.studentId === null && t.studentName === null),
-  )
-  const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>(() =>
-    allTimeslots.filter((t) => t.subjectCode === subjectCode && t.studentId !== null && t.studentName !== null),
-  )
+  const [normalSlots, setNormalSlots] = useState<Timeslot[]>([])
+  const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!subjectCode) return
+    fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/timeslots`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.timeslots) {
+          const all: Timeslot[] = data.timeslots as Timeslot[]
+          const normal = all.filter((t) => t.studentId === null && t.studentName === null)
+          const oneToOne = all.filter((t) => t.studentId !== null && t.studentName !== null)
+          setNormalSlots(normal)
+          setOneToOneSlots(oneToOne)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [subjectCode])
 
   const activeSlots = showOneToOne ? oneToOneSlots : normalSlots
 

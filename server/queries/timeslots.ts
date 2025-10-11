@@ -31,4 +31,19 @@ export async function getAllTimeslots(): Promise<Timeslot[]> {
   return (data ?? []).map(mapDbTimeslotToTimeslot);
 }
 
+export async function getTimeslotsForSubject(subjectCode: string): Promise<Timeslot[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("timeslots")
+    .select(
+      "timeslotid, subjectcode, day, starttime, endtime, teachername, studentid, studentname"
+    )
+    .eq("subjectcode", subjectCode)
+    .order("day", { ascending: true })
+    .order("starttime", { ascending: true });
+
+  if (error) throw error;
+  return (data as DbTimeslot[] | null ?? []).map(mapDbTimeslotToTimeslot);
+}
+
 

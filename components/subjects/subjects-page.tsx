@@ -23,9 +23,11 @@ import { cn } from "@/lib/utils"
 import { subjects as initialSubjectsData } from "@/data/subjects"
 import { STANDARD_OPTIONS } from "@/data/subject-constants"
 
-export default function SubjectsPage() {
+type Props = { initialSubjects?: Subject[] }
+
+export default function SubjectsPage({ initialSubjects }: Props) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [subjects, setSubjects] = useState<Subject[]>(initialSubjectsData)
+  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects ?? initialSubjectsData)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [standardFilter, setStandardFilter] = useState<string[]>([])
