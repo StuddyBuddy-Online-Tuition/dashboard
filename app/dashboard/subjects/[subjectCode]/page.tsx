@@ -154,12 +154,14 @@ export default function SubjectDetailPage() {
   const router = useRouter()
 
   const [subjects, setSubjects] = useState(initialSubjects)
+  const [subjectDb, setSubjectDb] = useState<Subject | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false)
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
   const [isAddStudentsModalOpen, setIsAddStudentsModalOpen] = useState(false)
 
-  const subject = subjects.find((s) => s.code === subjectCode)
+  const subjectLocal = subjects.find((s) => s.code === subjectCode)
+  const subject = subjectDb ?? subjectLocal
   const showOneToOne = subject?.type === "1 to 1"
   const [enrolledStudents, setEnrolledStudents] = useState<Student[]>([])
 
@@ -169,9 +171,9 @@ export default function SubjectDetailPage() {
     fetch(`/api/subjects/${encodeURIComponent(subjectCode)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!cancelled && data?.enrolledStudents) {
-          setEnrolledStudents(data.enrolledStudents as Student[])
-        }
+        if (cancelled || !data) return
+        if (data.subject) setSubjectDb(data.subject as Subject)
+        if (data.enrolledStudents) setEnrolledStudents(data.enrolledStudents as Student[])
       })
       .catch(() => {})
     return () => {
@@ -215,6 +217,7 @@ export default function SubjectDetailPage() {
         }
         return newSubjects
       })
+      setSubjectDb(saved)
       handleCloseModal()
     } catch {
       // no-op: keep UI as-is
@@ -385,7 +388,10 @@ export default function SubjectDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-navy">{subject.name}</h1>
-              <Badge className={getStandardColor(subject.standard)}>{subject.standard}</Badge>
+              {(() => {
+                const std = (subject.standard ?? "").toUpperCase()
+                return <Badge className={getStandardColor(std)}>{std}</Badge>
+              })()}
               <span className="font-mono text-sm text-muted-foreground">{subject.code}</span>
             </div>
             <p className="text-sm text-muted-foreground">Detailed view of the subject and enrolled students</p>

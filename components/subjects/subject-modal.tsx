@@ -34,8 +34,13 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
   }, [subject])
 
   const handleInputChange = useCallback((field: keyof Subject, value: string) => {
-    setFormData((prev) => (prev ? { ...prev, [field]: value } : null))
-  }, [])
+    setFormData((prev) => {
+      if (!prev) return null
+      // Prevent editing code when modifying an existing subject (code is immutable)
+      if (field === "code" && originalCode) return prev
+      return { ...prev, [field]: value }
+    })
+  }, [originalCode])
 
   const handleSave = () => {
     if (formData) {
@@ -62,6 +67,8 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
               value={formData.code}
               onChange={(e) => handleInputChange("code", e.target.value)}
               className="col-span-3"
+              disabled={Boolean(originalCode)}
+              readOnly={Boolean(originalCode)}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
