@@ -24,6 +24,13 @@ export default async function AllStudentsPage({
     statusFilter = parsed.length > 0 ? parsed : undefined
   }
 
+  // Always exclude "removed" on the All Students page
+  let effectiveStatusFilter: Student["status"][] = (statusFilter ?? (STATUSES as Student["status"]["[]"]))
+    .filter((s) => s !== "removed")
+  if (effectiveStatusFilter.length === 0) {
+    effectiveStatusFilter = (STATUSES as Student["status"][]).filter((s) => s !== "removed")
+  }
+
   // Parse sort rules from URL: sort=field:order,field2:order2
   const rawSort = (sp as Record<string, string | undefined>)["sort"] ?? undefined
   const sortRules = (rawSort ? String(rawSort) : "")
@@ -40,7 +47,7 @@ export default async function AllStudentsPage({
 
   const keyword = (sp as Record<string, string | undefined>)["keyword"]?.toString()?.trim() || undefined
 
-  const { students, totalCount } = await getAllStudents({ page, pageSize, status: statusFilter, sort: sortRules, keyword })
+  const { students, totalCount } = await getAllStudents({ page, pageSize, status: effectiveStatusFilter, sort: sortRules, keyword })
   const subjects = await getAllSubjects()
   return (
     <div className="w-full">
