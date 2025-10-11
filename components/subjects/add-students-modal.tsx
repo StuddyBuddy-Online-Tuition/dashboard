@@ -15,7 +15,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useEffect, useMemo, useState } from "react"
 import type { Subject } from "@/types/subject"
 import type { Student } from "@/types/student"
-import { students as allStudents } from "@/data/students"
 import PaginationControls from "@/components/common/pagination"
 
 interface AddStudentsModalProps {
@@ -34,9 +33,13 @@ export default function AddStudentsModal({
   onAddMany,
 }: AddStudentsModalProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedQuery, setDebouncedQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [students, setStudents] = useState<Student[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -47,39 +50,51 @@ export default function AddStudentsModal({
     }
   }, [isOpen])
 
-  const availableStudents = useMemo(() => {
-    const lower = searchQuery.toLowerCase()
-    return allStudents
-      .filter(
-        (s) =>
-          s.status === "active" &&
-          !s.subjects.includes(subject.code) &&
-          !excludeStudentIds.includes(s.id),
-      )
-      .filter(
-        (s) =>
-          lower === "" ||
-          s.name.toLowerCase().includes(lower) ||
-          s.studentId.toLowerCase().includes(lower) ||
-          s.email.toLowerCase().includes(lower),
-      )
-  }, [searchQuery, subject.code, excludeStudentIds])
-
-  const totalItems = availableStudents.length
+  const totalItems = totalCount
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedStudents = availableStudents.slice(startIndex, endIndex)
 
-  const allPageSelected = paginatedStudents.length > 0 && paginatedStudents.every((s) => selectedIds.has(s.id))
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    setIsLoading(true)
+    const params = new URLSearchParams({
+      page: String(currentPage),
+      pageSize: String(itemsPerPage),
+      keyword: debouncedQuery,
+    })
+    fetch(`/api/subjects/${encodeURIComponent(subject.code)}/available-students?${params.toString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) {
+          const fetched: Student[] = (data.students as Student[]).filter((s) => !excludeStudentIds.includes(s.id))
+          setStudents(fetched)
+          setTotalCount(Number(data.totalCount ?? 0))
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, subject.code, currentPage, itemsPerPage, debouncedQuery, excludeStudentIds])
+
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(searchQuery), 300)
+    return () => clearTimeout(t)
+  }, [searchQuery])
+
+  const allPageSelected = students.length > 0 && students.every((s) => selectedIds.has(s.id))
 
   const toggleSelectAllOnPage = (checked: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (checked) {
-        paginatedStudents.forEach((s) => next.add(s.id))
+        students.forEach((s) => next.add(s.id))
       } else {
-        paginatedStudents.forEach((s) => next.delete(s.id))
+        students.forEach((s) => next.delete(s.id))
       }
       return next
     })
@@ -97,7 +112,7 @@ export default function AddStudentsModal({
   const handleAddSelected = () => {
     if (selectedIds.size === 0) return
     const idSet = new Set(selectedIds)
-    const selected = availableStudents.filter((s) => idSet.has(s.id))
+    const selected = students.filter((s) => idSet.has(s.id))
     onAddMany(selected)
     onClose()
   }
@@ -144,14 +159,20 @@ export default function AddStudentsModal({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedStudents.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : students.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="h-24 text-center">
                       No available students found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedStudents.map((s) => {
+                  students.map((s) => {
                     const isChecked = selectedIds.has(s.id)
                     return (
                       <TableRow key={s.id} className="border-b border-secondary/10 bg-white hover:bg-secondary/5">

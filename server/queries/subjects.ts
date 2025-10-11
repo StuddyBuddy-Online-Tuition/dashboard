@@ -71,3 +71,28 @@ export async function getSingleSubjectDetail(code: string): Promise<{ subject: S
 
   return { subject, enrolledStudents };
 }
+
+export async function updateSubjectByCode(
+  code: string,
+  updates: Pick<Subject, "name" | "standard" | "type" | "subject">
+): Promise<Subject> {
+  const supabase = getSupabaseServerClient();
+  const payload = {
+    name: updates.name,
+    standard: (updates.standard ?? "").toLowerCase(),
+    type: updates.type,
+    subject: updates.subject,
+  } as const;
+
+  const { data, error } = await supabase
+    .from("subjects")
+    .update(payload)
+    .eq("code", code)
+    .select("code, name, standard, type, subject")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error("Subject not found");
+  const row = data as DbSubject;
+  return { code: row.code, name: row.name, standard: (row.standard ?? "").toLowerCase(), type: row.type, subject: row.subject };
+}

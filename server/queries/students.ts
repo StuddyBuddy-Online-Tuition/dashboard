@@ -137,6 +137,89 @@ export async function getAllStudents(
 }
 
 
+export async function getAvailableStudentsForSubject(opts: {
+  subjectCode: string;
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+}): Promise<{ students: Student[]; totalCount: number }> {
+  const pageUnsafe = opts?.page ?? 1;
+  const pageSizeUnsafe = opts?.pageSize ?? 10;
+  const page = Number.isFinite(pageUnsafe) && pageUnsafe > 0 ? Math.floor(pageUnsafe) : 1;
+  const pageSizeBase = Number.isFinite(pageSizeUnsafe) && pageSizeUnsafe > 0 ? Math.floor(pageSizeUnsafe) : 10;
+  const pageSize = Math.min(pageSizeBase, 100);
+
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize - 1;
+
+  const supabase = getSupabaseServerClient();
+
+  // Fetch all student ids already enrolled in this subject (used for exclusion)
+  const { data: enrolledRows, error: enrolledErr } = await supabase
+    .from("student_subjects")
+    .select("studentid")
+    .eq("subjectcode", opts.subjectCode);
+  if (enrolledErr) throw enrolledErr;
+  const enrolledIds = new Set(((enrolledRows as DbStudentSubject[] | null) ?? []).map((r) => r.studentid));
+
+  let query = supabase
+    .from("students")
+    .select(
+      "id, studentid, name, email, studentphone, status",
+      { count: "exact" }
+    )
+    .in("status", ["active", "trial"]);
+
+  // Keyword filter (limit to essential columns only to keep it light)
+  const rawKeyword = (opts?.keyword ?? "").trim();
+  if (rawKeyword) {
+    const safe = rawKeyword.replace(/[,]/g, " ");
+    const pattern = `%${safe}%`;
+    query = query.or(
+      [
+        `name.ilike.${pattern}`,
+        `email.ilike.${pattern}`,
+        `studentphone.ilike.${pattern}`,
+        `studentid.ilike.${pattern}`,
+      ].join(",")
+    );
+  }
+
+  if (enrolledIds.size > 0) {
+    const list = `(${Array.from(enrolledIds).map((id) => `"${id}"`).join(",")})`;
+    query = query.not("id", "in", list);
+  }
+
+  const { data, count, error } = await query
+    .order("createdat", { ascending: false })
+    .range(start, end);
+
+  if (error) throw error;
+
+  const rows = (data as Partial<DbStudent>[] | null) ?? [];
+  const students: Student[] = rows.map((row) => ({
+    id: String(row.id),
+    studentId: String(row.studentid ?? ""),
+    name: String(row.name ?? ""),
+    fullName: null,
+    parentName: "",
+    studentPhone: String(row.studentphone ?? ""),
+    parentPhone: "",
+    email: String(row.email ?? ""),
+    school: "",
+    grade: "",
+    subjects: [],
+    status: (String(row.status ?? "pending").toLowerCase() as Student["status"]) ?? "pending",
+    classInId: null,
+    registeredDate: "",
+    modes: [],
+    dlp: "non-DLP",
+  }));
+
+  return { students, totalCount: count ?? 0 };
+}
+
+
 export async function createStudent(input: Student): Promise<Student> {
   const supabase = getSupabaseServerClient();
 

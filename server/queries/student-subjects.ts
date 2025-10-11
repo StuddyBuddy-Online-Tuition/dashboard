@@ -78,4 +78,15 @@ export async function removeStudentSubject(studentId: string, subjectCode: strin
   if (error) throw error;
 }
 
+export async function addManyStudentSubjects(studentIds: string[], subjectCode: string): Promise<number> {
+  if (!Array.isArray(studentIds) || studentIds.length === 0) return 0;
+  const supabase = getSupabaseServerClient();
+  const rows = studentIds.map((id) => ({ studentid: id, subjectcode: subjectCode }));
+  const { error, count } = await supabase
+    .from("student_subjects")
+    .insert(rows, { count: "exact" });
+  if (error) throw error;
+  return count ?? rows.length;
+}
+
 

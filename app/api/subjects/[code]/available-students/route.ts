@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getTimeslotsForSubject } from "@/server/queries/timeslots"
+import { getAvailableStudentsForSubject } from "@/server/queries/students"
 
 export async function GET(req: Request) {
   try {
@@ -14,16 +14,22 @@ export async function GET(req: Request) {
       code = raw
     }
     code = code.replace(/\+/g, " ")
-    if (!code) {
-      return NextResponse.json({ error: "Missing subject code" }, { status: 400 })
-    }
-    const slots = await getTimeslotsForSubject(code)
-    return NextResponse.json({ timeslots: slots })
+
+    const page = Number(url.searchParams.get("page") ?? "1")
+    const pageSize = Number(url.searchParams.get("pageSize") ?? "10")
+    const keyword = url.searchParams.get("keyword") ?? ""
+
+    const { students, totalCount } = await getAvailableStudentsForSubject({
+      subjectCode: code,
+      page,
+      pageSize,
+      keyword,
+    })
+    return NextResponse.json({ students, totalCount, page, pageSize })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
-
 
 

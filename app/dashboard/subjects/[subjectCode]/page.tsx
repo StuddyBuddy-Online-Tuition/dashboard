@@ -192,16 +192,33 @@ export default function SubjectDetailPage() {
   const handleOpenAddStudentsModal = () => setIsAddStudentsModalOpen(true)
   const handleCloseAddStudentsModal = () => setIsAddStudentsModalOpen(false)
 
-  const handleSaveSubject = (updatedSubject: Subject, originalCode?: string) => {
-    setSubjects((prevSubjects) => {
-      const newSubjects = [...prevSubjects]
-      const index = newSubjects.findIndex((s) => s.code === (originalCode ?? updatedSubject.code))
-      if (index !== -1) {
-        newSubjects[index] = updatedSubject
-      }
-      return newSubjects
-    })
-    handleCloseModal()
+  const handleSaveSubject = async (updatedSubject: Subject, originalCode?: string) => {
+    const targetCode = originalCode ?? updatedSubject.code
+    try {
+      const res = await fetch(`/api/subjects/${encodeURIComponent(targetCode)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: updatedSubject.name,
+          standard: updatedSubject.standard,
+          type: updatedSubject.type,
+          subject: updatedSubject.subject,
+        }),
+      })
+      if (!res.ok) throw new Error("Failed to update subject")
+      const saved = (await res.json()) as Subject
+      setSubjects((prevSubjects) => {
+        const newSubjects = [...prevSubjects]
+        const index = newSubjects.findIndex((s) => s.code === targetCode)
+        if (index !== -1) {
+          newSubjects[index] = saved
+        }
+        return newSubjects
+      })
+      handleCloseModal()
+    } catch {
+      // no-op: keep UI as-is
+    }
   }
 
   // Local state for normal and 1-to-1 timeslots of this subject
@@ -238,19 +255,36 @@ export default function SubjectDetailPage() {
     setOneToOneSlots(updated)
   }
 
-  const handleDeleteStudent = (studentId: string) => {
-    if (window.confirm("Are you sure you want to remove this student from the subject?")) {
+  const handleDeleteStudent = async (studentId: string) => {
+    if (!window.confirm("Are you sure you want to remove this student from the subject?")) return
+    try {
+      const res = await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/students/${encodeURIComponent(studentId)}`, {
+        method: "DELETE",
+      })
+      if (!res.ok && res.status !== 204) throw new Error("Failed to remove")
       setEnrolledStudents((prevStudents) => prevStudents.filter((student) => student.id !== studentId))
+    } catch {
+      // no-op
     }
   }
 
-  const handleAddStudents = (newStudents: Student[]) => {
-    setEnrolledStudents((prev) => {
-      const existingIds = new Set(prev.map((s) => s.id))
-      const toAdd = newStudents.filter((s) => !existingIds.has(s.id))
-      return [...prev, ...toAdd]
-    })
-    setIsAddStudentsModalOpen(false)
+  const handleAddStudents = async (newStudents: Student[]) => {
+    const ids = newStudents.map((s) => s.id)
+    try {
+      await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentIds: ids }),
+      })
+      setEnrolledStudents((prev) => {
+        const existingIds = new Set(prev.map((s) => s.id))
+        const toAdd = newStudents.filter((s) => !existingIds.has(s.id))
+        return [...prev, ...toAdd]
+      })
+      setIsAddStudentsModalOpen(false)
+    } catch {
+      // no-op
+    }
   }
 
   const getStandardColor = (standard: string) => {
