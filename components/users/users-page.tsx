@@ -25,6 +25,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -71,8 +72,10 @@ export default function UsersPage() {
 
   const openModal = (user?: User) => {
     if (user) {
+      setIsCreating(false);
       setSelectedUser(user);
     } else {
+      setIsCreating(true);
       setSelectedUser({
         id: Date.now().toString(),
         name: "",
@@ -245,7 +248,12 @@ export default function UsersPage() {
       </Card>
 
       {isModalOpen && selectedUser && (
-        <UserModal user={selectedUser} onClose={closeModal} onSave={saveUser} />
+        <UserModal
+          user={selectedUser}
+          isNew={isCreating}
+          onClose={closeModal}
+          onSave={saveUser}
+        />
       )}
     </div>
   );
