@@ -45,4 +45,13 @@ export type DbStudentSubject = {
   updatedat: string | null;
 };
 
+export type DbUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdat: string | null;
+  updatedat: string | null;
+  password: string | null;
+};
 

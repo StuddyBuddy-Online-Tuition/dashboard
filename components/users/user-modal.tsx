@@ -25,10 +25,11 @@ interface UserModalProps {
   user: User;
   isNew: boolean;
   onClose: () => void;
-  onSave: (user: User) => void;
+  onSave: (user: User, opts?: { password?: string }) => void;
+  onChangePassword?: (userId: string, newPassword: string) => void | Promise<void>;
 }
 
-export default function UserModal({ user, isNew, onClose, onSave }: UserModalProps) {
+export default function UserModal({ user, isNew, onClose, onSave, onChangePassword }: UserModalProps) {
   const [formData, setFormData] = useState<User>(user);
   const [createPassword, setCreatePassword] = useState<string>("");
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState<boolean>(false);
@@ -56,7 +57,7 @@ export default function UserModal({ user, isNew, onClose, onSave }: UserModalPro
     if (isNew && createPassword.length < 8) {
       return;
     }
-    onSave(formData);
+    onSave(formData, { password: isNew ? createPassword : undefined });
   };
 
   return (
@@ -212,7 +213,9 @@ export default function UserModal({ user, isNew, onClose, onSave }: UserModalPro
               type="button"
               className="w-full h-11 sm:w-auto sm:h-auto bg-accent text-navy hover:bg-accent/90"
               disabled={isChangePasswordInvalid}
-              onClick={() => {
+              onClick={async () => {
+                if (!onChangePassword) return;
+                await onChangePassword(formData.id, changeNewPassword);
                 setIsChangePasswordOpen(false);
                 setChangeNewPassword("");
                 setChangeConfirmPassword("");
