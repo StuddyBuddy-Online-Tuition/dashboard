@@ -27,7 +27,7 @@ import type { Subject } from "@/types/subject"
 import { STATUSES } from "@/types/student"
 import { cn, formatDate, getDlpColor, getGradeColor, toWhatsAppHref } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
-import { TimetableModal } from "@/components/common/timetable-modal"
+import StudentTimetableModal from "@/components/timetable/student-timetable-modal"
 import { timeslots as allTimeslots } from "@/data/timeslots"
 import type { Timeslot } from "@/types/timeslot"
 import { subjects as allSubjects } from "@/data/subjects"
@@ -81,6 +81,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   const [statusFilter, setStatusFilter] = useState<Status[]>(status ? [status] : [...STATUSES])
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
   const [gradeFilter, setGradeFilter] = useState<string>("")
+  const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>([])
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     studentId: true,
@@ -110,7 +111,6 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
     if (initialStudents) setStudents(initialStudents)
-      console.log(students)
   }, [initialStudents])
 
   // Reset to page 1 when items per page or sorting changes
@@ -349,9 +349,24 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     closeModal()
   }
 
-  const handleViewTimetable = (student: Student) => {
+  const handleViewTimetable = async (student: Student) => {
     setSelectedStudent(student)
-    setIsTimetableModalOpen(true)
+    const isOneToOne = Array.isArray(student.modes) && student.modes.includes("1 TO 1")
+    if (isOneToOne) {
+      setOneToOneSlots([])
+      setIsTimetableModalOpen(true)
+      try {
+        const res = await fetch(`/api/timeslots/students/${student.id}`)
+        if (res.ok) {
+          const data = (await res.json()) as Timeslot[]
+          setOneToOneSlots(data)
+        }
+      } catch {
+        // ignore fetch errors; modal remains open with empty state
+      }
+    } else {
+      setIsTimetableModalOpen(true)
+    }
   }
 
   const handleRemoveStudent = async (student: Student) => {
@@ -819,14 +834,19 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
         />
       )}
       {isTimetableModalOpen && selectedStudent && (
-        <TimetableModal
+        <StudentTimetableModal
           title={`Timetable for ${selectedStudent.name}`}
           subjects={allSubjects.filter((subject) => selectedStudent.subjects.includes(subject.code))}
           isOpen={isTimetableModalOpen}
           onClose={() => setIsTimetableModalOpen(false)}
-          normalSlots={allTimeslots.filter(
-            (t) => selectedStudent.subjects.includes(t.subjectCode) && t.studentId === null && t.studentName === null,
-          ) as Timeslot[]}
+          isOneToOneMode={selectedStudent.modes.includes("1 TO 1")}
+          oneToOneSlots={selectedStudent.modes.includes("1 TO 1") ? oneToOneSlots : []}
+          normalSlots={selectedStudent.modes.includes("1 TO 1")
+            ? []
+            : (allTimeslots.filter(
+                (t) => selectedStudent.subjects.includes(t.subjectCode) && t.studentId === null && t.studentName === null,
+              ) as Timeslot[])
+          }
         />
       )}
     </div>

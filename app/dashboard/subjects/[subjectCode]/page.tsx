@@ -15,7 +15,7 @@ import type { Timeslot } from "@/types/timeslot"
 import SubjectModal from "@/components/subjects/subject-modal"
 import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
 import { timeslots as allTimeslots } from "@/data/timeslots"
-import { TimetableModal } from "@/components/common/timetable-modal"
+import SubjectTimetableModal from "@/components/timetable/subject-timetable-modal"
 import AddStudentsModal from "@/components/subjects/add-students-modal"
 import type { Student } from "@/types/student"
 
@@ -236,8 +236,11 @@ export default function SubjectDetailPage() {
       .then((data) => {
         if (!cancelled && data?.timeslots) {
           const all: Timeslot[] = data.timeslots as Timeslot[]
+          console.log("[SubjectDetail] fetched timeslots:", all)
           const normal = all.filter((t) => t.studentId === null && t.studentName === null)
+          console.log("[SubjectDetail] normal slots:", normal)
           const oneToOne = all.filter((t) => t.studentId !== null && t.studentName !== null)
+          console.log("[SubjectDetail] 1-to-1 slots:", oneToOne)
           setNormalSlots(normal)
           setOneToOneSlots(oneToOne)
         }
@@ -489,14 +492,13 @@ export default function SubjectDetailPage() {
       )}
 
       {isTimetableModalOpen && subject && (
-        <TimetableModal
+        <SubjectTimetableModal
           title={`Timetable for ${subject.name}`}
-          subjects={[subject]}
+          subject={subject}
           isOpen={isTimetableModalOpen}
           onClose={handleCloseTimetableModal}
-          isOneToOneMode={showOneToOne}
-          oneToOneSlots={showOneToOne ? oneToOneSlots : []}
-          normalSlots={!showOneToOne ? normalSlots : []}
+          normalSlots={normalSlots}
+          oneToOneSlots={oneToOneSlots}
         />
       )}
 

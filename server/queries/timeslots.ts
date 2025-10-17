@@ -46,6 +46,21 @@ export async function getTimeslotsForSubject(subjectCode: string): Promise<Times
   return (data as DbTimeslot[] | null ?? []).map(mapDbTimeslotToTimeslot);
 }
 
+export async function getTimeslotsForStudent(studentId: string): Promise<Timeslot[]> {
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("timeslots")
+    .select(
+      "timeslotid, subjectcode, day, starttime, endtime, teachername, studentid, studentname"
+    )
+    .eq("studentid", studentId)
+    .order("day", { ascending: true })
+    .order("starttime", { ascending: true });
+
+  if (error) throw error;
+  return ((data as DbTimeslot[] | null) ?? []).map(mapDbTimeslotToTimeslot);
+}
+
 export async function replaceTimeslotsForSubject(
   subjectCode: string,
   slots: Array<{
