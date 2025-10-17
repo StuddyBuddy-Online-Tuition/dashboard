@@ -1,10 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { subjects as allSubjects } from "@/data/subjects"
-import { STANDARD_OPTIONS } from "@/data/subject-constants"
+import { STANDARD_OPTIONS } from "@/lib/subject-constants"
 import type { Subject } from "@/types/subject"
-import { timeslots as allTimeslots } from "@/data/timeslots"
+import type { Timeslot } from "@/types/timeslot"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -84,7 +83,9 @@ function getBaseLabelFromSubjectField(subjectField: string): string {
   return subjectField
 }
 
-export default function OneToOneTimetable() {
+type Props = { initialSubjects: Subject[]; initialTimeslots: Timeslot[] }
+
+export default function OneToOneTimetable({ initialSubjects, initialTimeslots }: Props) {
   const [selectedStandards, setSelectedStandards] = useState<string[]>([])
   const [subjectType, setSubjectType] = useState<"ALL" | "DLP" | "KSSM">("ALL")
 
@@ -121,18 +122,18 @@ export default function OneToOneTimetable() {
 
   const subjectsByStandard = useMemo(() => {
     const map: Record<string, Subject[]> = {}
-    for (const s of allSubjects) {
+    for (const s of initialSubjects) {
       if (!map[s.standard]) map[s.standard] = []
       map[s.standard].push(s)
     }
     return map
-  }, [])
+  }, [initialSubjects])
 
   const subjectByCode = useMemo(() => {
     const map = new Map<string, Subject>()
-    for (const s of allSubjects) map.set(s.code, s)
+    for (const s of initialSubjects) map.set(s.code, s)
     return map
-  }, [])
+  }, [initialSubjects])
 
   const handleToggleStandard = (standard: string) => {
     setSelectedStandards((prev) => {
@@ -146,7 +147,7 @@ export default function OneToOneTimetable() {
 
   // Filter to only 1-to-1 slots and apply subject filters
   const filteredOneToOneSlots = useMemo(() => {
-    const oneToOne = allTimeslots.filter((t) => t.studentId !== null && t.studentName !== null)
+    const oneToOne = initialTimeslots.filter((t) => t.studentName !== null)
     if (selectedStandards.length === 0) return oneToOne
     const eligibleCodes = new Set(
       selectedStandards
@@ -159,7 +160,7 @@ export default function OneToOneTimetable() {
         .map((s) => s.code)
     )
     return oneToOne.filter((t) => eligibleCodes.has(t.subjectCode))
-  }, [allTimeslots, selectedStandards, subjectsByStandard, subjectType])
+  }, [initialTimeslots, selectedStandards, subjectsByStandard, subjectType])
 
   // Build dynamic windows per day from filtered 1-to-1 slots
   const windowsByDay = useMemo(() => {

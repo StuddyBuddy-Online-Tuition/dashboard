@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect, useCallback } from "react"
 import type { Subject } from "@/types/subject"
-import { STANDARD_OPTIONS } from "@/data/subject-constants"
+import { STANDARD_OPTIONS } from "@/lib/subject-constants"
 
 interface SubjectModalProps {
   subject: Subject | null
@@ -34,8 +34,13 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
   }, [subject])
 
   const handleInputChange = useCallback((field: keyof Subject, value: string) => {
-    setFormData((prev) => (prev ? { ...prev, [field]: value } : null))
-  }, [])
+    setFormData((prev) => {
+      if (!prev) return null
+      // Prevent editing code when modifying an existing subject (code is immutable)
+      if (field === "code" && originalCode) return prev
+      return { ...prev, [field]: value }
+    })
+  }, [originalCode])
 
   const handleSave = () => {
     if (formData) {
@@ -62,6 +67,8 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
               value={formData.code}
               onChange={(e) => handleInputChange("code", e.target.value)}
               className="col-span-3"
+              disabled={Boolean(originalCode)}
+              readOnly={Boolean(originalCode)}
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">

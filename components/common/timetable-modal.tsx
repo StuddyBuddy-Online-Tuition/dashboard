@@ -61,22 +61,43 @@ function getTimeWindowIndex(startTime: string, endTime: string): TimeWindowIndex
 }
 
 // subject helpers are imported from utils
+// Base subject abbrev helpers for consistent color coding with master/1-to-1 pages
+function getBaseAbbrevFromSubjectField(subjectField: string): string {
+  const normalized = subjectField
+    .replace(/\b(BM|DLP)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+
+  if (normalized.startsWith("kimia")) return "KIM"
+  if (normalized.startsWith("fizik")) return "FIZ"
+  if (normalized.startsWith("biology") || normalized.startsWith("biologi")) return "BIO"
+  if (normalized.startsWith("add math")) return "AM"
+  if (normalized.startsWith("matematik")) return "MM"
+  if (normalized.startsWith("bahasa malaysia")) return "BM"
+  if (normalized.startsWith("bahasa inggeris")) return "BI"
+  if (normalized.startsWith("sejarah")) return "SEJ"
+  if (normalized.startsWith("geografi")) return "GEO"
+  if (normalized.startsWith("sains")) return "SC"
+  return subjectField.slice(0, 3).toUpperCase()
+}
+
+function getBaseAbbrevFromCode(subjectCode: string): string {
+  const code = subjectCode.replace(/\s*1:1\s*/i, "").trim().toUpperCase()
+  if (code.startsWith("AM")) return "AM"
+  if (code.startsWith("MM")) return "MM"
+  if (code.startsWith("K")) return "KIM"
+  if (code.startsWith("F")) return "FIZ"
+  if (code.startsWith("B")) return "BIO"
+  if (code.startsWith("SEJ")) return "SEJ"
+  if (code.startsWith("GEO")) return "GEO"
+  if (code.startsWith("PA")) return "PA"
+  if (code.startsWith("S")) return "SC"
+  return code.slice(0, 3)
+}
 
 export function TimetableModal({ title, subjects, isOpen, onClose, isOneToOneMode = false, oneToOneSlots = [], normalSlots = [] }: TimetableModalProps) {
-  // In 1-to-1 mode, show all hours (0–24). Otherwise, the hourly grid is not used.
-  const MIN_HOUR = isOneToOneMode ? 0 : 9
-  const MAX_HOUR = 24
-  const HOURS = useMemo(() => Array.from({ length: MAX_HOUR - MIN_HOUR }, (_, i) => i + MIN_HOUR), [MIN_HOUR])
-
-  const timeToMinutes = (time: string) => {
-    const [hours, minutes] = time.split(":").map(Number)
-    return hours * 60 + minutes
-  }
-
-  const formatTime = (time: string) => {
-    const date = new Date(`1970-01-01T${time}`)
-    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
-  }
+  // The 24h absolute grid previously used for 1-to-1 mode has been replaced by a dynamic-window table.
 
   // Build a Subject lookup from props
   const subjectByCode = useMemo(() => {
@@ -108,15 +129,88 @@ export function TimetableModal({ title, subjects, isOpen, onClose, isOneToOneMod
       if (!windows) continue
       for (const idx of [0, 1] as TimeWindowIndex[]) {
         for (const subject of windows[idx] ?? []) {
-          if (!map.has(subject.name)) {
-            const abbrev = getAbbrev(subject.name)
-            map.set(subject.name, { abbrev, colorClass: getSubjectColor(abbrev) })
+          const key = subject.subject
+          if (!map.has(key)) {
+            const abbrev = getBaseAbbrevFromSubjectField(subject.subject)
+            map.set(key, { abbrev, colorClass: getSubjectColor(abbrev) })
           }
         }
       }
     }
     return Array.from(map, ([name, info]) => ({ name, ...info })).sort((a, b) => a.abbrev.localeCompare(b.abbrev))
   }, [normalModeGrid])
+
+  // 1-to-1 mode: compute dynamic windows per day based on the student's slots
+  const oneToOneWindowsByDay = useMemo(() => {
+    const result: Record<(typeof DAYS_FULL)[number], string[]> = {
+      Monday: [],
+      Tuesday: [],
+      Wednesday: [],
+      Thursday: [],
+      Friday: [],
+      Saturday: [],
+      Sunday: [],
+    }
+    const dayToSet: Record<(typeof DAYS_FULL)[number], Set<string>> = {
+      Monday: new Set(),
+      Tuesday: new Set(),
+      Wednesday: new Set(),
+      Thursday: new Set(),
+      Friday: new Set(),
+      Saturday: new Set(),
+      Sunday: new Set(),
+    }
+    for (const slot of oneToOneSlots) {
+      const label = `${slot.startTime}–${slot.endTime}`
+      const day = slot.day
+      dayToSet[day as (typeof DAYS_FULL)[number]].add(label)
+    }
+    for (const day of DAYS_FULL) {
+      const labels = Array.from(dayToSet[day])
+      labels.sort((a, b) => a.localeCompare(b))
+      result[day] = labels
+    }
+    return result
+  }, [oneToOneSlots])
+
+  // 1-to-1 mode: grid data day -> windowLabel -> entry[] (fallback if subject not found)
+  type OneToOneEntry = { subject: Subject | null; subjectCode: string; teacherName: string }
+  const oneToOneGrid = useMemo(() => {
+    const result: Record<(typeof DAYS_FULL)[number], Record<string, OneToOneEntry[]>> = {
+      Monday: {},
+      Tuesday: {},
+      Wednesday: {},
+      Thursday: {},
+      Friday: {},
+      Saturday: {},
+      Sunday: {},
+    }
+    for (const slot of oneToOneSlots) {
+      const subject = subjectByCode.get(slot.subjectCode)
+      const day = slot.day as (typeof DAYS_FULL)[number]
+      const label = `${slot.startTime}–${slot.endTime}`
+      if (!result[day][label]) result[day][label] = []
+      result[day][label].push({ subject: subject ?? null, subjectCode: slot.subjectCode, teacherName: slot.teacherName })
+    }
+    return result
+  }, [oneToOneSlots, subjectByCode])
+
+  const oneToOneLegendItems = useMemo(() => {
+    const map = new Map<string, { abbrev: string; colorClass: string }>()
+    for (const day of DAYS_FULL) {
+      const windows = oneToOneGrid[day]
+      for (const label in windows) {
+        const entries = windows[label] ?? []
+        for (const entry of entries) {
+          const keyName = entry.subject ? entry.subject.subject : entry.subjectCode
+          if (map.has(keyName)) continue
+          const abbrev = entry.subject ? getBaseAbbrevFromSubjectField(entry.subject.subject) : getBaseAbbrevFromCode(entry.subjectCode)
+          map.set(keyName, { abbrev, colorClass: getSubjectColor(abbrev) })
+        }
+      }
+    }
+    return Array.from(map, ([name, info]) => ({ name, ...info })).sort((a, b) => a.abbrev.localeCompare(b.abbrev))
+  }, [oneToOneGrid])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -126,91 +220,95 @@ export function TimetableModal({ title, subjects, isOpen, onClose, isOneToOneMod
         </DialogHeader>
         <div className="relative">
           {isOneToOneMode ? (
-            <>
-              {/* Day Headers */}
-              <div className="flex sticky top-0 z-20 bg-white">
-                <div className="w-14 md:w-20 flex-shrink-0" />
-                <div className="flex-grow grid grid-cols-7">
-                  {DAYS_SHORT.map((day) => (
-                    <div key={day} className="text-center font-medium py-2 border-b border-l">
-                      {day}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-sm">
+                <thead>
+                  <tr>
+                    {DAYS_FULL.map((day) => (
+                      <th key={day} className="border px-2 py-2 text-center" colSpan={(oneToOneWindowsByDay[day]?.length || 0) || 1}>
+                        {day}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr>
+                    {DAYS_FULL.flatMap((day) => {
+                      const windows = oneToOneWindowsByDay[day]
+                      if (!windows || windows.length === 0) {
+                        return (
+                          <th key={`${day}-empty`} className="border px-2 py-1 text-center text-xs text-muted-foreground">
+                            —
+                          </th>
+                        )
+                      }
+                      return windows.map((label) => (
+                        <th key={`${day}-${label}`} className="border px-2 py-1 text-center text-xs text-muted-foreground">
+                          {label}
+                        </th>
+                      ))
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="align-top">
+                    {DAYS_FULL.flatMap((day) => {
+                      const windows = oneToOneWindowsByDay[day]
+                      const safeWindows = windows && windows.length > 0 ? windows : [""]
+                      return safeWindows.map((label) => {
+                        const entries = (oneToOneGrid[day]?.[label] ?? []) as OneToOneEntry[]
+                        return (
+                          <td key={`${day}-${label || "empty"}`} className="border px-2 py-2">
+                            <div className="flex flex-col gap-1">
+                              {entries.length === 0 ? (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              ) : (
+                                entries.map((entry, idx) => {
+                                  const abbrev = entry.subject ? getBaseAbbrevFromSubjectField(entry.subject.subject) : getBaseAbbrevFromCode(entry.subjectCode)
+                                  const colorClass = getSubjectColor(abbrev)
+                                  const key = entry.subject ? `${entry.subject.code}-${abbrev}` : `${entry.subjectCode}-${idx}`
+                                  return (
+                                    <div
+                                      key={key}
+                                      className={cn(
+                                        "rounded-md border px-2 py-1 leading-tight",
+                                        "text-xs",
+                                        colorClass,
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-1 flex-wrap">
+                                        <span className="font-semibold">{abbrev}</span>
+                                        <span className="opacity-70">•</span>
+                                        <span className="font-mono">{entry.subject ? entry.subject.code : entry.subjectCode}</span>
+                                      </div>
+                                      {entry.teacherName && (
+                                        <div className="opacity-80 text-[10px]">{entry.teacherName}</div>
+                                      )}
+                                    </div>
+                                  )
+                                })
+                              )}
+                            </div>
+                          </td>
+                        )
+                      })
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Legend */}
+              {oneToOneLegendItems.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-muted-foreground mr-1">Legend:</span>
+                  {oneToOneLegendItems.map((item) => (
+                    <div key={item.name} className={cn("flex items-center gap-1 rounded-md border px-2 py-1", item.colorClass)}>
+                      <span className="font-semibold">{item.abbrev}</span>
+                      <span className="opacity-70">–</span>
+                      <span>{item.name}</span>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <ScrollArea className="h-[70vh]">
-                <div className="flex text-sm pt-1">
-                  {/* Time Column */}
-                  <div className="w-14 md:w-20 flex-shrink-0">
-                    {HOURS.map((hour) => (
-                      <div key={hour} className="h-16 text-right pr-2 border-r">
-                        <span className="relative -top-2 text-xs text-gray-500">
-                          {new Date(`1970-01-01T${String(hour).padStart(2, "0")}:00`).toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            hour12: true,
-                          })}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Schedule Area */}
-                  <div className="flex-grow relative">
-                    {/* Background Grid Lines */}
-                    <div className="absolute inset-0 grid grid-cols-7">
-                      {Array.from({ length: 7 }).map((_, i) => (
-                        <div key={i} className="border-l h-full">
-                          {HOURS.map((hour) => (
-                            <div key={hour} className="h-16 border-t" />
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Time Slots Container */}
-                    <div className="absolute inset-0">
-                      {oneToOneSlots.map((slot, index) => {
-                        const dayIndex = DAY_TO_INDEX[slot.day]
-                        if (dayIndex === undefined) return null
-
-                        const startMinutes = timeToMinutes(slot.startTime)
-                        const endMinutes = timeToMinutes(slot.endTime)
-
-                        const remPerMinute = 4 / 60
-                        const topRem = (startMinutes - MIN_HOUR * 60) * remPerMinute
-                        const heightRem = (endMinutes - startMinutes) * remPerMinute
-
-                        if (endMinutes < MIN_HOUR * 60 || startMinutes >= MAX_HOUR * 60) return null
-
-                        const subject = subjectByCode.get(slot.subjectCode)
-                        const abbrev = subject ? getAbbrev(subject.name) : slot.subjectCode.slice(0, 3).toUpperCase()
-                        const colorClass = getSubjectColor(abbrev)
-
-                        return (
-                          <div
-                            key={`${slot.subjectCode}-${slot.timeslotId ?? index}`}
-                            className={cn("absolute p-1 rounded-md border overflow-hidden z-10", colorClass)}
-                            style={{
-                              left: `calc(${(100 / 7) * dayIndex}% + 2px)`,
-                              width: `calc(${100 / 7}% - 4px)`,
-                              top: `${topRem}rem`,
-                              height: `${heightRem}rem`,
-                            }}
-                          >
-                            <p className="font-semibold text-[10px] leading-tight">{abbrev}</p>
-                            {slot.studentName && <p className="text-[10px] leading-tight">{slot.studentName}</p>}
-                            <p className="text-[10px] leading-tight">
-                              {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                            </p>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-            </>
+              )}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-sm">
@@ -244,7 +342,7 @@ export function TimetableModal({ title, subjects, isOpen, onClose, isOneToOneMod
                                 <span className="text-xs text-muted-foreground">-</span>
                               ) : (
                                 entries.map((subject) => {
-                                  const abbrev = getAbbrev(subject.name)
+                                  const abbrev = getBaseAbbrevFromSubjectField(subject.subject)
                                   const colorClass = getSubjectColor(abbrev)
                                   return (
                     <div

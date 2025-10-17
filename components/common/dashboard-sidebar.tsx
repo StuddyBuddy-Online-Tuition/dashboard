@@ -19,19 +19,22 @@ import {
     ChevronRight,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
+import { Session } from "next-auth";
+import { signOut } from "next-auth/react";
 
 interface DashboardSidebarProps {
-  user: { name: string } | null
-  sidebarCollapsed: boolean
-  handleLogout: () => void
+  user: Session["user"] | null;
+  sidebarCollapsed: boolean;
 }
 
 export default function DashboardSidebar({
   user,
   sidebarCollapsed,
-  handleLogout,
 }: DashboardSidebarProps) {
     const pathname = usePathname()
+    const handleLogout = () => {
+      signOut({ callbackUrl: "/" });
+    };
 
     const isStudentsRoute = [
         "/dashboard",
@@ -150,7 +153,7 @@ export default function DashboardSidebar({
         <div className="p-4">
           <div className="rounded-lg bg-gradient-to-r from-primary/10 to-secondary/10 p-4">
             <p className="text-sm text-muted-foreground">Welcome,</p>
-            <p className="font-medium text-navy">{user.name}</p>
+            <p className="font-medium text-navy">{user.name ?? "User"}</p>
           </div>
         </div>
       )}
@@ -276,7 +279,11 @@ export default function DashboardSidebar({
       </nav>
 
       {/* Footer */}
-      <div className={`absolute bottom-0 ${sidebarCollapsed ? "w-16" : "w-64"} border-t border-secondary/20 p-4`}>
+      <div
+        className={`absolute bottom-0 ${
+          sidebarCollapsed ? "w-16" : "w-64"
+        } border-t border-secondary/20 p-4`}
+      >
         <Button
           variant="outline"
           className="w-full justify-start border-secondary/20 text-navy hover:bg-accent/20 hover:text-navy bg-transparent"

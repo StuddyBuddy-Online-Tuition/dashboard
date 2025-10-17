@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import NextAuthSessionProvider from "@/components/session-provider";
 
 export const metadata: Metadata = {
   title: 'Student Dashboard',
@@ -12,8 +13,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className="light" style={{ colorScheme: "light" }} suppressHydrationWarning>
+      <body>
+        <NextAuthSessionProvider>{children}</NextAuthSessionProvider>
+      </body>
     </html>
   )
 }

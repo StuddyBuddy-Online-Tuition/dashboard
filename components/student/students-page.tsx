@@ -1,16 +1,14 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   Search,
   Plus,
-  Eye,
   Users,
   ClipboardList,
   Clock,
   UserX,
-  ChevronLeft,
-  ChevronRight,
   Check,
   Edit,
   Calendar,
@@ -22,30 +20,15 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { RemoveStudentConfirm } from "@/components/student/RemoveStudentConfirm"
 import StudentModal from "@/components/student/student-modal"
 import type { Student } from "@/types/student"
+import type { Subject } from "@/types/subject"
 import { STATUSES } from "@/types/student"
-import { students as mockStudentsData } from "@/data/students"
 import { cn, formatDate, getDlpColor, getGradeColor, toWhatsAppHref } from "@/lib/utils"
 import PaginationControls from "@/components/common/pagination"
-import { TimetableModal } from "@/components/common/timetable-modal"
-import { timeslots as allTimeslots } from "@/data/timeslots"
+import StudentTimetableModal from "@/components/timetable/student-timetable-modal"
 import type { Timeslot } from "@/types/timeslot"
-import type { Subject } from "@/types/subject"
-import { subjects as allSubjects } from "@/data/subjects"
-import { STANDARD_OPTIONS } from "@/data/subject-constants"
 import type { StudentMode } from "@/types/student"
 
 type Status = Student["status"]
@@ -53,6 +36,9 @@ type Status = Student["status"]
 interface StudentsPageProps {
   status?: Status
   showStatusFilter?: boolean
+  initialStudents?: Student[]
+  totalItems?: number
+  subjects?: Subject[]
 }
 
 interface ColumnVisibility {
@@ -74,19 +60,26 @@ interface ColumnVisibility {
 }
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
-const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "OTHERS"]
+const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "OTHERS", "BREAK"]
 
-export default function StudentsPage({ status, showStatusFilter = false }: StudentsPageProps) {
+export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState("")
-  const [students, setStudents] = useState<Student[]>([])
+  const [students, setStudents] = useState<Student[]>(initialStudents ?? [])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const initialPageFromUrl = Math.max(parseInt(searchParams?.get("page") ?? "1", 10) || 1, 1)
+  const initialPageSizeFromUrl = Math.max(parseInt(searchParams?.get("pageSize") ?? "10", 10) || 10, 1)
+  const [currentPage, setCurrentPage] = useState(initialPageFromUrl)
+  const [itemsPerPage, setItemsPerPage] = useState(initialPageSizeFromUrl)
   const [statusFilter, setStatusFilter] = useState<Status[]>(status ? [status] : [...STATUSES])
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
   const [gradeFilter, setGradeFilter] = useState<string>("")
+  const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>([])
+  const [normalSlots, setNormalSlots] = useState<Timeslot[]>([])
 
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     studentId: true,
@@ -115,78 +108,119 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
 
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
-    setStudents(mockStudentsData)
-  }, [])
+    if (initialStudents) setStudents(initialStudents)
+  }, [initialStudents])
 
-  // Reset to page 1 when search, items per page, filters, or sorting changes
+  // Reset to page 1 when items per page or sorting changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, itemsPerPage, statusFilter, sortRules, modesFilter, gradeFilter])
+  }, [itemsPerPage, sortRules])
+
+  // Reset to page 1 when status view changes (e.g., all -> inactive)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [status])
+
+  // Reset to page 1 when keyword changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  // Sync state from URL if it changes (e.g., back/forward nav or server nav)
+  useEffect(() => {
+    const p = Math.max(parseInt(searchParams?.get("page") ?? "1", 10) || 1, 1)
+    const ps = Math.max(parseInt(searchParams?.get("pageSize") ?? "10", 10) || 10, 1)
+    if (p !== currentPage) setCurrentPage(p)
+    if (ps !== itemsPerPage) setItemsPerPage(ps)
+    const kw = searchParams?.get("keyword") ?? ""
+    if (kw !== searchQuery) setSearchQuery(kw)
+  }, [searchParams])
+
+  // When on All Students (showStatusFilter), mirror status from URL into local state
+  useEffect(() => {
+    if (!showStatusFilter) return
+    const raw = searchParams?.get("status")?.trim().toLowerCase() ?? null
+    let next: Status[]
+    if (!raw || raw === "all") {
+      next = [...STATUSES]
+    } else {
+      const parsed = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s): s is Status => (STATUSES as readonly string[]).includes(s)) as Status[]
+      next = parsed.length > 0 ? parsed : [...STATUSES]
+    }
+    const normalized = (STATUSES as readonly string[]).filter((s) => next.includes(s as Status)) as Status[]
+    const equal = normalized.length === statusFilter.length && normalized.every((s, i) => s === statusFilter[i])
+    if (!equal) setStatusFilter(normalized)
+  }, [searchParams, showStatusFilter])
+
+  // Mirror sort rules from URL → local state
+  useEffect(() => {
+    const raw = searchParams?.get("sort") ?? ""
+    const parsed = raw
+      .split(",")
+      .map((pair) => pair.trim())
+      .filter(Boolean)
+      .map((pair) => {
+        const [field, order] = pair.split(":").map((s) => s.trim())
+        const validField = ["grade", "dlp", "status", "registeredDate"].includes(field)
+        const validOrder = order === "asc" || order === "desc"
+        return validField && validOrder ? ({ field: field as SortField, order: order as SortOrder } as SortRule) : undefined
+      })
+      .filter(Boolean) as SortRule[]
+
+    const toKey = (rules: SortRule[]) => rules.map((r) => `${r.field}:${r.order}`).join(",")
+    if (toKey(parsed) !== toKey(sortRules)) {
+      setSortRules(parsed)
+    }
+  }, [searchParams])
+
+  // Reset to page 1 when status filter changes (All Students page)
+  useEffect(() => {
+    if (showStatusFilter) setCurrentPage(1)
+  }, [showStatusFilter, statusFilter])
+
+  // Sync pagination, status and sort to URL search params
+  useEffect(() => {
+    const sp = new URLSearchParams(searchParams?.toString() ?? "")
+    sp.set("page", String(currentPage))
+    sp.set("pageSize", String(itemsPerPage))
+    const kw = (searchQuery ?? "").trim()
+    if (kw) {
+      sp.set("keyword", kw)
+    } else {
+      sp.delete("keyword")
+    }
+    if (sortRules.length > 0) {
+      sp.set("sort", sortRules.map((r) => `${r.field}:${r.order}`).join(","))
+    } else {
+      sp.delete("sort")
+    }
+    if (showStatusFilter) {
+      const allSelected = statusFilter.length === STATUSES.length
+      if (allSelected) {
+        sp.delete("status")
+      } else {
+        sp.set("status", statusFilter.join(","))
+      }
+    } else if (status) {
+      sp.set("status", status)
+    } else {
+      sp.delete("status")
+    }
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
+  }, [currentPage, itemsPerPage, pathname, router, searchParams, status, showStatusFilter, statusFilter, sortRules, searchQuery])
 
   /* ----------------------------- helpers ----------------------------- */
-  const filteredStudents = useMemo(
-    () =>
-      students.filter((s) => {
-        const matchesStatus = statusFilter.length === 0 || statusFilter.includes(s.status)
-        const matchesSearch =
-          searchQuery === "" ||
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesModes = modesFilter.length === 0 || s.modes.some((m) => modesFilter.includes(m))
-        const matchesGrade = gradeFilter === "" || s.grade === gradeFilter
-        return matchesStatus && matchesSearch && matchesModes && matchesGrade
-      }),
-    [students, statusFilter, searchQuery, modesFilter, gradeFilter],
-  )
-
-  const sortedStudents = useMemo(() => {
-    if (sortRules.length === 0) return filteredStudents
-
-    const gradeOrder = new Map(STANDARD_OPTIONS.map((g, i) => [g, i]))
-    const statusOrder = new Map(STATUSES.map((st, i) => [st, i]))
-    const dlpOrder = new Map([
-      ["DLP", 0],
-      ["non-DLP", 1],
-    ])
-
-    const arr = [...filteredStudents]
-    arr.sort((a, b) => {
-      for (const rule of sortRules) {
-        const direction = rule.order === "asc" ? 1 : -1
-        let cmp = 0
-
-        if (rule.field === "grade") {
-          const ai = gradeOrder.get(a.grade) ?? Number.POSITIVE_INFINITY
-          const bi = gradeOrder.get(b.grade) ?? Number.POSITIVE_INFINITY
-          cmp = ai - bi
-        } else if (rule.field === "dlp") {
-          const ai = dlpOrder.get(a.dlp) ?? Number.POSITIVE_INFINITY
-          const bi = dlpOrder.get(b.dlp) ?? Number.POSITIVE_INFINITY
-          cmp = ai - bi
-        } else if (rule.field === "status") {
-          const ai = statusOrder.get(a.status) ?? Number.POSITIVE_INFINITY
-          const bi = statusOrder.get(b.status) ?? Number.POSITIVE_INFINITY
-          cmp = ai - bi
-        } else if (rule.field === "registeredDate") {
-          cmp = a.registeredDate.localeCompare(b.registeredDate)
-        }
-
-        if (cmp !== 0) return cmp * direction
-      }
-
-      // Final tie-breaker by name
-      return a.name.localeCompare(b.name)
-    })
-    return arr
-  }, [filteredStudents, sortRules])
+  const sortedStudents = useMemo(() => students, [students])
 
   // Pagination calculations
-  const totalItems = filteredStudents.length
+  const totalItems = totalItemsFromServer ?? students.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const paginatedStudents = sortedStudents.slice(startIndex, endIndex)
+  const paginatedStudents = sortedStudents // server provides the correct slice; don't slice again client-side
 
   const getStatusColor = (st: string) => //this function is here to solve a bug, dont move to utils like the rest
     ({
@@ -194,6 +228,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       pending: "bg-accent/20 text-black border-accent/30",
       trial: "bg-blue-100 text-black border-blue-300",
       inactive: "bg-destructive/20 text-black border-destructive/30",
+      break: "bg-yellow-100 text-black border-yellow-300",
       removed: "bg-gray-200 text-black border-gray-300",
     })[st] || "bg-muted text-black"
 
@@ -202,6 +237,8 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
       {
         NORMAL: "bg-gray-100 text-gray-800 border-gray-300",
         "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
+        BREAK: "bg-yellow-100 text-yellow-800 border-yellow-300",
+        break: "bg-yellow-100 text-yellow-800 border-yellow-300",
         OTHERS: "bg-slate-100 text-slate-800 border-slate-300",
       } as Record<string, string>
     )[m] || "bg-gray-100 text-gray-800 border-gray-300"
@@ -271,7 +308,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
     } else {
       // create skeleton for new student
       setSelectedStudent({
-        id: Date.now().toString(),
+        id: "",
         studentId: "NEW",
         name: "",
         fullName: null,
@@ -310,9 +347,74 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
     closeModal()
   }
 
-  const handleViewTimetable = (student: Student) => {
+  const handleViewTimetable = async (student: Student) => {
     setSelectedStudent(student)
-    setIsTimetableModalOpen(true)
+    const isOneToOne = Array.isArray(student.modes) && student.modes.includes("1 TO 1")
+    if (isOneToOne) {
+      setOneToOneSlots([])
+      setNormalSlots([])
+      setIsTimetableModalOpen(true)
+      try {
+        console.log("[StudentsPage] Fetching 1-to-1 slots for student", { id: student.id, name: student.name })
+        const res = await fetch(`/api/timeslots/students/${student.id}`)
+        if (res.ok) {
+          const data = (await res.json()) as Timeslot[]
+          console.log("[StudentsPage] Received 1-to-1 slots:", data)
+          setOneToOneSlots(data)
+        } else {
+          console.log("[StudentsPage] Failed to fetch 1-to-1 slots:", { status: res.status, url: res.url })
+        }
+      } catch {
+        // ignore fetch errors; modal remains open with empty state
+        console.log("[StudentsPage] Error while fetching 1-to-1 slots (ignored)")
+      }
+    } else {
+      setOneToOneSlots([])
+      setNormalSlots([])
+      setIsTimetableModalOpen(true)
+      try {
+        const codes = Array.isArray(student.subjects) ? student.subjects : []
+        console.log("[StudentsPage] Fetching normal slots for student", { id: student.id, name: student.name, subjectCodes: codes })
+        if (codes.length === 0) return
+        const responses = await Promise.all(
+          codes.map((code) => fetch(`/api/subjects/${encodeURIComponent(code)}/timeslots`))
+        )
+        console.log(
+          "[StudentsPage] Timeslot responses:",
+          responses.map((r) => ({ url: r.url, ok: r.ok, status: r.status }))
+        )
+        const jsons = await Promise.all(
+          responses.map(async (r) => (r.ok ? ((await r.json()) as { timeslots: Timeslot[] }) : { timeslots: [] }))
+        )
+        const merged = jsons.flatMap((j) => j.timeslots || [])
+        const filtered = merged.filter((t) => t.studentId === null && t.studentName === null)
+        console.log(
+          "[StudentsPage] Aggregated timeslots count:", merged.length,
+          "Filtered normal slots count:", filtered.length,
+          { merged, filtered }
+        )
+        setNormalSlots(filtered)
+      } catch {
+        // ignore fetch errors; modal remains open with empty state
+        console.log("[StudentsPage] Error while fetching normal slots (ignored)")
+      }
+    }
+  }
+
+  const handleRemoveStudent = async (student: Student) => {
+    try {
+      const payload: Student = { ...student, status: "removed" }
+      const res = await fetch(`/api/students/${student.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      const updated: Student = await res.json()
+      setStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+    } catch (_e) {
+      setStudents((prev) => prev.map((s) => (s.id === student.id ? { ...s, status: "removed" } : s)))
+    }
   }
 
   /* ------------------------------ render ----------------------------- */
@@ -419,67 +521,10 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
               </Popover>
             )}
 
-            {/* Modes filter */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
-                  <span className="mr-2">Modes</span>
-                  {modesFilter.length > 0 && (
-                    <Badge variant="secondary" className="rounded-sm px-1 font-mono">
-                      {modesFilter.length}
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[220px] p-0" align="start">
-                <div className="p-1">
-                  {MODE_OPTIONS.map((m) => {
-                    const isSelected = modesFilter.includes(m)
-                    return (
-                      <Button
-                        key={m}
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          if (isSelected) {
-                            setModesFilter(modesFilter.filter((fm) => fm !== m))
-                          } else {
-                            setModesFilter([...modesFilter, m])
-                          }
-                        }}
-                      >
-                        <div
-                          className={cn(
-                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                            isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "opacity-50 [&_svg]:invisible",
-                          )}
-                        >
-                          <Check className={cn("h-4 w-4")} />
-                        </div>
-                        <span>{m}</span>
-                      </Button>
-                    )
-                  })}
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* Modes filter - client-side filter removed; keeping UI disabled */}
+            {/* If needed later, re-enable and wire to server */}
 
-        {/* Grade filter */}
-        <Select value={gradeFilter} onValueChange={(v) => setGradeFilter(v === "__ALL__" ? "" : v)}>
-          <SelectTrigger className="w-[160px] border-secondary/20 text-left font-normal">
-            <SelectValue placeholder="Grade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__ALL__">All Grades</SelectItem>
-            {STANDARD_OPTIONS.map((g) => (
-              <SelectItem key={g} value={g}>
-                {g}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Grade filter - client-side filter removed */}
 
             {/* Detail view dropdown */}
             <Select value={detailView} onValueChange={handleDetailViewChange}>
@@ -781,11 +826,7 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
                             studentName={s.name}
                             triggerVariant="ghost"
                             triggerClassName="text-destructive hover:bg-destructive/10"
-                            onConfirm={() =>
-                              setStudents((prev) =>
-                                prev.map((stu) => (stu.id === s.id ? { ...stu, status: "removed" } : stu)),
-                              )
-                            }
+                            onConfirm={() => handleRemoveStudent(s)}
                           />
                         )}
                       </td>
@@ -815,20 +856,24 @@ export default function StudentsPage({ status, showStatusFilter = false }: Stude
           student={selectedStudent}
           onClose={closeModal}
           onSave={saveStudent}
+          subjects={subjects}
           onRemove={(studentId) => {
-            setStudents((prev) => prev.map((stu) => (stu.id === studentId ? { ...stu, status: "removed" } : stu)))
+            const stu = students.find((s) => s.id === studentId)
+            if (stu) {
+              void handleRemoveStudent(stu)
+            }
           }}
         />
       )}
       {isTimetableModalOpen && selectedStudent && (
-        <TimetableModal
+        <StudentTimetableModal
           title={`Timetable for ${selectedStudent.name}`}
-          subjects={allSubjects.filter((subject) => selectedStudent.subjects.includes(subject.code))}
+          subjects={(subjects || []).filter((subject) => selectedStudent.subjects.includes(subject.code))}
           isOpen={isTimetableModalOpen}
           onClose={() => setIsTimetableModalOpen(false)}
-          normalSlots={allTimeslots.filter(
-            (t) => selectedStudent.subjects.includes(t.subjectCode) && t.studentId === null && t.studentName === null,
-          ) as Timeslot[]}
+          isOneToOneMode={selectedStudent.modes.includes("1 TO 1")}
+          oneToOneSlots={selectedStudent.modes.includes("1 TO 1") ? oneToOneSlots : []}
+          normalSlots={selectedStudent.modes.includes("1 TO 1") ? [] : normalSlots}
         />
       )}
     </div>

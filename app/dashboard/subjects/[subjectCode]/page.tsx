@@ -1,9 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { students } from "@/data/students"
-import { subjects as initialSubjects } from "@/data/subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -15,8 +13,7 @@ import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
 import SubjectModal from "@/components/subjects/subject-modal"
 import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
-import { timeslots as allTimeslots } from "@/data/timeslots"
-import { TimetableModal } from "@/components/common/timetable-modal"
+import SubjectTimetableModal from "@/components/timetable/subject-timetable-modal"
 import AddStudentsModal from "@/components/subjects/add-students-modal"
 import type { Student } from "@/types/student"
 
@@ -154,19 +151,34 @@ export default function SubjectDetailPage() {
   }, [rawSubjectCode])
   const router = useRouter()
 
-  const [subjects, setSubjects] = useState(initialSubjects)
+  const [subjectDb, setSubjectDb] = useState<Subject | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false)
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
   const [isAddStudentsModalOpen, setIsAddStudentsModalOpen] = useState(false)
 
-  const subject = subjects.find((s) => s.code === subjectCode)
+  const subject = subjectDb ?? null
   const showOneToOne = subject?.type === "1 to 1"
-  const [enrolledStudents, setEnrolledStudents] = useState(() =>
-    students.filter((student) => student.subjects.includes(subjectCode)),
-  )
+  const [enrolledStudents, setEnrolledStudents] = useState<Student[]>([])
 
-  
+  useEffect(() => {
+    let cancelled = false
+    if (!subjectCode) return
+    setIsLoading(true)
+    fetch(`/api/subjects/${encodeURIComponent(subjectCode)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return
+        if (data.subject) setSubjectDb(data.subject as Subject)
+        if (data.enrolledStudents) setEnrolledStudents(data.enrolledStudents as Student[])
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+    return () => {
+      cancelled = true
+    }
+  }, [subjectCode])
 
   const excludeStudentIds = useMemo(() => enrolledStudents.map((s) => s.id), [enrolledStudents])
 
@@ -181,49 +193,145 @@ export default function SubjectDetailPage() {
   const handleOpenAddStudentsModal = () => setIsAddStudentsModalOpen(true)
   const handleCloseAddStudentsModal = () => setIsAddStudentsModalOpen(false)
 
-  const handleSaveSubject = (updatedSubject: Subject, originalCode?: string) => {
-    setSubjects((prevSubjects) => {
-      const newSubjects = [...prevSubjects]
-      const index = newSubjects.findIndex((s) => s.code === (originalCode ?? updatedSubject.code))
-      if (index !== -1) {
-        newSubjects[index] = updatedSubject
-      }
-      return newSubjects
-    })
-    handleCloseModal()
-  }
-
-  // Local state for normal and 1-to-1 timeslots of this subject
-  const [normalSlots, setNormalSlots] = useState<Timeslot[]>(() =>
-    allTimeslots.filter((t) => t.subjectCode === subjectCode && t.studentId === null && t.studentName === null),
-  )
-  const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>(() =>
-    allTimeslots.filter((t) => t.subjectCode === subjectCode && t.studentId !== null && t.studentName !== null),
-  )
-
-  const activeSlots = showOneToOne ? oneToOneSlots : normalSlots
-
-  const handleSaveTimeSlots = (updatedTimeSlots: Timeslot[]) => {
-    setNormalSlots(updatedTimeSlots)
-  }
-
-  const handleSaveOneToOneSlots = (updated: Timeslot[]) => {
-    setOneToOneSlots(updated)
-  }
-
-  const handleDeleteStudent = (studentId: string) => {
-    if (window.confirm("Are you sure you want to remove this student from the subject?")) {
-      setEnrolledStudents((prevStudents) => prevStudents.filter((student) => student.id !== studentId))
+  const handleSaveSubject = async (updatedSubject: Subject, originalCode?: string) => {
+    const targetCode = originalCode ?? updatedSubject.code
+    try {
+      const res = await fetch(`/api/subjects/${encodeURIComponent(targetCode)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: updatedSubject.name,
+          standard: updatedSubject.standard,
+          type: updatedSubject.type,
+          subject: updatedSubject.subject,
+        }),
+      })
+      if (!res.ok) throw new Error("Failed to update subject")
+      const saved = (await res.json()) as Subject
+      setSubjectDb(saved)
+      handleCloseModal()
+    } catch {
+      // no-op: keep UI as-is
     }
   }
 
-  const handleAddStudents = (newStudents: Student[]) => {
-    setEnrolledStudents((prev) => {
-      const existingIds = new Set(prev.map((s) => s.id))
-      const toAdd = newStudents.filter((s) => !existingIds.has(s.id))
-      return [...prev, ...toAdd]
-    })
-    setIsAddStudentsModalOpen(false)
+  // Local state for normal and 1-to-1 timeslots of this subject
+  const [normalSlots, setNormalSlots] = useState<Timeslot[]>([])
+  const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!subjectCode) return
+    fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/timeslots`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.timeslots) {
+          const all: Timeslot[] = data.timeslots as Timeslot[]
+          console.log("[SubjectDetail] fetched timeslots:", all)
+          const normal = all.filter((t) => t.studentId === null && t.studentName === null)
+          console.log("[SubjectDetail] normal slots:", normal)
+          const oneToOne = all.filter((t) => t.studentId !== null && t.studentName !== null)
+          console.log("[SubjectDetail] 1-to-1 slots:", oneToOne)
+          setNormalSlots(normal)
+          setOneToOneSlots(oneToOne)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [subjectCode])
+
+  const activeSlots = showOneToOne ? oneToOneSlots : normalSlots
+
+  const handleSaveTimeSlots = async (updatedTimeSlots: Timeslot[]) => {
+    try {
+      const payload = {
+        mode: "normal",
+        timeslots: updatedTimeSlots.map((t) => ({
+          day: t.day,
+          startTime: t.startTime,
+          endTime: t.endTime,
+          teacherName: t.teacherName,
+          studentId: null,
+          studentName: null,
+        })),
+      }
+      const res = await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/timeslots`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error("Failed to save timeslots")
+      const data = await res.json()
+      const all: Timeslot[] = data.timeslots as Timeslot[]
+      const normal = all.filter((t) => t.studentId === null && t.studentName === null)
+      setNormalSlots(normal)
+      setIsTimeSlotModalOpen(false)
+    } catch {
+      // no-op
+    }
+  }
+
+  const handleSaveOneToOneSlots = async (updated: Timeslot[]) => {
+    try {
+      const payload = {
+        mode: "oneToOne",
+        timeslots: updated.map((t) => ({
+          day: t.day,
+          startTime: t.startTime,
+          endTime: t.endTime,
+          teacherName: t.teacherName,
+          studentId: t.studentId,
+          studentName: t.studentName,
+        })),
+      }
+      const res = await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/timeslots`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error("Failed to save 1-to-1 timeslots")
+      const data = await res.json()
+      const all: Timeslot[] = data.timeslots as Timeslot[]
+      const oneToOne = all.filter((t) => t.studentId !== null && t.studentName !== null)
+      setOneToOneSlots(oneToOne)
+      setIsTimeSlotModalOpen(false)
+    } catch {
+      // no-op
+    }
+  }
+
+  const handleDeleteStudent = async (studentId: string) => {
+    if (!window.confirm("Are you sure you want to remove this student from the subject?")) return
+    try {
+      const res = await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/students/${encodeURIComponent(studentId)}`, {
+        method: "DELETE",
+      })
+      if (!res.ok && res.status !== 204) throw new Error("Failed to remove")
+      setEnrolledStudents((prevStudents) => prevStudents.filter((student) => student.id !== studentId))
+    } catch {
+      // no-op
+    }
+  }
+
+  const handleAddStudents = async (newStudents: Student[]) => {
+    const ids = newStudents.map((s) => s.id)
+    try {
+      await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentIds: ids }),
+      })
+      setEnrolledStudents((prev) => {
+        const existingIds = new Set(prev.map((s) => s.id))
+        const toAdd = newStudents.filter((s) => !existingIds.has(s.id))
+        return [...prev, ...toAdd]
+      })
+      setIsAddStudentsModalOpen(false)
+    } catch {
+      // no-op
+    }
   }
 
   const getStandardColor = (standard: string) => {
@@ -247,6 +355,11 @@ export default function SubjectDetailPage() {
   }
 
   if (!subject) {
+    if (isLoading) {
+      return (
+        <div className="p-6 text-muted-foreground">Loading subject…</div>
+      )
+    }
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <h2 className="text-2xl font-bold mb-4">Subject Not Found</h2>
@@ -274,7 +387,10 @@ export default function SubjectDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-navy">{subject.name}</h1>
-              <Badge className={getStandardColor(subject.standard)}>{subject.standard}</Badge>
+              {(() => {
+                const std = (subject.standard ?? "").toUpperCase()
+                return <Badge className={getStandardColor(std)}>{std}</Badge>
+              })()}
               <span className="font-mono text-sm text-muted-foreground">{subject.code}</span>
             </div>
             <p className="text-sm text-muted-foreground">Detailed view of the subject and enrolled students</p>
@@ -366,18 +482,19 @@ export default function SubjectDetailPage() {
           isOneToOneMode={showOneToOne}
           onSaveOneToOne={handleSaveOneToOneSlots}
           enrolledStudents={enrolledStudents}
+          normalSlots={normalSlots}
+          oneToOneSlots={oneToOneSlots}
         />
       )}
 
       {isTimetableModalOpen && subject && (
-        <TimetableModal
+        <SubjectTimetableModal
           title={`Timetable for ${subject.name}`}
-          subjects={[subject]}
+          subject={subject}
           isOpen={isTimetableModalOpen}
           onClose={handleCloseTimetableModal}
-          isOneToOneMode={showOneToOne}
-          oneToOneSlots={showOneToOne ? oneToOneSlots : []}
-          normalSlots={!showOneToOne ? normalSlots : []}
+          normalSlots={normalSlots}
+          oneToOneSlots={oneToOneSlots}
         />
       )}
 

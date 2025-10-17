@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
   Plus,
   Users,
-  ChevronLeft,
-  ChevronRight,
   Edit,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,44 +13,41 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types/user";
-import { users as mockUsersData } from "@/data/users";
 import PaginationControls from "@/components/common/pagination";
 import UserModal from "./user-modal";
 
-const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50];
+export default function UsersPage({ initialUsers, totalItems: totalItemsFromServer }: { initialUsers?: User[]; totalItems?: number }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-export default function UsersPage() {
+  const initialPageFromUrl = Math.max(parseInt(searchParams?.get("page") ?? "1", 10) || 1, 1);
+  const initialPageSizeFromUrl = Math.max(parseInt(searchParams?.get("pageSize") ?? "10", 10) || 10, 1);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>(initialUsers ?? []);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isCreating, setIsCreating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(initialPageFromUrl);
+  const [itemsPerPage, setItemsPerPage] = useState(initialPageSizeFromUrl);
 
   useEffect(() => {
-    setUsers(mockUsersData);
-  }, []);
+    if (initialUsers) setUsers(initialUsers);
+  }, [initialUsers]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, itemsPerPage]);
 
-  const filteredUsers = useMemo(
-    () =>
-      users.filter(
-        (u) =>
-          searchQuery === "" ||
-          u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.email.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    [users, searchQuery]
-  );
+  // Server provides the correct slice; don't filter or slice client-side
+  const filteredUsers = useMemo(() => users, [users]);
 
-  const totalItems = filteredUsers.length;
+  const totalItems = totalItemsFromServer ?? users.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+  const paginatedUsers = filteredUsers;
 
   const getRoleColor = (role: string) => {
     return role === "admin"
@@ -69,10 +65,36 @@ export default function UsersPage() {
     setItemsPerPage(Number(value));
   };
 
+  // Sync state from URL if it changes (e.g., back/forward nav or server nav)
+  useEffect(() => {
+    const p = Math.max(parseInt(searchParams?.get("page") ?? "1", 10) || 1, 1);
+    const ps = Math.max(parseInt(searchParams?.get("pageSize") ?? "10", 10) || 10, 1);
+    if (p !== currentPage) setCurrentPage(p);
+    if (ps !== itemsPerPage) setItemsPerPage(ps);
+    const kw = searchParams?.get("keyword") ?? "";
+    if (kw !== searchQuery) setSearchQuery(kw);
+  }, [searchParams]);
+
+  // Sync pagination and keyword to URL search params
+  useEffect(() => {
+    const sp = new URLSearchParams(searchParams?.toString() ?? "");
+    sp.set("page", String(currentPage));
+    sp.set("pageSize", String(itemsPerPage));
+    const kw = (searchQuery ?? "").trim();
+    if (kw) {
+      sp.set("keyword", kw);
+    } else {
+      sp.delete("keyword");
+    }
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+  }, [currentPage, itemsPerPage, pathname, router, searchParams, searchQuery]);
+
   const openModal = (user?: User) => {
     if (user) {
+      setIsCreating(false);
       setSelectedUser(user);
     } else {
+      setIsCreating(true);
       setSelectedUser({
         id: Date.now().toString(),
         name: "",
@@ -88,17 +110,44 @@ export default function UsersPage() {
     setSelectedUser(null);
   };
 
-  const saveUser = (user: User) => {
-    setUsers((prev) => {
-      const index = prev.findIndex((u) => u.id === user.id);
-      if (index !== -1) {
-        const newUsers = [...prev];
-        newUsers[index] = user;
-        return newUsers;
+  const saveUser = async (user: User, opts?: { password?: string }) => {
+    try {
+      if (isCreating) {
+        const res = await fetch(`/api/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: user.name, email: user.email, role: user.role, password: opts?.password ?? "" }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const created: User = await res.json();
+        setUsers((prev) => [created, ...prev]);
+      } else {
+        const res = await fetch(`/api/users/${user.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const updated: User = await res.json();
+        setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       }
-      return [...prev, user];
-    });
-    closeModal();
+      closeModal();
+    } catch (_e) {
+      // no-op minimal handling per scope
+    }
+  };
+
+  const handleChangePassword = async (userId: string, newPassword: string) => {
+    try {
+      const res = await fetch(`/api/users/${userId}/password`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userId, password: newPassword }),
+      });
+      if (!res.ok && res.status !== 204) throw new Error(await res.text());
+    } catch (_e) {
+      // no-op minimal handling per scope
+    }
   };
 
   return (
@@ -245,7 +294,13 @@ export default function UsersPage() {
       </Card>
 
       {isModalOpen && selectedUser && (
-        <UserModal user={selectedUser} onClose={closeModal} onSave={saveUser} />
+        <UserModal
+          user={selectedUser}
+          isNew={isCreating}
+          onClose={closeModal}
+          onSave={saveUser}
+          onChangePassword={handleChangePassword}
+        />
       )}
     </div>
   );
