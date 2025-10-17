@@ -3,6 +3,8 @@
 import "server-only";
 import { getSupabaseServerClient } from "@/server/supabase/client";
 import type { DbStudentSubject } from "@/types/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export type StudentSubject = {
   studentId: string;
@@ -20,7 +22,15 @@ function mapDbToStudentSubject(row: DbStudentSubject): StudentSubject {
   };
 }
 
+async function assertAuthenticated(): Promise<void> {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+}
+
 export async function getAllStudentSubjects(): Promise<StudentSubject[]> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("student_subjects")
@@ -32,6 +42,7 @@ export async function getAllStudentSubjects(): Promise<StudentSubject[]> {
 }
 
 export async function getSubjectsForStudent(studentId: string): Promise<StudentSubject[]> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("student_subjects")
@@ -44,6 +55,7 @@ export async function getSubjectsForStudent(studentId: string): Promise<StudentS
 }
 
 export async function getStudentsForSubject(subjectCode: string): Promise<StudentSubject[]> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("student_subjects")
@@ -56,6 +68,7 @@ export async function getStudentsForSubject(subjectCode: string): Promise<Studen
 }
 
 export async function addStudentSubject(studentId: string, subjectCode: string): Promise<StudentSubject> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("student_subjects")
@@ -68,6 +81,7 @@ export async function addStudentSubject(studentId: string, subjectCode: string):
 }
 
 export async function removeStudentSubject(studentId: string, subjectCode: string): Promise<void> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { error } = await supabase
     .from("student_subjects")
@@ -79,6 +93,7 @@ export async function removeStudentSubject(studentId: string, subjectCode: strin
 }
 
 export async function addManyStudentSubjects(studentIds: string[], subjectCode: string): Promise<number> {
+  await assertAuthenticated();
   if (!Array.isArray(studentIds) || studentIds.length === 0) return 0;
   const supabase = getSupabaseServerClient();
   const rows = studentIds.map((id) => ({ studentid: id, subjectcode: subjectCode }));

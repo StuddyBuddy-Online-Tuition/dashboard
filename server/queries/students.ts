@@ -5,6 +5,8 @@ import type { Student, StudentMode } from "@/types/student";
 import { STATUSES } from "@/types/student";
 import { getSupabaseServerClient } from "@/server/supabase/client";
 import type { DbStudent, DbStudentSubject } from "@/types/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 function mapDbStudentToStudent(row: DbStudent): Student {
   return {
@@ -27,6 +29,13 @@ function mapDbStudentToStudent(row: DbStudent): Student {
   };
 }
 
+async function assertAuthenticated(): Promise<void> {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+}
+
 type SortField = "registeredDate" | "status" | "grade" | "dlp" | "name";
 type SortOrder = "asc" | "desc";
 type SortRule = { field: SortField; order: SortOrder };
@@ -34,6 +43,7 @@ type SortRule = { field: SortField; order: SortOrder };
 export async function getAllStudents(
   opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][]; sort?: SortRule[]; keyword?: string }
 ): Promise<{ students: Student[]; totalCount: number }> {
+  await assertAuthenticated();
   const pageUnsafe = opts?.page ?? 1;
   const pageSizeUnsafe = opts?.pageSize ?? 10;
   const page = Number.isFinite(pageUnsafe) && pageUnsafe > 0 ? Math.floor(pageUnsafe) : 1;
@@ -143,6 +153,7 @@ export async function getAvailableStudentsForSubject(opts: {
   pageSize?: number;
   keyword?: string;
 }): Promise<{ students: Student[]; totalCount: number }> {
+  await assertAuthenticated();
   const pageUnsafe = opts?.page ?? 1;
   const pageSizeUnsafe = opts?.pageSize ?? 10;
   const page = Number.isFinite(pageUnsafe) && pageUnsafe > 0 ? Math.floor(pageUnsafe) : 1;
@@ -221,6 +232,7 @@ export async function getAvailableStudentsForSubject(opts: {
 
 
 export async function createStudent(input: Student): Promise<Student> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
 
   const status = (input.status?.toLowerCase() as Student["status"]) ?? "pending";
@@ -269,6 +281,7 @@ export async function createStudent(input: Student): Promise<Student> {
 
 
 export async function updateStudent(input: Student): Promise<Student> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
 
   // Validate enums minimally

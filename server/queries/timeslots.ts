@@ -4,6 +4,8 @@ import "server-only";
 import type { Timeslot } from "@/types/timeslot";
 import { getSupabaseServerClient } from "@/server/supabase/client";
 import type { DbTimeslot } from "@/types/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 function mapDbTimeslotToTimeslot(row: DbTimeslot): Timeslot {
   return {
@@ -18,7 +20,15 @@ function mapDbTimeslotToTimeslot(row: DbTimeslot): Timeslot {
   };
 }
 
+async function assertAuthenticated(): Promise<void> {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+}
+
 export async function getAllTimeslots(): Promise<Timeslot[]> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("timeslots")
@@ -32,6 +42,7 @@ export async function getAllTimeslots(): Promise<Timeslot[]> {
 }
 
 export async function getTimeslotsForSubject(subjectCode: string): Promise<Timeslot[]> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("timeslots")
@@ -47,6 +58,7 @@ export async function getTimeslotsForSubject(subjectCode: string): Promise<Times
 }
 
 export async function getTimeslotsForStudent(studentId: string): Promise<Timeslot[]> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("timeslots")
@@ -73,6 +85,7 @@ export async function replaceTimeslotsForSubject(
   }>,
   mode: "normal" | "oneToOne"
 ): Promise<Timeslot[]> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
 
   // Delete existing timeslots for this subject and mode
@@ -109,6 +122,7 @@ export async function replaceTimeslotsForSubject(
 }
 
 export async function deleteTimeslotById(timeslotId: string): Promise<void> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { error } = await supabase
     .from("timeslots")

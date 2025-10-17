@@ -5,8 +5,18 @@ import type { Subject } from "@/types/subject";
 import { getSupabaseServerClient } from "@/server/supabase/client";
 import type { DbSubject, DbStudent, DbStudentSubject } from "@/types/db";
 import type { Student, StudentMode } from "@/types/student";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+
+async function assertAuthenticated(): Promise<void> {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+}
 
 export async function getAllSubjects(): Promise<Subject[]> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("subjects")
@@ -19,6 +29,7 @@ export async function getAllSubjects(): Promise<Subject[]> {
 }
 
 export async function getSingleSubjectDetail(code: string): Promise<{ subject: Subject | null; enrolledStudents: Student[] }> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
 
   // Fetch subject
@@ -76,6 +87,7 @@ export async function updateSubjectByCode(
   code: string,
   updates: Pick<Subject, "name" | "standard" | "type" | "subject">
 ): Promise<Subject> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const payload = {
     name: updates.name,

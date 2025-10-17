@@ -5,6 +5,8 @@ import type { User } from "@/types/user";
 import type { DbUser } from "@/types/db";
 import { getSupabaseServerClient } from "@/server/supabase/client";
 import bcrypt from "bcrypt";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 function mapDbUserToUser(row: DbUser): User {
   return {
@@ -15,11 +17,19 @@ function mapDbUserToUser(row: DbUser): User {
   };
 }
 
+async function assertAuthenticated(): Promise<void> {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+}
+
 export async function getAllUsers(opts?: {
   page?: number;
   pageSize?: number;
   keyword?: string;
 }): Promise<{ users: User[]; totalCount: number }> {
+  await assertAuthenticated();
   const pageUnsafe = opts?.page ?? 1;
   const pageSizeUnsafe = opts?.pageSize ?? 10;
   const page = Number.isFinite(pageUnsafe) && pageUnsafe > 0 ? Math.floor(pageUnsafe) : 1;
@@ -60,6 +70,7 @@ export async function getAllUsers(opts?: {
 
 
 export async function createUser(input: { name: string; email: string; role: User["role"]; password: string }): Promise<User> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const name = (input.name ?? "").trim();
   const email = (input.email ?? "").trim();
@@ -79,6 +90,7 @@ export async function createUser(input: { name: string; email: string; role: Use
 }
 
 export async function updateUser(input: { id: string; name: string; email: string; role: User["role"] }): Promise<User> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const id = String(input.id);
   const name = (input.name ?? "").trim();
@@ -96,6 +108,7 @@ export async function updateUser(input: { id: string; name: string; email: strin
 }
 
 export async function updateUserPassword(input: { id: string; password: string }): Promise<void> {
+  await assertAuthenticated();
   const supabase = getSupabaseServerClient();
   const id = String(input.id);
   const password = String(input.password ?? "");
