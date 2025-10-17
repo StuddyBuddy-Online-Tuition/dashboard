@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { STANDARD_OPTIONS } from "@/data/subject-constants"
+import { STANDARD_OPTIONS } from "@/lib/subject-constants"
 import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
 import { cn } from "@/lib/utils"

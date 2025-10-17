@@ -20,14 +20,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 
 // Import subjects data
-import { subjects as initialSubjectsData } from "@/data/subjects"
-import { STANDARD_OPTIONS } from "@/data/subject-constants"
+import { STANDARD_OPTIONS } from "@/lib/subject-constants"
 
 type Props = { initialSubjects?: Subject[] }
 
 export default function SubjectsPage({ initialSubjects }: Props) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects ?? initialSubjectsData)
+  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects ?? [])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [standardFilter, setStandardFilter] = useState<string[]>([])

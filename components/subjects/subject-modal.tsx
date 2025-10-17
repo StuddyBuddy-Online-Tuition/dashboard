@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect, useCallback } from "react"
 import type { Subject } from "@/types/subject"
-import { STANDARD_OPTIONS } from "@/data/subject-constants"
+import { STANDARD_OPTIONS } from "@/lib/subject-constants"
 
 interface SubjectModalProps {
   subject: Subject | null

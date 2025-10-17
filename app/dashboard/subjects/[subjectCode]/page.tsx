@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { subjects as initialSubjects } from "@/data/subjects"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -14,7 +13,6 @@ import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
 import SubjectModal from "@/components/subjects/subject-modal"
 import { TimeSlotModal } from "@/components/subjects/timeslot-modal"
-import { timeslots as allTimeslots } from "@/data/timeslots"
 import SubjectTimetableModal from "@/components/timetable/subject-timetable-modal"
 import AddStudentsModal from "@/components/subjects/add-students-modal"
 import type { Student } from "@/types/student"
@@ -153,21 +151,21 @@ export default function SubjectDetailPage() {
   }, [rawSubjectCode])
   const router = useRouter()
 
-  const [subjects, setSubjects] = useState(initialSubjects)
   const [subjectDb, setSubjectDb] = useState<Subject | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isTimeSlotModalOpen, setIsTimeSlotModalOpen] = useState(false)
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
   const [isAddStudentsModalOpen, setIsAddStudentsModalOpen] = useState(false)
 
-  const subjectLocal = subjects.find((s) => s.code === subjectCode)
-  const subject = subjectDb ?? subjectLocal
+  const subject = subjectDb ?? null
   const showOneToOne = subject?.type === "1 to 1"
   const [enrolledStudents, setEnrolledStudents] = useState<Student[]>([])
 
   useEffect(() => {
     let cancelled = false
     if (!subjectCode) return
+    setIsLoading(true)
     fetch(`/api/subjects/${encodeURIComponent(subjectCode)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -176,6 +174,7 @@ export default function SubjectDetailPage() {
         if (data.enrolledStudents) setEnrolledStudents(data.enrolledStudents as Student[])
       })
       .catch(() => {})
+      .finally(() => { if (!cancelled) setIsLoading(false) })
     return () => {
       cancelled = true
     }
@@ -209,14 +208,6 @@ export default function SubjectDetailPage() {
       })
       if (!res.ok) throw new Error("Failed to update subject")
       const saved = (await res.json()) as Subject
-      setSubjects((prevSubjects) => {
-        const newSubjects = [...prevSubjects]
-        const index = newSubjects.findIndex((s) => s.code === targetCode)
-        if (index !== -1) {
-          newSubjects[index] = saved
-        }
-        return newSubjects
-      })
       setSubjectDb(saved)
       handleCloseModal()
     } catch {
@@ -364,6 +355,11 @@ export default function SubjectDetailPage() {
   }
 
   if (!subject) {
+    if (isLoading) {
+      return (
+        <div className="p-6 text-muted-foreground">Loading subject…</div>
+      )
+    }
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <h2 className="text-2xl font-bold mb-4">Subject Not Found</h2>

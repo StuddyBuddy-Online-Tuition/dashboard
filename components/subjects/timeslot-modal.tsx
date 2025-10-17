@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect, useCallback } from "react"
 import type { Subject } from "@/types/subject"
 import type { Timeslot } from "@/types/timeslot"
-import { DAY_OPTIONS } from "@/data/subject-constants"
+import { DAY_OPTIONS } from "@/lib/subject-constants"
 import { Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

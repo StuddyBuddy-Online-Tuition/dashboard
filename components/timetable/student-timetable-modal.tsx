@@ -42,8 +42,15 @@ const TIME_WINDOWS = [
 type TimeWindowIndex = 0 | 1
 
 function getTimeWindowIndex(startTime: string, endTime: string): TimeWindowIndex | null {
-  if (startTime === TIME_WINDOWS[0].start && endTime === TIME_WINDOWS[0].end) return 0
-  if (startTime === TIME_WINDOWS[1].start && endTime === TIME_WINDOWS[1].end) return 1
+  // Normalize to HH:mm in case API returns HH:mm:ss
+  const toHHmm = (t: string) => {
+    const m = /^\d{2}:\d{2}/.exec(t)
+    return m ? m[0] : t
+  }
+  const s = toHHmm(startTime)
+  const e = toHHmm(endTime)
+  if (s === TIME_WINDOWS[0].start && e === TIME_WINDOWS[0].end) return 0
+  if (s === TIME_WINDOWS[1].start && e === TIME_WINDOWS[1].end) return 1
   return null
 }
 
