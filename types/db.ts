@@ -17,6 +17,7 @@ export type DbStudent = {
   modes: StudentMode[] | null;
   dlp: string;
   full_name: string | null;
+  ticketid: string | null;
 };
 
 export type DbSubject = {
