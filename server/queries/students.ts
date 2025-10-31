@@ -26,6 +26,7 @@ function mapDbStudentToStudent(row: DbStudent): Student {
     registeredDate: row.registereddate ?? "",
     modes: (row.modes ?? []) as StudentMode[],
     dlp: (row.dlp?.toUpperCase() === "DLP" ? "DLP" : "non-DLP") as Student["dlp"],
+    ticketId: row.ticketid ?? null,
   };
 }
 
@@ -57,7 +58,7 @@ export async function getAllStudents(
   let query = supabase
     .from("students")
     .select(
-      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name",
+      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid",
       { count: "exact" }
     );
 
@@ -225,6 +226,7 @@ export async function getAvailableStudentsForSubject(opts: {
     registeredDate: "",
     modes: [],
     dlp: "non-DLP",
+    ticketId: null,
   }));
 
   return { students, totalCount: count ?? 0 };
@@ -261,7 +263,7 @@ export async function createStudent(input: Student): Promise<Student> {
       dlp,
     })
     .select(
-      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name"
+      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid"
     )
     .single();
 
@@ -313,7 +315,7 @@ export async function updateStudent(input: Student): Promise<Student> {
     })
     .eq("id", input.id)
     .select(
-      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name"
+      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid"
     )
     .single();
 

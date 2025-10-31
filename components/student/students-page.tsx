@@ -651,7 +651,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                     )}
                     {columnVisibility.email && <p>Email: {s.email}</p>}
                     {columnVisibility.ticketId && (s.status === "pending" || s.status === "trial") && (
-                      <p>Ticket ID: {"TICKET-PLACEHOLDER"}</p>
+                      <p>Ticket ID: {s.ticketId || "-"}</p>
                     )}
                     {columnVisibility.school && <p>School: {s.school}</p>}
                     {columnVisibility.classInId && s.classInId && <p>ClassIn: {s.classInId}</p>}
@@ -738,7 +738,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                       {columnVisibility.studentId && <td className="py-3 px-4 font-mono text-sm">{s.studentId}</td>}
                       {columnVisibility.ticketId && (
                         <td className="py-3 px-4 font-mono text-sm">
-                          {s.status === "pending" || s.status === "trial" ? "TICKET-PLACEHOLDER" : "-"}
+                          {s.status === "pending" || s.status === "trial" ? (s.ticketId || "-") : "-"}
                         </td>
                       )}
                       {columnVisibility.name && <td className="py-3 px-4 font-medium">{s.name}</td>}

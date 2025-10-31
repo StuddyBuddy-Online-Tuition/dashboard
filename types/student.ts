@@ -17,6 +17,7 @@ export interface Student {
   registeredDate: string
   modes: StudentMode[]
   dlp: "DLP" | "non-DLP"
+  ticketId: string | null
 }
 
 export const STATUSES: Readonly<Student["status"][]> = ["active", "pending", "inactive", "trial", "removed"]

@@ -57,7 +57,7 @@ export async function getSingleSubjectDetail(code: string): Promise<{ subject: S
   // Fetch students enrolled in this subject using inner join on student_subjects
   const { data: joined, error: joinErr } = await supabase
     .from("students")
-    .select("id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, student_subjects!inner(subjectcode)")
+    .select("id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid, student_subjects!inner(subjectcode)")
     .eq("student_subjects.subjectcode", code);
   if (joinErr) throw joinErr;
 
@@ -78,6 +78,7 @@ export async function getSingleSubjectDetail(code: string): Promise<{ subject: S
     registeredDate: row.registereddate ?? "",
     modes: (row.modes ?? []) as StudentMode[],
     dlp: (row.dlp?.toUpperCase() === "DLP" ? "DLP" : "non-DLP") as Student["dlp"],
+    ticketId: row.ticketid ?? null,
   }));
 
   return { subject, enrolledStudents };
