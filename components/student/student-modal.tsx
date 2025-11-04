@@ -25,6 +25,8 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog"
 import { RemoveStudentConfirm } from "@/components/student/RemoveStudentConfirm"
+import { formatDate } from "@/lib/utils"
+import { Switch } from "@/components/ui/switch"
 
 interface StudentModalProps {
   student: Student
@@ -38,10 +40,12 @@ const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5
 
 export default function StudentModal({ student, onClose, onSave, onRemove, subjects }: StudentModalProps) {
   const [formData, setFormData] = useState<Student>(student)
+  const [modalView, setModalView] = useState<"student" | "parent" | "payment">("student")
   const [newSubject, setNewSubject] = useState("")
   const [subjectPopoverOpen, setSubjectPopoverOpen] = useState(false)
   const [subjectSearch, setSubjectSearch] = useState("")
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   const getRelevanceScore = (code: string, name: string, standard: string, query: string) => {
@@ -104,6 +108,14 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setPaymentError(null)
+    // Custom validation for payment section
+    if (modalView === "payment" || formData.recurringpayment) {
+      if (formData.recurringpayment && (!formData.recurringpaymentdate || formData.recurringpaymentdate.trim() === "")) {
+        setPaymentError("Recurring payment requires a date.")
+        return
+      }
+    }
     if (formRef.current) {
       if (formRef.current.checkValidity()) {
         setConfirmOpen(true)
@@ -157,9 +169,44 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
           <DialogTitle className="text-navy">{student.id ? "Edit Student" : "Add New Student"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} ref={formRef}>
-          <div className="grid gap-4 py-4">
-            {/* Student section */}
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">Student</div>
+          {/* Segmented control */}
+          <div
+            role="tablist"
+            aria-label="Student detail sections"
+            className="flex items-center justify-center mb-6"
+          >
+            <div className="inline-flex items-center gap-1 rounded-full border border-secondary/30 bg-gradient-to-r from-secondary/10 to-primary/10 p-1 shadow-sm">
+            {(["student", "parent", "payment"] as const).map((v) => {
+              const active = modalView === v
+              return (
+                <Button
+                  key={v}
+                  role="tab"
+                  aria-selected={active}
+                  tabIndex={active ? 0 : -1}
+                  type="button"
+                  onClick={() => setModalView(v)}
+                  className={
+                    "px-4 h-9 rounded-full text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 " +
+                    (active
+                      ? "bg-accent text-navy shadow-sm"
+                      : "bg-transparent text-navy/70 hover:bg-secondary/20")
+                  }
+                >
+                  {v === "student" && "Student"}
+                  {v === "parent" && "Parent"}
+                  {v === "payment" && "Payment"}
+                </Button>
+              )
+            })}
+            </div>
+          </div>
+
+          <div className="grid gap-4 py-2">
+            {/* STUDENT VIEW */}
+            {modalView === "student" && (
+              <>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Student</div>
             {/* Student ID field */}
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
               <Label htmlFor="studentId" className="text-navy sm:text-right">
@@ -216,6 +263,21 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
                 value={formData.studentPhone}
                 onChange={handleChange}
                 className="sm:col-span-3 border-secondary/20"
+              />
+            </div>
+
+            {/* IC Number field */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+              <Label htmlFor="icnumber" className="text-navy sm:text-right">
+                IC Number
+              </Label>
+              <Input
+                id="icnumber"
+                name="icnumber"
+                value={formData.icnumber ?? ""}
+                onChange={handleChange}
+                className="sm:col-span-3 border-secondary/20 font-mono"
+                placeholder="e.g., 890101015555"
               />
             </div>
 
@@ -449,53 +511,120 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
                 </div>
               </div>
             </div>
-            {/* Parent section */}
-            <div className="text-xs uppercase tracking-wide text-muted-foreground pt-2">Parent</div>
+              </>
+            )}
 
-            {/* Parent's Name field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="parentName" className="text-navy sm:text-right">
-                Parent's Name
-              </Label>
-              <Input
-                id="parentName"
-                name="parentName"
-                value={formData.parentName}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20"
-                required
-              />
-            </div>
+            {/* PARENT VIEW */}
+            {modalView === "parent" && (
+              <>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Parent</div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+                  <Label htmlFor="parentName" className="text-navy sm:text-right">
+                    Parent's Name
+                  </Label>
+                  <Input
+                    id="parentName"
+                    name="parentName"
+                    value={formData.parentName}
+                    onChange={handleChange}
+                    className="sm:col-span-3 border-secondary/20"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+                  <Label htmlFor="parentPhone" className="text-navy sm:text-right">
+                    Parent Phone
+                  </Label>
+                  <Input
+                    id="parentPhone"
+                    name="parentPhone"
+                    value={formData.parentPhone}
+                    onChange={handleChange}
+                    className="sm:col-span-3 border-secondary/20"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+                  <Label htmlFor="email" className="text-navy sm:text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="sm:col-span-3 border-secondary/20"
+                    required
+                  />
+                </div>
+              </>
+            )}
 
-            {/* Parent Phone field */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-              <Label htmlFor="parentPhone" className="text-navy sm:text-right">
-                Parent Phone
-              </Label>
-              <Input
-                id="parentPhone"
-                name="parentPhone"
-                value={formData.parentPhone}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20"
-                required
-              />
-            </div>
-          {/* Parent Email field */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
-            <Label htmlFor="email" className="text-navy sm:text-right">
-              Email
-            </Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="sm:col-span-3 border-secondary/20"
-              required
-            />
-          </div>
+            {/* PAYMENT VIEW (Editable) */}
+            {modalView === "payment" && (
+              <>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Payment</div>
+                {/* Recurring Payment Toggle */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+                  <Label htmlFor="recurringpayment" className="text-navy sm:text-right">Recurring Payment</Label>
+                  <div className="sm:col-span-3 flex items-center gap-3">
+                    <Switch
+                      id="recurringpayment"
+                      checked={!!formData.recurringpayment}
+                      onCheckedChange={(checked) =>
+                        setFormData((prev) => ({ ...prev, recurringpayment: !!checked }))
+                      }
+                    />
+                    <Badge
+                      className={
+                        formData.recurringpayment
+                          ? "bg-green-100 text-green-800 border-green-300"
+                          : "bg-gray-100 text-gray-800 border-gray-300"
+                      }
+                    >
+                      {formData.recurringpayment ? "Yes" : "No"}
+                    </Badge>
+                  </div>
+                </div>
+                {/* Recurring Payment Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+                  <Label htmlFor="recurringpaymentdate" className="text-navy sm:text-right">Recurring Date</Label>
+                  <div className="sm:col-span-3 space-y-1">
+                    <Input
+                      id="recurringpaymentdate"
+                      name="recurringpaymentdate"
+                      type="date"
+                      value={formData.recurringpaymentdate ?? ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, recurringpaymentdate: e.target.value || null }))
+                      }
+                      className={"border-secondary/20 " + (formData.recurringpayment ? "" : "opacity-70")}
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      {formData.recurringpayment
+                        ? "Select the next recurring payment date."
+                        : "Date optional when recurring is No."}
+                    </div>
+                    {paymentError && (
+                      <div role="alert" className="text-xs text-destructive font-medium">
+                        {paymentError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* Preview summary */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+                  <Label className="text-navy sm:text-right">Summary</Label>
+                  <div className="sm:col-span-3 flex flex-wrap gap-2 text-sm">
+                    <Badge className={formData.recurringpayment ? "bg-green-100 text-green-800 border-green-300" : "bg-gray-100 text-gray-800 border-gray-300"}>{formData.recurringpayment ? "Recurring" : "One-off"}</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 border-blue-300">
+                      {formData.recurringpaymentdate ? formatDate(formData.recurringpaymentdate) : "No date"}
+                    </Badge>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter className="mt-4 sm:mt-0">
             <div className="w-full flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -548,10 +677,17 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
                   const isCreate = !formData.id || formData.id.trim() === ""
                   const url = isCreate ? "/api/students" : `/api/students/${formData.id}`
                   const method = isCreate ? "POST" : "PATCH"
+                  const payload: Student = {
+                    ...formData,
+                    // Normalize empty date to null, ensure boolean
+                    recurringpayment: !!formData.recurringpayment,
+                    recurringpaymentdate: formData.recurringpaymentdate && formData.recurringpaymentdate.trim() !== "" ? formData.recurringpaymentdate.trim() : null,
+                    icnumber: formData.icnumber && formData.icnumber.trim() !== "" ? formData.icnumber.trim() : null,
+                  }
                   fetch(url, {
                     method,
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(formData),
+                    body: JSON.stringify(payload),
                   })
                     .then(async (res) => {
                       if (!res.ok) throw new Error(await res.text())
@@ -561,7 +697,7 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
                       onSave(saved)
                     })
                     .catch(() => {
-                      onSave(formData)
+                      onSave(payload)
                     })
                 }}
               >
