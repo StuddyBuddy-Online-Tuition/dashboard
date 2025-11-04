@@ -57,6 +57,9 @@ interface ColumnVisibility {
   registeredDate: boolean
   mode: boolean
   dlp: boolean
+  icNumber: boolean
+  recurringPayment: boolean
+  recurringPaymentDate: boolean
 }
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
@@ -97,9 +100,11 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     registeredDate: true,
     mode: true,
     dlp: true,
+    icNumber: false,
+    recurringPayment: false,
+    recurringPaymentDate: false,
   })
-
-  const [detailView, setDetailView] = useState<"student" | "parent">("student")
+  const [detailView, setDetailView] = useState<"student" | "parent" | "payment">("student")
   type SortField = "grade" | "dlp" | "status" | "registeredDate"
   type SortOrder = "asc" | "desc"
   type SortRule = { field: SortField; order: SortOrder }
@@ -244,7 +249,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     )[m] || "bg-gray-100 text-gray-800 border-gray-300"
 
     /* ----------------------- column visibility UX ---------------------- */
-  const applyColumnsPreset = (view: "student" | "parent") => {
+  const applyColumnsPreset = (view: "student" | "parent" | "payment") => {
     if (view === "student") {
       setColumnVisibility({
         studentId: true,
@@ -262,8 +267,11 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
         registeredDate: true,
         mode: true,
         dlp: true,
+        icNumber: false,
+        recurringPayment: false,
+        recurringPaymentDate: false,
       })
-    } else {
+    } else if (view === "parent") {
       setColumnVisibility({
         studentId: true,
         ticketId: false,
@@ -280,12 +288,36 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
         registeredDate: false,
         mode: false,
         dlp: false,
+        icNumber: false,
+        recurringPayment: false,
+        recurringPaymentDate: false,
+      })
+    } else if (view === "payment") {
+      setColumnVisibility({
+        studentId: true,
+        ticketId: false,
+        name: true,
+        parentName: true,
+        studentPhone: false,
+        parentPhone: true,
+        email: false,
+        school: false,
+        grade: false,
+        subjects: false,
+        status: true,
+        classInId: false,
+        registeredDate: false,
+        mode: false,
+        dlp: false,
+        icNumber: true,
+        recurringPayment: true,
+        recurringPaymentDate: true,
       })
     }
   }
 
   const handleDetailViewChange = (value: string) => {
-    const view = value === "parent" ? "parent" : "student"
+    const view = value === "parent" ? "parent" : value === "payment" ? "payment" : "student"
     setDetailView(view)
     applyColumnsPreset(view)
   }
@@ -324,6 +356,10 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
         registeredDate: new Date().toISOString().split("T")[0],
         modes: ["NORMAL"],
         dlp: "non-DLP",
+        ticketId: null,
+        icnumber: null,
+        recurringpayment: null,
+        recurringpaymentdate: null,
       })
     }
     setIsModalOpen(true)
@@ -534,6 +570,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
               <SelectContent>
                 <SelectItem value="student">Student details</SelectItem>
                 <SelectItem value="parent">Parent details</SelectItem>
+                <SelectItem value="payment">Payment details</SelectItem>
               </SelectContent>
             </Select>
 
@@ -633,6 +670,22 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                   <div className="space-y-1 text-sm">
                     {columnVisibility.parentName && <p>Parent: {s.parentName}</p>}
                     {columnVisibility.studentPhone && <p>Student Phone: {s.studentPhone}</p>}
+                    {columnVisibility.studentPhone && (
+                      <p>
+                        Student Phone: {toWhatsAppHref(s.studentPhone) ? (
+                          <a
+                            href={toWhatsAppHref(s.studentPhone)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline"
+                          >
+                            {s.studentPhone}
+                          </a>
+                        ) : (
+                          s.studentPhone || "-"
+                        )}
+                      </p>
+                    )}
                     {columnVisibility.parentPhone && (
                       <p>
                         Parent Phone: {toWhatsAppHref(s.parentPhone) ? (
@@ -656,6 +709,31 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                     {columnVisibility.school && <p>School: {s.school}</p>}
                     {columnVisibility.classInId && s.classInId && <p>ClassIn: {s.classInId}</p>}
                     {columnVisibility.registeredDate && <p>Registered: {formatDate(s.registeredDate)}</p>}
+                    {columnVisibility.icNumber && <p>IC Number: {s.icnumber || "-"}</p>}
+                    {columnVisibility.recurringPayment && (
+                      <p className="flex items-center gap-1">
+                        Recurring: {
+                          s.recurringpayment === null ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <Badge
+                              className={
+                                s.recurringpayment
+                                  ? "bg-green-100 text-green-800 border-green-300"
+                                  : "bg-gray-100 text-gray-800 border-gray-300"
+                              }
+                            >
+                              {s.recurringpayment ? "Yes" : "No"}
+                            </Badge>
+                          )
+                        }
+                      </p>
+                    )}
+                    {columnVisibility.recurringPaymentDate && (
+                      <p>
+                        Recurring Date: {s.recurringpaymentdate ? formatDate(s.recurringpaymentdate) : "-"}
+                      </p>
+                    )}
                     {columnVisibility.subjects && (
                       <>
                         <p className="mt-2 text-xs text-muted-foreground">Subjects:</p>
@@ -722,6 +800,15 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                     <th className="py-3 px-4 text-left font-medium text-navy">Registered</th>
                   )}
                   {columnVisibility.mode && <th className="py-3 px-4 text-left font-medium text-navy">Modes</th>}
+                  {columnVisibility.icNumber && (
+                    <th className="py-3 px-4 text-left font-medium text-navy">IC Number</th>
+                  )}
+                  {columnVisibility.recurringPayment && (
+                    <th className="py-3 px-4 text-left font-medium text-navy">Recurring</th>
+                  )}
+                  {columnVisibility.recurringPaymentDate && (
+                    <th className="py-3 px-4 text-left font-medium text-navy">Recurring Date</th>
+                  )}
                   <th className="py-3 px-4 text-right font-medium text-navy">Actions</th>
                 </tr>
               </thead>
@@ -743,7 +830,22 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                       )}
                       {columnVisibility.name && <td className="py-3 px-4 font-medium">{s.name}</td>}
                       {columnVisibility.parentName && <td className="py-3 px-4">{s.parentName}</td>}
-                      {columnVisibility.studentPhone && <td className="py-3 px-4">{s.studentPhone}</td>}
+                      {columnVisibility.studentPhone && (
+                        <td className="py-3 px-4">
+                          {toWhatsAppHref(s.studentPhone) ? (
+                            <a
+                              href={toWhatsAppHref(s.studentPhone)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {s.studentPhone}
+                            </a>
+                          ) : (
+                            s.studentPhone || "-"
+                          )}
+                        </td>
+                      )}
                       {columnVisibility.parentPhone && (
                         <td className="py-3 px-4">
                           {toWhatsAppHref(s.parentPhone) ? (
@@ -803,6 +905,27 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                             ))}
                           </div>
                         </td>
+                      )}
+                      {columnVisibility.icNumber && (
+                        <td className="py-3 px-4 font-mono text-sm">{s.icnumber || "-"}</td>
+                      )}
+                      {columnVisibility.recurringPayment && (
+                        <td className="py-3 px-4">
+                          <Badge
+                            className={
+                              s.recurringpayment === null
+                                ? "bg-gray-50 text-gray-500 border-gray-200"
+                                : s.recurringpayment
+                                ? "bg-green-100 text-green-800 border-green-300"
+                                : "bg-gray-100 text-gray-800 border-gray-300"
+                            }
+                          >
+                            {s.recurringpayment === null ? "—" : s.recurringpayment ? "Yes" : "No"}
+                          </Badge>
+                        </td>
+                      )}
+                      {columnVisibility.recurringPaymentDate && (
+                        <td className="py-3 px-4">{s.recurringpaymentdate ? formatDate(s.recurringpaymentdate) : "-"}</td>
                       )}
                       <td className="py-3 px-4 text-right">
                         <Button
