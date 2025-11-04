@@ -18,6 +18,10 @@ export interface Student {
   modes: StudentMode[]
   dlp: "DLP" | "non-DLP"
   ticketId: string | null
+  /* Payment / admin related fields (read-only for now) */
+  icnumber: string | null
+  recurringpayment: boolean | null
+  recurringpaymentdate: string | null
 }
 
 export const STATUSES: Readonly<Student["status"][]> = ["active", "pending", "inactive", "trial", "removed"]

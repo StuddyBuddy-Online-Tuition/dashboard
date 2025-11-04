@@ -27,6 +27,9 @@ function mapDbStudentToStudent(row: DbStudent): Student {
     modes: (row.modes ?? []) as StudentMode[],
     dlp: (row.dlp?.toUpperCase() === "DLP" ? "DLP" : "non-DLP") as Student["dlp"],
     ticketId: row.ticketid ?? null,
+    icnumber: row.icnumber ?? null,
+    recurringpayment: row.recurringpayment ?? null,
+    recurringpaymentdate: row.recurringpaymentdate ?? null,
   };
 }
 
@@ -58,7 +61,7 @@ export async function getAllStudents(
   let query = supabase
     .from("students")
     .select(
-      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid",
+      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid, icnumber, recurringpayment, recurringpaymentdate",
       { count: "exact" }
     );
 
@@ -227,6 +230,9 @@ export async function getAvailableStudentsForSubject(opts: {
     modes: [],
     dlp: "non-DLP",
     ticketId: null,
+    icnumber: null,
+    recurringpayment: null,
+    recurringpaymentdate: null,
   }));
 
   return { students, totalCount: count ?? 0 };
@@ -261,9 +267,12 @@ export async function createStudent(input: Student): Promise<Student> {
       registereddate: input.registeredDate,
       modes,
       dlp,
+      icnumber: input.icnumber ?? null,
+      recurringpayment: input.recurringpayment ?? null,
+      recurringpaymentdate: input.recurringpaymentdate ?? null,
     })
     .select(
-      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid"
+      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid, icnumber, recurringpayment, recurringpaymentdate"
     )
     .single();
 
@@ -312,10 +321,13 @@ export async function updateStudent(input: Student): Promise<Student> {
       registereddate: input.registeredDate,
       modes,
       dlp,
+      icnumber: input.icnumber ?? null,
+      recurringpayment: input.recurringpayment ?? null,
+      recurringpaymentdate: input.recurringpaymentdate ?? null,
     })
     .eq("id", input.id)
     .select(
-      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid"
+      "id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid, icnumber, recurringpayment, recurringpaymentdate"
     )
     .single();
 

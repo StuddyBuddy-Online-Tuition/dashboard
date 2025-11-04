@@ -18,6 +18,9 @@ export type DbStudent = {
   dlp: string;
   full_name: string | null;
   ticketid: string | null;
+  icnumber: string | null;
+  recurringpayment: boolean | null;
+  recurringpaymentdate: string | null; // date
 };
 
 export type DbSubject = {
