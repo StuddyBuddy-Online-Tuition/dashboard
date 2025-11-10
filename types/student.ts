@@ -1,4 +1,4 @@
-export type StudentMode = "1 TO 1" | "NORMAL" | "OTHERS" | "BREAK"
+export type StudentMode = "1 TO 1" | "NORMAL" | "OTHERS" | "BREAK" | "BOARD"
 
 export interface Student {
   id: string

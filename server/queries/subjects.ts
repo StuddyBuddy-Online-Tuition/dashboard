@@ -28,6 +28,37 @@ export async function getAllSubjects(): Promise<Subject[]> {
   return rows.map((r) => ({ ...r, standard: (r.standard ?? "").toLowerCase() }));
 }
 
+export async function createSubject(
+  input: Pick<Subject, "code" | "name" | "standard" | "type" | "subject">
+): Promise<Subject> {
+  await assertAuthenticated();
+  const supabase = getSupabaseServerClient();
+  const payload = {
+    code: input.code,
+    name: input.name,
+    standard: (input.standard ?? "").toLowerCase(),
+    type: input.type,
+    subject: input.subject,
+  } as const;
+
+  const { data, error } = await supabase
+    .from("subjects")
+    .insert(payload)
+    .select("code, name, standard, type, subject")
+    .single();
+
+  if (error) throw error;
+  if (!data) throw new Error("Failed to create subject");
+  const row = data as DbSubject;
+  return {
+    code: row.code,
+    name: row.name,
+    standard: (row.standard ?? "").toLowerCase(),
+    type: row.type,
+    subject: row.subject,
+  };
+}
+
 export async function getSingleSubjectDetail(code: string): Promise<{ subject: Subject | null; enrolledStudents: Student[] }> {
   await assertAuthenticated();
   const supabase = getSupabaseServerClient();
@@ -82,6 +113,36 @@ export async function getSingleSubjectDetail(code: string): Promise<{ subject: S
   }));
 
   return { subject, enrolledStudents };
+}
+
+export async function getSubjectEnrollmentCount(code: string): Promise<number> {
+  await assertAuthenticated();
+  const supabase = getSupabaseServerClient();
+  const { count, error } = await supabase
+    .from("student_subjects")
+    .select("studentid", { count: "exact", head: true })
+    .eq("subjectcode", code);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
+type DeleteSubjectError = Error & { code?: string; enrolledCount?: number };
+
+export async function deleteSubjectByCode(code: string): Promise<void> {
+  await assertAuthenticated();
+  const supabase = getSupabaseServerClient();
+
+  const enrolledCount = await getSubjectEnrollmentCount(code);
+  if (enrolledCount > 0) {
+    const err = new Error("Subject has enrolled students. Remove them before deleting.") as DeleteSubjectError;
+    err.code = "SUBJECT_HAS_ENROLLED_STUDENTS";
+    err.enrolledCount = enrolledCount;
+    throw err;
+  }
+
+  const { error } = await supabase.from("subjects").delete().eq("code", code);
+  if (error) throw error;
 }
 
 export async function updateSubjectByCode(

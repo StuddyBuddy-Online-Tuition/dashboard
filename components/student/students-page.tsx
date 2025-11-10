@@ -63,7 +63,7 @@ interface ColumnVisibility {
 }
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
-const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "OTHERS", "BREAK"]
+const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "BREAK"]
 
 export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
@@ -242,6 +242,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       {
         NORMAL: "bg-gray-100 text-gray-800 border-gray-300",
         "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
+        BOARD: "bg-indigo-100 text-indigo-800 border-indigo-300",
         BREAK: "bg-yellow-100 text-yellow-800 border-yellow-300",
         break: "bg-yellow-100 text-yellow-800 border-yellow-300",
         OTHERS: "bg-slate-100 text-slate-800 border-slate-300",

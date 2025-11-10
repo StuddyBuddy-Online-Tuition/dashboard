@@ -139,9 +139,10 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
   const getModeColor = (mode: string) => {
     return (
       {
-        "NORMAL": "bg-gray-100 text-gray-800 border-gray-300",
+        NORMAL: "bg-gray-100 text-gray-800 border-gray-300",
         "1 TO 1": "bg-orange-100 text-orange-800 border-orange-300",
-        "OTHERS": "bg-slate-100 text-slate-800 border-slate-300",
+        BOARD: "bg-indigo-100 text-indigo-800 border-indigo-300",
+        OTHERS: "bg-slate-100 text-slate-800 border-slate-300",
       } as Record<string, string>
     )[mode] || "bg-gray-100 text-gray-800 border-gray-300"
   }
@@ -360,7 +361,7 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
               <Label className="text-navy sm:text-right">Modes</Label>
               <div className="sm:col-span-3 space-y-2">
                 <div className="flex flex-wrap gap-4">
-                  {(["NORMAL", "1 TO 1", "OTHERS"] as StudentMode[]).map((m) => (
+                  {(["NORMAL", "1 TO 1", "BOARD", "OTHERS"] as StudentMode[]).map((m) => (
                     <label key={m} className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={formData.modes.includes(m)}
