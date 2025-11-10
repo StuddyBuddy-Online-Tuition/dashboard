@@ -18,6 +18,16 @@ import {
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Import subjects data
 import { STANDARD_OPTIONS } from "@/lib/subject-constants"
@@ -30,6 +40,14 @@ export default function SubjectsPage({ initialSubjects }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [standardFilter, setStandardFilter] = useState<string[]>([])
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteSubjectTarget, setDeleteSubjectTarget] = useState<Subject | null>(null)
+  const [deleteMeta, setDeleteMeta] = useState<{ loading: boolean; error: string | null; enrolledCount: number }>({
+    loading: false,
+    error: null,
+    enrolledCount: 0,
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
 
   const filteredSubjects = useMemo(() => {
@@ -81,33 +99,118 @@ export default function SubjectsPage({ initialSubjects }: Props) {
   }
 
   const handleSaveSubject = (updatedSubject: Subject, originalCode?: string) => {
+    const normalizedSubject: Subject = {
+      ...updatedSubject,
+      standard: updatedSubject.standard.toUpperCase(),
+    }
+
     setSubjects((prevSubjects) => {
-      if (originalCode && originalCode !== updatedSubject.code) {
-        // If code changed, remove old and add new
-        return prevSubjects
-          .filter((s) => s.code !== originalCode)
-          .concat(updatedSubject)
-          .sort((a, b) => a.code.localeCompare(b.code))
-      } else {
-        const index = prevSubjects.findIndex((s) => s.code === updatedSubject.code)
-        if (index !== -1) {
-          // Update existing subject
-          const newSubjects = [...prevSubjects]
-          newSubjects[index] = updatedSubject
-          return newSubjects
-        } else {
-          // Add new subject
-          return [...prevSubjects, updatedSubject].sort((a, b) => a.code.localeCompare(b.code))
-        }
+      let nextSubjects = prevSubjects
+
+      if (originalCode && originalCode !== normalizedSubject.code) {
+        nextSubjects = nextSubjects.filter((s) => s.code !== originalCode)
       }
+
+      const existingIndex = nextSubjects.findIndex((s) => s.code === normalizedSubject.code)
+
+      if (existingIndex !== -1) {
+        const copy = [...nextSubjects]
+        copy[existingIndex] = normalizedSubject
+        nextSubjects = copy
+      } else {
+        nextSubjects = [...nextSubjects, normalizedSubject]
+      }
+
+      return nextSubjects.sort((a, b) => a.code.localeCompare(b.code))
     })
     handleCloseModal()
   }
 
-  const handleDeleteSubject = (e: React.MouseEvent, subjectCode: string) => {
+  const resetDeleteDialog = () => {
+    setDeleteMeta({ loading: false, error: null, enrolledCount: 0 })
+    setDeleteSubjectTarget(null)
+    setIsDeleting(false)
+  }
+
+  const loadDeleteMeta = async (code: string) => {
+    setDeleteMeta({ loading: true, error: null, enrolledCount: 0 })
+    try {
+      const res = await fetch(`/api/subjects/${encodeURIComponent(code)}`)
+      if (!res.ok) {
+        const text = await res.text()
+        let message = "Failed to fetch subject details"
+        if (text) {
+          try {
+            const parsed = JSON.parse(text) as { error?: string }
+            if (parsed?.error) message = parsed.error
+          } catch {
+            message = text
+          }
+        }
+        throw new Error(message)
+      }
+      const data = (await res.json()) as { enrolledStudents?: unknown[] }
+      const count = Array.isArray(data?.enrolledStudents) ? data.enrolledStudents.length : 0
+      setDeleteMeta({ loading: false, error: null, enrolledCount: count })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch subject details"
+      setDeleteMeta({ loading: false, error: message, enrolledCount: 0 })
+    }
+  }
+
+  const handleDeleteSubject = (e: React.MouseEvent, subject: Subject) => {
     e.stopPropagation()
-    if (window.confirm("Are you sure you want to delete this subject?")) {
-      setSubjects((prevSubjects) => prevSubjects.filter((s) => s.code !== subjectCode))
+    setDeleteSubjectTarget(subject)
+    setDeleteDialogOpen(true)
+    void loadDeleteMeta(subject.code)
+  }
+
+  const handleConfirmDelete = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    if (!deleteSubjectTarget || deleteMeta.loading || deleteMeta.enrolledCount > 0 || deleteMeta.error) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/subjects/${encodeURIComponent(deleteSubjectTarget.code)}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        let message = "Failed to delete subject"
+        let enrolledCount: number | undefined
+        if (text) {
+          try {
+            const parsed = JSON.parse(text) as { error?: string; enrolledCount?: number }
+            if (parsed?.error) message = parsed.error
+            if (typeof parsed?.enrolledCount === "number") {
+              enrolledCount = parsed.enrolledCount
+            }
+          } catch {
+            message = text
+          }
+        }
+
+        if (res.status === 409 && typeof enrolledCount === "number") {
+          setDeleteMeta({ loading: false, error: null, enrolledCount })
+          setIsDeleting(false)
+          return
+        }
+
+        setDeleteMeta((prev) => ({ ...prev, error: message }))
+        setIsDeleting(false)
+        return
+      }
+
+      setSubjects((prevSubjects) => prevSubjects.filter((s) => s.code !== deleteSubjectTarget.code))
+      setDeleteDialogOpen(false)
+      resetDeleteDialog()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete subject"
+      setDeleteMeta((prev) => ({ ...prev, error: message }))
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -249,7 +352,7 @@ export default function SubjectsPage({ initialSubjects }: Props) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => handleDeleteSubject(e, subject.code)}
+                            onClick={(e) => handleDeleteSubject(e, subject)}
                             className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -310,7 +413,7 @@ export default function SubjectsPage({ initialSubjects }: Props) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => handleDeleteSubject(e, subject.code)}
+                            onClick={(e) => handleDeleteSubject(e, subject)}
                             className="text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -334,6 +437,67 @@ export default function SubjectsPage({ initialSubjects }: Props) {
           onSave={handleSaveSubject}
         />
       )}
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open)
+          if (!open) {
+            resetDeleteDialog()
+          }
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-[420px] border-secondary/20 bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-navy">Delete subject?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will permanently remove the subject from the catalogue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteSubjectTarget && (
+            <div className="rounded-md border border-secondary/30 bg-secondary/10 p-4 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-navy">{deleteSubjectTarget.name}</p>
+                <p className="text-xs font-mono text-muted-foreground">{deleteSubjectTarget.code}</p>
+              </div>
+              <Badge className="w-fit border-primary/30 bg-primary/10 text-primary">
+                {deleteSubjectTarget.standard}
+              </Badge>
+              <div className="rounded-md border border-secondary/20 bg-white/80 p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Enrolled students</span>
+                  <Badge className="border-secondary/30 bg-secondary/20 text-navy">
+                    {deleteMeta.loading ? "..." : deleteMeta.enrolledCount}
+                  </Badge>
+                </div>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  {deleteMeta.error ? (
+                    <span className="text-destructive">{deleteMeta.error}</span>
+                  ) : deleteMeta.loading ? (
+                    <span>Checking enrolled students...</span>
+                  ) : deleteMeta.enrolledCount > 0 ? (
+                    <span>
+                      Please unenrol the {deleteMeta.enrolledCount} student
+                      {deleteMeta.enrolledCount === 1 ? "" : "s"} before deleting this subject.
+                    </span>
+                  ) : (
+                    <span>No students are enrolled in this subject. You can safely delete it.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-secondary/20">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:pointer-events-none disabled:opacity-60"
+              disabled={deleteMeta.loading || !!deleteMeta.error || deleteMeta.enrolledCount > 0 || isDeleting}
+              onClick={handleConfirmDelete}
+            >
+              {isDeleting ? "Deleting..." : "Yes, delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

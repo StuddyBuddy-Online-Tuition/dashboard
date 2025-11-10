@@ -25,27 +25,84 @@ interface SubjectModalProps {
 const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave }) => {
   const [formData, setFormData] = useState<Subject | null>(null)
   const [originalCode, setOriginalCode] = useState<string | undefined>(undefined)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (subject) {
       setFormData(JSON.parse(JSON.stringify(subject)))
       setOriginalCode(subject.code)
+      setSaveError(null)
+      setIsSaving(false)
     }
   }, [subject])
 
-  const handleInputChange = useCallback((field: keyof Subject, value: string) => {
-    setFormData((prev) => {
-      if (!prev) return null
-      // Prevent editing code when modifying an existing subject (code is immutable)
-      if (field === "code" && originalCode) return prev
-      return { ...prev, [field]: value }
-    })
-  }, [originalCode])
+  const handleInputChange = useCallback(
+    (field: keyof Subject, value: string) => {
+      setFormData((prev) => {
+        if (!prev) return null
+        // Prevent editing code when modifying an existing subject (code is immutable)
+        if (field === "code" && originalCode) return prev
+        return { ...prev, [field]: value }
+      })
+    },
+    [originalCode],
+  )
 
-  const handleSave = () => {
-    if (formData) {
-      onSave(formData, originalCode)
-      onClose()
+  const handleSave = async () => {
+    if (!formData) return
+
+    const code = formData.code.trim()
+    const name = formData.name.trim()
+    const standard = formData.standard.trim()
+    const type = formData.type.trim()
+    const subjectValue = (formData.subject ?? "").trim() || name
+
+    if (!code || !name || !standard || !type || !subjectValue) {
+      setSaveError("Please complete all fields before saving.")
+      return
+    }
+
+    setSaveError(null)
+    setIsSaving(true)
+
+    try {
+      const isUpdate = Boolean(originalCode)
+      const endpoint = isUpdate ? `/api/subjects/${encodeURIComponent(originalCode ?? "")}` : `/api/subjects`
+      const method = isUpdate ? "PUT" : "POST"
+      const payload = { code, name, standard, type, subject: subjectValue }
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        let message = "Failed to save subject"
+        if (text) {
+          try {
+            const parsed = JSON.parse(text) as { error?: string }
+            if (parsed?.error) {
+              message = parsed.error
+            } else {
+              message = text
+            }
+          } catch {
+            message = text
+          }
+        }
+        throw new Error(message)
+      }
+
+      const savedSubject = (await response.json()) as Subject
+      onSave(savedSubject, originalCode)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save subject"
+      setSaveError(message)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -115,10 +172,13 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
           </div>
         </div>
         <DialogFooter>
+          {saveError && <p className="w-full text-sm text-destructive text-right">{saveError}</p>}
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
           </DialogClose>
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
