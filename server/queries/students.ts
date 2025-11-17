@@ -97,6 +97,7 @@ export async function getAllStudents(
         `school.ilike.${pattern}`,
         `classinid.ilike.${pattern}`,
         `full_name.ilike.${pattern}`,
+        `studentid.ilike.${pattern}`,
       ].join(",")
     );
   }

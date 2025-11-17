@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   isOneToOneMode: boolean
+  hasBothModes?: boolean
   oneToOneSlots?: Timeslot[]
   normalSlots?: Timeslot[]
 }
@@ -88,12 +89,17 @@ function getBaseAbbrevFromCode(subjectCode: string): string {
   return code.slice(0, 3)
 }
 
-export default function StudentTimetableModal({ title, subjects, isOpen, onClose, isOneToOneMode, oneToOneSlots = [], normalSlots = [] }: Props) {
+export default function StudentTimetableModal({ title, subjects, isOpen, onClose, isOneToOneMode, hasBothModes = false, oneToOneSlots = [], normalSlots = [] }: Props) {
+  const [viewMode, setViewMode] = useState<"normal" | "1to1">("normal")
+  
   const subjectByCode = useMemo(() => {
     const map = new Map<string, Subject>()
     for (const s of subjects) map.set(s.code, s)
     return map
   }, [subjects])
+  
+  // Determine which view to show
+  const showOneToOne = hasBothModes ? viewMode === "1to1" : isOneToOneMode
 
   // Normal mode grid: day -> windowIndex -> Subject[]
   const normalModeGrid = useMemo(() => {
@@ -204,8 +210,35 @@ export default function StudentTimetableModal({ title, subjects, isOpen, onClose
       <DialogContent className="max-w-6xl bg-white">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          {hasBothModes && (
+            <div className="flex items-center justify-center pt-4">
+              <div className="inline-flex items-center gap-1 rounded-full border border-secondary/30 bg-gradient-to-r from-secondary/10 to-primary/10 p-1 shadow-sm">
+                {(["normal", "1to1"] as const).map((mode) => {
+                  const isActive = viewMode === mode
+                  return (
+                    <Button
+                      key={mode}
+                      role="tab"
+                      aria-selected={isActive}
+                      tabIndex={isActive ? 0 : -1}
+                      type="button"
+                      onClick={() => setViewMode(mode)}
+                      className={
+                        "px-4 h-9 rounded-full text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 " +
+                        (isActive
+                          ? "bg-accent text-navy shadow-sm"
+                          : "bg-transparent text-navy/70 hover:bg-secondary/20")
+                      }
+                    >
+                      {mode === "normal" ? "Normal" : "1-to-1"}
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </DialogHeader>
-        {isOneToOneMode ? (
+        {showOneToOne ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
               <thead>

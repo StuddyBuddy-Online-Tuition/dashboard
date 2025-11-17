@@ -182,6 +182,20 @@ export default function SubjectDetailPage() {
 
   const excludeStudentIds = useMemo(() => enrolledStudents.map((s) => s.id), [enrolledStudents])
 
+  const fetchEnrolledStudents = async () => {
+    if (!subjectCode) return
+    try {
+      const res = await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.enrolledStudents) {
+        setEnrolledStudents(data.enrolledStudents as Student[])
+      }
+    } catch {
+      // no-op: silently fail
+    }
+  }
+
   const handleOpenModal = () => setIsModalOpen(true)
   const handleCloseModal = () => setIsModalOpen(false)
 
@@ -309,7 +323,7 @@ export default function SubjectDetailPage() {
         method: "DELETE",
       })
       if (!res.ok && res.status !== 204) throw new Error("Failed to remove")
-      setEnrolledStudents((prevStudents) => prevStudents.filter((student) => student.id !== studentId))
+      await fetchEnrolledStudents()
     } catch {
       // no-op
     }
@@ -318,16 +332,13 @@ export default function SubjectDetailPage() {
   const handleAddStudents = async (newStudents: Student[]) => {
     const ids = newStudents.map((s) => s.id)
     try {
-      await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/students`, {
+      const res = await fetch(`/api/subjects/${encodeURIComponent(subjectCode)}/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentIds: ids }),
       })
-      setEnrolledStudents((prev) => {
-        const existingIds = new Set(prev.map((s) => s.id))
-        const toAdd = newStudents.filter((s) => !existingIds.has(s.id))
-        return [...prev, ...toAdd]
-      })
+      if (!res.ok) throw new Error("Failed to add students")
+      await fetchEnrolledStudents()
       setIsAddStudentsModalOpen(false)
     } catch {
       // no-op

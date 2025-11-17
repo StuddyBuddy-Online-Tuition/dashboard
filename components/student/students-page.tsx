@@ -386,11 +386,58 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
 
   const handleViewTimetable = async (student: Student) => {
     setSelectedStudent(student)
-    const isOneToOne = Array.isArray(student.modes) && student.modes.includes("1 TO 1")
-    if (isOneToOne) {
-      setOneToOneSlots([])
-      setNormalSlots([])
-      setIsTimetableModalOpen(true)
+    const hasOneToOne = Array.isArray(student.modes) && student.modes.includes("1 TO 1")
+    const hasNormal = Array.isArray(student.modes) && student.modes.includes("NORMAL")
+    const hasBoth = hasOneToOne && hasNormal
+    
+    setOneToOneSlots([])
+    setNormalSlots([])
+    setIsTimetableModalOpen(true)
+
+    if (hasBoth) {
+      // Fetch both types in parallel when student has both modes
+      try {
+        const codes = Array.isArray(student.subjects) ? student.subjects : []
+        console.log("[StudentsPage] Fetching both slot types for student", { id: student.id, name: student.name, subjectCodes: codes })
+        
+        const [oneToOneRes, ...subjectResponses] = await Promise.all([
+          fetch(`/api/timeslots/students/${student.id}`),
+          ...(codes.length > 0 ? codes.map((code) => fetch(`/api/subjects/${encodeURIComponent(code)}/timeslots`)) : [])
+        ])
+
+        // Handle 1-to-1 slots
+        if (oneToOneRes.ok) {
+          const data = (await oneToOneRes.json()) as Timeslot[]
+          console.log("[StudentsPage] Received 1-to-1 slots:", data)
+          setOneToOneSlots(data)
+        } else {
+          console.log("[StudentsPage] Failed to fetch 1-to-1 slots:", { status: oneToOneRes.status, url: oneToOneRes.url })
+        }
+
+        // Handle normal slots
+        if (codes.length > 0) {
+          console.log(
+            "[StudentsPage] Timeslot responses:",
+            subjectResponses.map((r) => ({ url: r.url, ok: r.ok, status: r.status }))
+          )
+          const jsons = await Promise.all(
+            subjectResponses.map(async (r) => (r.ok ? ((await r.json()) as { timeslots: Timeslot[] }) : { timeslots: [] }))
+          )
+          const merged = jsons.flatMap((j) => j.timeslots || [])
+          const filtered = merged.filter((t) => t.studentId === null && t.studentName === null)
+          console.log(
+            "[StudentsPage] Aggregated timeslots count:", merged.length,
+            "Filtered normal slots count:", filtered.length,
+            { merged, filtered }
+          )
+          setNormalSlots(filtered)
+        }
+      } catch {
+        // ignore fetch errors; modal remains open with empty state
+        console.log("[StudentsPage] Error while fetching slots (ignored)")
+      }
+    } else if (hasOneToOne) {
+      // Only 1-to-1 mode
       try {
         console.log("[StudentsPage] Fetching 1-to-1 slots for student", { id: student.id, name: student.name })
         const res = await fetch(`/api/timeslots/students/${student.id}`)
@@ -406,9 +453,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
         console.log("[StudentsPage] Error while fetching 1-to-1 slots (ignored)")
       }
     } else {
-      setOneToOneSlots([])
-      setNormalSlots([])
-      setIsTimetableModalOpen(true)
+      // Only normal mode
       try {
         const codes = Array.isArray(student.subjects) ? student.subjects : []
         console.log("[StudentsPage] Fetching normal slots for student", { id: student.id, name: student.name, subjectCodes: codes })
@@ -670,7 +715,6 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                   {/* optional fields */}
                   <div className="space-y-1 text-sm">
                     {columnVisibility.parentName && <p>Parent: {s.parentName}</p>}
-                    {columnVisibility.studentPhone && <p>Student Phone: {s.studentPhone}</p>}
                     {columnVisibility.studentPhone && (
                       <p>
                         Student Phone: {toWhatsAppHref(s.studentPhone) ? (
@@ -996,8 +1040,9 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
           isOpen={isTimetableModalOpen}
           onClose={() => setIsTimetableModalOpen(false)}
           isOneToOneMode={selectedStudent.modes.includes("1 TO 1")}
-          oneToOneSlots={selectedStudent.modes.includes("1 TO 1") ? oneToOneSlots : []}
-          normalSlots={selectedStudent.modes.includes("1 TO 1") ? [] : normalSlots}
+          hasBothModes={selectedStudent.modes.includes("1 TO 1") && selectedStudent.modes.includes("NORMAL")}
+          oneToOneSlots={oneToOneSlots}
+          normalSlots={normalSlots}
         />
       )}
     </div>
