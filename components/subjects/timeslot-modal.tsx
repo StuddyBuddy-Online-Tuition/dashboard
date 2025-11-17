@@ -149,7 +149,8 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
         const next = [...prev]
         const updated = { ...next[index] }
         if (field === "studentId") {
-          const selected = oneToOneStudents.find((s) => s.studentId === value)
+          // value is the student's UUID (id), not their studentId string
+          const selected = oneToOneStudents.find((s) => s.id === value)
           updated.studentId = value
           updated.studentName = selected ? selected.name : ""
         } else if (field === "day" || field === "startTime" || field === "endTime" || field === "teacherName") {
@@ -169,7 +170,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
       {
         timeslotId: `new-${Date.now()}`,
         subjectCode: subject.code,
-        studentId: defaultStudent ? defaultStudent.studentId : "",
+        studentId: defaultStudent ? defaultStudent.id : "", // Use UUID (id), not studentId string
         studentName: defaultStudent ? defaultStudent.name : "",
         day: "Monday",
         startTime: "09:00",
@@ -272,11 +273,11 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
                           </SelectTrigger>
                           <SelectContent>
                             {oneToOneStudents.map((s) => (
-                              <SelectItem key={s.studentId} value={s.studentId}>
+                              <SelectItem key={s.id} value={s.id}>
                                 {s.name}
                               </SelectItem>
                             ))}
-                            {!oneToOneStudents.some((s) => s.studentId === (slot.studentId ?? "")) && slot.studentId ? (
+                            {!oneToOneStudents.some((s) => s.id === (slot.studentId ?? "")) && slot.studentId ? (
                               <SelectItem key={`missing-${slot.studentId}`} value={slot.studentId}>
                                 {(slot.studentName || slot.studentId) + " (not enrolled)"}
                               </SelectItem>
