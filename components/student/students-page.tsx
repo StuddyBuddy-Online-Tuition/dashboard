@@ -670,7 +670,6 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                   {/* optional fields */}
                   <div className="space-y-1 text-sm">
                     {columnVisibility.parentName && <p>Parent: {s.parentName}</p>}
-                    {columnVisibility.studentPhone && <p>Student Phone: {s.studentPhone}</p>}
                     {columnVisibility.studentPhone && (
                       <p>
                         Student Phone: {toWhatsAppHref(s.studentPhone) ? (
