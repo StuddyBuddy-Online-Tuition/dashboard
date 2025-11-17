@@ -36,7 +36,7 @@ interface StudentModalProps {
   subjects?: Subject[]
 }
 
-const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5", "CP"]
+const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5", "CP", "-"]
 
 export default function StudentModal({ student, onClose, onSave, onRemove, subjects }: StudentModalProps) {
   const [formData, setFormData] = useState<Student>(student)
@@ -126,7 +126,9 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
   }
 
   const getGradeColor = (grade: string) => {
-    if (grade.startsWith("S")) {
+    if (grade === "-") {
+      return "bg-gray-100 text-gray-800 border-gray-300"
+    } else if (grade.startsWith("S")) {
       return "bg-green-100 text-green-800 border-green-300"
     } else if (grade.startsWith("F")) {
       return "bg-blue-100 text-blue-800 border-blue-300"

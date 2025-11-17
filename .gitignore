@@ -12,3 +12,5 @@ out/
 dist/
 build/
 coverage/ 
+screenshots/
+./
