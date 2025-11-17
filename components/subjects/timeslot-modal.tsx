@@ -95,9 +95,8 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
     setTimeSlots(JSON.parse(JSON.stringify(normal)))
 
     // Initialize 1-to-1 students and slots from props
-    const baseCandidates = Array.isArray(enrolledStudentsProp) ? enrolledStudentsProp : []
-    const eligibleStudents = baseCandidates.filter((s) => Array.isArray(s.modes) && s.modes.includes("1 TO 1"))
-    setOneToOneStudents(eligibleStudents)
+    const enrolledStudents = Array.isArray(enrolledStudentsProp) ? enrolledStudentsProp : []
+    setOneToOneStudents(enrolledStudents)
 
     const slotsForSubject = (oneToOneSlotsProp ?? []).filter(
       (t) => t.subjectCode === subject.code && t.studentId !== null && t.studentName !== null,
@@ -153,7 +152,7 @@ export function TimeSlotModal({ subject, isOpen, onClose, onSave, isOneToOneMode
           const selected = oneToOneStudents.find((s) => s.studentId === value)
           updated.studentId = value
           updated.studentName = selected ? selected.name : ""
-        } else if (field === "day" || field === "startTime" || field === "endTime") {
+        } else if (field === "day" || field === "startTime" || field === "endTime" || field === "teacherName") {
           ;(updated as any)[field] = value
         }
         next[index] = updated
