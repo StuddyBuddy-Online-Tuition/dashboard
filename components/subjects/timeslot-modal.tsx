@@ -39,8 +39,19 @@ const NIGHT_WINDOWS = [
 
 type NightWindowKey = (typeof NIGHT_WINDOWS)[number]["key"]
 
+function normalizeTime(value: string): string {
+  if (!value) return ""
+  const parts = value.split(":")
+  if (parts.length < 2) return value
+  return `${parts[0]?.padStart(2, "0") ?? ""}:${parts[1]?.padStart(2, "0") ?? ""}`
+}
+
 function getWindowKeyFromTimes(startTime: string, endTime: string): NightWindowKey {
-  const match = NIGHT_WINDOWS.find((w) => w.startTime === startTime && w.endTime === endTime)
+  const normalizedStart = normalizeTime(startTime)
+  const normalizedEnd = normalizeTime(endTime)
+  const match = NIGHT_WINDOWS.find(
+    (w) => normalizeTime(w.startTime) === normalizedStart && normalizeTime(w.endTime) === normalizedEnd,
+  )
   return (match?.key ?? "early") as NightWindowKey
 }
 
