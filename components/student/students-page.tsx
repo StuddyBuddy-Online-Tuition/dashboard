@@ -91,7 +91,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     parentName: false,
     studentPhone: true, // Changed from 'phone' to 'studentPhone'
     parentPhone: false, // Added parent phone
-    email: true,
+    email: false,
     school: true,
     grade: true,
     subjects: true,
