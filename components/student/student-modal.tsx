@@ -14,7 +14,7 @@ import { X, Plus, UserX } from "lucide-react"
 import type { Student, StudentMode } from "@/types/student"
 import type { Subject } from "@/types/subject"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -164,6 +164,21 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
       .sort((a, b) => b.score - a.score)
       .map((x) => x.s)
   }, [subjects, formData.subjects, formData.grade, subjectSearch])
+
+  const handleWheelScroll = (event: React.WheelEvent<HTMLDivElement>) => {
+    const target = event.currentTarget
+    const { scrollTop, scrollHeight, clientHeight } = target
+    const deltaY = event.deltaY
+    if ((deltaY < 0 && scrollTop === 0) || (deltaY > 0 && scrollTop + clientHeight >= scrollHeight)) {
+      event.preventDefault()
+      return
+    }
+    event.stopPropagation()
+  }
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -474,29 +489,36 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
                         {newSubject ? newSubject : "Search subject by code or name..."}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-72" align="start">
+                    <PopoverContent className="w-72 max-h-[70vh] overflow-hidden p-0" align="start">
                       <Command>
                         <CommandInput
                           placeholder="Search by code or name..."
                           value={subjectSearch}
                           onValueChange={setSubjectSearch}
                         />
-                        <CommandEmpty>No subject found.</CommandEmpty>
-                        <CommandGroup>
-                          {pickerSubjects.map((s) => (
-                              <CommandItem
-                                key={s.code}
-                                value={`${s.code} ${s.name}`}
-                                onSelect={() => {
-                                  setNewSubject(s.code)
-                                  setSubjectPopoverOpen(false)
-                                  setSubjectSearch("")
-                                }}
-                              >
-                                {s.code} - {s.name}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
+                        <CommandList
+                          className="max-h-72 overflow-y-auto overscroll-contain touch-pan-y"
+                          onWheelCapture={handleWheelScroll}
+                          onTouchMoveCapture={handleTouchMove}
+                          style={{ WebkitOverflowScrolling: "touch" }}
+                        >
+                          <CommandEmpty>No subject found.</CommandEmpty>
+                          <CommandGroup>
+                            {pickerSubjects.map((s) => (
+                                <CommandItem
+                                  key={s.code}
+                                  value={`${s.code} ${s.name}`}
+                                  onSelect={() => {
+                                    setNewSubject(s.code)
+                                    setSubjectPopoverOpen(false)
+                                    setSubjectSearch("")
+                                  }}
+                                >
+                                  {s.code} - {s.name}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
