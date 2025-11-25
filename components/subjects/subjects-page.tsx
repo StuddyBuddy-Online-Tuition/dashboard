@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -28,9 +28,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import PaginationControls from "@/components/common/pagination"
 
 // Import subjects data
 import { STANDARD_OPTIONS } from "@/lib/subject-constants"
+
+const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
 
 type Props = { initialSubjects?: Subject[] }
 
@@ -50,6 +53,10 @@ export default function SubjectsPage({ initialSubjects }: Props) {
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+
   const filteredSubjects = useMemo(() => {
     return subjects.filter(
       (subject) =>
@@ -61,17 +68,48 @@ export default function SubjectsPage({ initialSubjects }: Props) {
     )
   }, [searchQuery, subjects, standardFilter])
 
-  // Group subjects by name for better organization
+  // Pagination calculations
+  const totalItems = filteredSubjects.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
+
+  const paginatedSubjects = useMemo(() => {
+    return filteredSubjects.slice(startIndex, endIndex)
+  }, [filteredSubjects, startIndex, endIndex])
+
+  // Group subjects by name for better organization (uses paginated subjects)
   const groupedSubjects = useMemo(() => {
     const groups: Record<string, Subject[]> = {}
-    filteredSubjects.forEach((subject) => {
+    paginatedSubjects.forEach((subject) => {
       if (!groups[subject.name]) {
         groups[subject.name] = []
       }
       groups[subject.name].push(subject)
     })
     return groups
-  }, [filteredSubjects])
+  }, [paginatedSubjects])
+
+  // Reset to page 1 when filters or search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, standardFilter])
+
+  // Reset to page 1 when items per page changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
+  /* -------------------------- pagination handlers -------------------------- */
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value))
+  }
 
   const handleRowClick = (subjectCode: string) => {
     router.push(`/dashboard/subjects/${subjectCode}`)
@@ -234,7 +272,9 @@ export default function SubjectsPage({ initialSubjects }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-muted-foreground">Total: {filteredSubjects.length} subjects</div>
+          <span className="text-sm text-muted-foreground">
+            Total: {totalItems} | Showing: {totalItems > 0 ? startIndex + 1 : 0}-{endIndex}
+          </span>
           <Button
             onClick={() => router.push("/dashboard/subjects/master")}
             variant="outline"
@@ -380,14 +420,14 @@ export default function SubjectsPage({ initialSubjects }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {filteredSubjects.length === 0 ? (
+                {paginatedSubjects.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="h-24 text-center">
                       No subjects found.
                     </td>
                   </tr>
                 ) : (
-                  filteredSubjects.map((subject) => (
+                  paginatedSubjects.map((subject) => (
                     <tr
                       key={subject.code}
                       className="border-b border-secondary/10 bg-white hover:bg-secondary/5 cursor-pointer"
@@ -427,6 +467,18 @@ export default function SubjectsPage({ initialSubjects }: Props) {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          )}
         </CardContent>
       </Card>
 
