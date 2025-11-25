@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSubject } from "@/server/queries/subjects";
+import { cleanSubjectName } from "@/lib/utils";
 
 export async function POST(req: Request) {
   try {
@@ -8,7 +9,7 @@ export async function POST(req: Request) {
     const name = String(body?.name ?? "").trim();
     const standard = String(body?.standard ?? "").trim();
     const type = String(body?.type ?? "").trim();
-    const subject = String(body?.subject ?? "").trim() || name;
+    const subject = String(body?.subject ?? "").trim() || cleanSubjectName(name);
 
     if (!code || !name || !standard || !type || !subject) {
       return NextResponse.json({ error: "Missing required subject fields" }, { status: 400 });

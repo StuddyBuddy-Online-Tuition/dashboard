@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { deleteSubjectByCode, getSingleSubjectDetail, updateSubjectByCode } from "@/server/queries/subjects"
+import { cleanSubjectName } from "@/lib/utils"
 
 export async function GET(req: Request) {
   try {
@@ -44,11 +45,14 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Changing subject code is not allowed" }, { status: 400 })
     }
 
+    const name = String(body?.name ?? "").trim()
+    const subjectValue = String(body?.subject ?? "").trim() || cleanSubjectName(name)
+
     const payload = {
-      name: String(body?.name ?? ""),
+      name,
       standard: String(body?.standard ?? ""),
       type: String(body?.type ?? ""),
-      subject: String(body?.subject ?? ""),
+      subject: subjectValue,
     }
 
     const updated = await updateSubjectByCode(code, payload)

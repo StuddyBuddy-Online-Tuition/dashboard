@@ -105,6 +105,22 @@ export function getSubjectColor(abbrev: string): string {
   return "bg-gray-100 text-gray-900 border-gray-300"
 }
 
+/**
+ * Removes grade/standard suffixes (F1-F6, S1-S6) from the end of a subject name.
+ * Used to clean subject names when populating subject.subject field.
+ * 
+ * @example
+ * cleanSubjectName("Add math DLP F4") // Returns "Add math DLP"
+ * cleanSubjectName("Mathematics S1") // Returns "Mathematics"
+ * cleanSubjectName("Biology F6") // Returns "Biology"
+ */
+export function cleanSubjectName(name: string): string {
+  if (!name || typeof name !== "string") return name
+  // Remove grade suffixes (F1-F6, S1-S6) from the end of the string
+  // Pattern matches: optional whitespace + (F1-F6 or S1-S6) + optional trailing whitespace
+  return name.replace(/\s+(F[1-6]|S[1-6])\s*$/i, "").trim()
+}
+
 export function toWhatsAppHref(phone: string): string {
   const digits = (phone || "").replace(/[^0-9]/g, "")
   return digits ? `https://wa.me/${digits}` : ""
