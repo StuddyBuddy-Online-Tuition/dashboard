@@ -106,19 +106,34 @@ export function getSubjectColor(abbrev: string): string {
 }
 
 /**
- * Removes grade/standard suffixes (F1-F6, S1-S6) from the end of a subject name.
- * Used to clean subject names when populating subject.subject field.
+ * Removes grade/standard suffixes (F1-F6, S1-S6), "1 to 1" patterns, and trailing dashes
+ * from the end of a subject name. Used to clean subject names when populating subject.subject field.
  * 
  * @example
  * cleanSubjectName("Add math DLP F4") // Returns "Add math DLP"
  * cleanSubjectName("Mathematics S1") // Returns "Mathematics"
  * cleanSubjectName("Biology F6") // Returns "Biology"
+ * cleanSubjectName("Addmath DLP F4 - 1 to 1") // Returns "Addmath DLP"
+ * cleanSubjectName("Bahasa Inggeris F2 - 1 to 1") // Returns "Bahasa Inggeris"
  */
 export function cleanSubjectName(name: string): string {
   if (!name || typeof name !== "string") return name
-  // Remove grade suffixes (F1-F6, S1-S6) from the end of the string
+  
+  let cleaned = name
+  
+  // Step 1: Remove grade suffixes (F1-F6, S1-S6) from the end
   // Pattern matches: optional whitespace + (F1-F6 or S1-S6) + optional trailing whitespace
-  return name.replace(/\s+(F[1-6]|S[1-6])\s*$/i, "").trim()
+  cleaned = cleaned.replace(/\s+(F[1-6]|S[1-6])\s*$/i, "")
+  
+  // Step 2: Remove "1 to 1" patterns with optional dashes and whitespace
+  // Matches variations like: " - 1 to 1", "- 1 to 1", " -1 to 1", "1 to 1", " - 1-to-1", etc.
+  // Pattern: optional whitespace + optional dash + whitespace + "1" + separator(s) + "to" + separator(s) + "1" + end
+  cleaned = cleaned.replace(/\s*-?\s*1\s*[- ]*\s*to\s*[- ]*\s*1\s*$/i, "")
+  
+  // Step 3: Remove any trailing dashes and whitespace
+  cleaned = cleaned.replace(/[\s-]+$/, "")
+  
+  return cleaned.trim()
 }
 
 export function toWhatsAppHref(phone: string): string {

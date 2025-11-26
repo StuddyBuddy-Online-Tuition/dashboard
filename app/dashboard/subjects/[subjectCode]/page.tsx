@@ -170,7 +170,10 @@ export default function SubjectDetailPage() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled || !data) return
-        if (data.subject) setSubjectDb(data.subject as Subject)
+        if (data.subject) {
+          const normalizedSubject = { ...data.subject, standard: (data.subject.standard ?? "").toUpperCase() } as Subject
+          setSubjectDb(normalizedSubject)
+        }
         if (data.enrolledStudents) setEnrolledStudents(data.enrolledStudents as Student[])
       })
       .catch(() => {})
@@ -222,7 +225,8 @@ export default function SubjectDetailPage() {
       })
       if (!res.ok) throw new Error("Failed to update subject")
       const saved = (await res.json()) as Subject
-      setSubjectDb(saved)
+      const normalizedSaved = { ...saved, standard: (saved.standard ?? "").toUpperCase() } as Subject
+      setSubjectDb(normalizedSaved)
       handleCloseModal()
     } catch {
       // no-op: keep UI as-is

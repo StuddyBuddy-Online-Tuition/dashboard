@@ -46,7 +46,7 @@ export async function PUT(req: Request) {
     }
 
     const name = String(body?.name ?? "").trim()
-    const subjectValue = String(body?.subject ?? "").trim() || cleanSubjectName(name)
+    const subjectValue = cleanSubjectName(String(body?.subject ?? "").trim() || name)
 
     const payload = {
       name,
