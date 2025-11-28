@@ -6,7 +6,7 @@ import { getAllSubjects } from "@/server/queries/subjects"
 export default async function AllStudentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; status?: string }>
+  searchParams: Promise<{ page?: string; pageSize?: string; status?: string; grade?: string; modes?: string }>
 }) {
   const sp = await searchParams
   const page = Math.max(parseInt(sp?.page ?? "1", 10) || 1, 1)
@@ -31,6 +31,24 @@ export default async function AllStudentsPage({
     effectiveStatusFilter = (STATUSES as Student["status"][]).filter((s) => s !== "removed")
   }
 
+  const gradeParamDecoded = sp?.grade ? decodeURIComponent(sp.grade) : undefined
+  const gradeParamRaw = gradeParamDecoded?.trim()
+  const gradeFilter = gradeParamRaw && gradeParamRaw.toLowerCase() !== "all"
+    ? gradeParamRaw
+        .split(",")
+        .map((g) => g.trim())
+        .filter(Boolean)
+    : undefined
+
+  const modesParamDecoded = sp?.modes ? decodeURIComponent(sp.modes) : undefined
+  const modesParamRaw = modesParamDecoded?.trim()
+  const modesFilter = modesParamRaw && modesParamRaw.toLowerCase() !== "all"
+    ? modesParamRaw
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean)
+    : undefined
+
   // Parse sort rules from URL: sort=field:order,field2:order2
   const rawSort = (sp as Record<string, string | undefined>)["sort"] ?? undefined
   const sortRules = (rawSort ? String(rawSort) : "")
@@ -47,7 +65,15 @@ export default async function AllStudentsPage({
 
   const keyword = (sp as Record<string, string | undefined>)["keyword"]?.toString()?.trim() || undefined
 
-  const { students, totalCount } = await getAllStudents({ page, pageSize, status: effectiveStatusFilter, sort: sortRules, keyword })
+  const { students, totalCount } = await getAllStudents({
+    page,
+    pageSize,
+    status: effectiveStatusFilter,
+    grade: gradeFilter,
+    modes: modesFilter,
+    sort: sortRules,
+    keyword,
+  })
   const subjects = await getAllSubjects()
   return (
     <div className="w-full">

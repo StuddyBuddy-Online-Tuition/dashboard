@@ -8,6 +8,8 @@ import type { DbStudent, DbStudentSubject } from "@/types/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
+const MODE_VALUES: readonly StudentMode[] = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "BREAK"] as const;
+
 function mapDbStudentToStudent(row: DbStudent): Student {
   return {
     id: row.id,
@@ -44,8 +46,25 @@ type SortField = "registeredDate" | "status" | "grade" | "dlp" | "name";
 type SortOrder = "asc" | "desc";
 type SortRule = { field: SortField; order: SortOrder };
 
+function coerceStringArray(input?: string | string[]): string[] {
+  if (!input) return [];
+  const source = Array.isArray(input) ? input : [input];
+  return source
+    .flatMap((value) => String(value).split(","))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
 export async function getAllStudents(
-  opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][]; sort?: SortRule[]; keyword?: string }
+  opts?: {
+    page?: number;
+    pageSize?: number;
+    status?: Student["status"] | Student["status"][];
+    grade?: string | string[];
+    modes?: string | string[];
+    sort?: SortRule[];
+    keyword?: string;
+  }
 ): Promise<{ students: Student[]; totalCount: number }> {
   await assertAuthenticated();
   const pageUnsafe = opts?.page ?? 1;
@@ -79,6 +98,17 @@ export async function getAllStudents(
 
   if (normalizedStatuses && normalizedStatuses.length > 0) {
     query = query.in("status", normalizedStatuses);
+  }
+
+  const normalizedGrades = coerceStringArray(opts?.grade);
+  if (normalizedGrades.length > 0) {
+    query = query.in("grade", normalizedGrades);
+  }
+
+  const normalizedModeStrings = coerceStringArray(opts?.modes).map((value) => value.toUpperCase());
+  const normalizedModes = MODE_VALUES.filter((mode) => normalizedModeStrings.includes(mode.toUpperCase()));
+  if (normalizedModes.length > 0) {
+    query = query.overlaps("modes", [...normalizedModes]);
   }
 
   // Keyword filter across multiple columns
