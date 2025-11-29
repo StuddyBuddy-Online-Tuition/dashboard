@@ -36,7 +36,7 @@ interface StudentModalProps {
   subjects?: Subject[]
 }
 
-const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5", "CP", "-"]
+const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
 
 export default function StudentModal({ student, onClose, onSave, onRemove, subjects }: StudentModalProps) {
   const [formData, setFormData] = useState<Student>(student)

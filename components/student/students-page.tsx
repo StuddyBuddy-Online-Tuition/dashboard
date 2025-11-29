@@ -63,7 +63,7 @@ interface ColumnVisibility {
 }
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
-const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
+const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
 const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "BREAK"]
 
 export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
