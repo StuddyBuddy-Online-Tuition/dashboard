@@ -89,7 +89,8 @@ export async function getSingleSubjectDetail(code: string): Promise<{ subject: S
   const { data: joined, error: joinErr } = await supabase
     .from("students")
     .select("id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid, student_subjects!inner(subjectcode)")
-    .eq("student_subjects.subjectcode", code);
+    .eq("student_subjects.subjectcode", code)
+    .in("status", ["active", "trial"]);
   if (joinErr) throw joinErr;
 
   const enrolledStudents: Student[] = ((joined as DbStudent[] | null) ?? []).map((row) => ({
