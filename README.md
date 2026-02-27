@@ -9,6 +9,12 @@ This is a student management dashboard for StudyBuddy, a tutoring company. It al
 *   **Finance & Payments**: Track student payments and manage finances.
 *   **Authentication**: Secure login for administrators.
 
+## Setup
+
+1. Copy `.env.example` to `.env` and add your Supabase credentials
+2. See [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) for database initialization
+3. Run `npm i --legacy-peer-deps` and `npm run dev`
+
 ## Tech Stack
 
 *   **Framework**: [Next.js](https://nextjs.org/)

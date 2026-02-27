@@ -64,7 +64,7 @@ interface ColumnVisibility {
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
 const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
-const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "BREAK"]
+const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS"]
 
 export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
@@ -106,7 +106,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     recurringPaymentDate: false,
   })
   const [detailView, setDetailView] = useState<"student" | "parent" | "payment">("student")
-  type SortField = "grade" | "dlp" | "status" | "registeredDate"
+  type SortField = "name" | "grade" | "dlp" | "status" | "registeredDate"
   type SortOrder = "asc" | "desc"
   type SortRule = { field: SortField; order: SortOrder }
   const [sortRules, setSortRules] = useState<SortRule[]>([])
@@ -204,7 +204,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       .filter(Boolean)
       .map((pair) => {
         const [field, order] = pair.split(":").map((s) => s.trim())
-        const validField = ["grade", "dlp", "status", "registeredDate"].includes(field)
+        const validField = ["name", "grade", "dlp", "status", "registeredDate"].includes(field)
         const validOrder = order === "asc" || order === "desc"
         return validField && validOrder ? ({ field: field as SortField, order: order as SortOrder } as SortRule) : undefined
       })
@@ -258,11 +258,8 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     } else {
       sp.set("grade", gradeFilter.join(","))
     }
-    if (modesFilter.length === MODE_OPTIONS.length) {
-      sp.delete("modes")
-    } else {
-      sp.set("modes", modesFilter.join(","))
-    }
+    // Always pass modes so filter is consistent (avoids bug when unchecking OTHERS/BREAK)
+    sp.set("modes", modesFilter.join(","))
     router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
   }, [
     currentPage,
@@ -768,7 +765,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
             {/* Sorting controls (multi-criteria, persist across views) */}
             <div className="flex flex-col gap-2">
               {sortRules.length === 0 && (
-                <span className="text-sm text-muted-foreground">No sorting applied</span>
+                <span className="text-sm text-muted-foreground">Name (A–Z) — default</span>
               )}
               {sortRules.map((rule, idx) => (
                 <div key={idx} className="flex items-center gap-2">
@@ -782,6 +779,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
                       <SelectItem value="grade">Grade</SelectItem>
                       <SelectItem value="dlp">DLP</SelectItem>
                       <SelectItem value="status">Status</SelectItem>
@@ -820,7 +818,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                 <Button
                   variant="outline"
                   className="border-secondary/20"
-                  onClick={() => setSortRules((prev) => [...prev, { field: "registeredDate", order: "asc" }])}
+                  onClick={() => setSortRules((prev) => [...prev, { field: "name", order: "asc" }])}
                 >
                   Add sort
                 </Button>
