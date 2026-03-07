@@ -1,4 +1,6 @@
 import StudentsPage from "@/components/student/students-page"
+
+export const dynamic = "force-dynamic"
 import { getAllStudents } from "@/server/queries/students"
 import { getAllSubjects } from "@/server/queries/subjects"
 
@@ -47,8 +49,8 @@ export default async function PendingStudentsPage({
     pageSize,
     status: "pending",
     grade: gradeFilter,
-    modes: modesFilter,
-    sort: sortRules,
+    modes: modesFilter ?? ["NORMAL", "1 TO 1", "BOARD", "OTHERS"],
+    sort: sortRules.length > 0 ? sortRules : [{ field: "name", order: "asc" }],
     keyword: (sp as Record<string, string | undefined>)["keyword"]?.toString()?.trim() || undefined,
   })
   const subjects = await getAllSubjects()

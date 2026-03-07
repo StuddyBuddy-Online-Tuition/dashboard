@@ -85,11 +85,22 @@ export async function getSingleSubjectDetail(code: string): Promise<{ subject: S
     return { subject: null, enrolledStudents: [] };
   }
 
-  // Fetch students enrolled in this subject using inner join on student_subjects
+  // 1. Get student IDs enrolled in this subject
+  const { data: enrollRows, error: enrollErr } = await supabase
+    .from("student_subjects")
+    .select("studentid")
+    .eq("subjectcode", code);
+  if (enrollErr) throw enrollErr;
+  const enrolledIds = ((enrollRows as { studentid: string }[] | null) ?? []).map((r) => r.studentid);
+  if (enrolledIds.length === 0) {
+    return { subject, enrolledStudents: [] };
+  }
+
+  // 2. Fetch students: only active & trial (exclude pending, inactive, removed)
   const { data: joined, error: joinErr } = await supabase
     .from("students")
-    .select("id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid, student_subjects!inner(subjectcode)")
-    .eq("student_subjects.subjectcode", code)
+    .select("id, studentid, name, parentname, studentphone, parentphone, email, school, grade, status, classinid, registereddate, modes, dlp, full_name, ticketid")
+    .in("id", enrolledIds)
     .in("status", ["active", "trial"]);
   if (joinErr) throw joinErr;
 

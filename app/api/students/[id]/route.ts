@@ -14,7 +14,9 @@ export async function PATCH(
     const updated = await updateStudent(payload)
     return NextResponse.json(updated)
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 })
+    const msg = err?.message ?? "Unknown error"
+    const status = msg.includes("already exists") ? 409 : 500
+    return NextResponse.json({ error: msg }, { status })
   }
 }
 

@@ -6,7 +6,9 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "seed": "node scripts/seed.mjs",
+    "seed:300": "node scripts/seed-300-students.mjs"
   },
   "dependencies": {
     "@auth/pg-adapter": "^1.10.0",
