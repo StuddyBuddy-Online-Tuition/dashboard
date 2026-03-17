@@ -50,7 +50,7 @@ export default async function ActiveStudentsPage({
     pageSize,
     status: "active",
     grade: gradeFilter,
-    modes: modesFilter ?? ["NORMAL", "1 TO 1", "BOARD", "OTHERS"],
+    modes: modesFilter ?? ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "NONE"],
     sort: sortRules.length > 0 ? sortRules : [{ field: "name", order: "asc" }],
     keyword: (sp as Record<string, string | undefined>)["keyword"]?.toString()?.trim() || undefined,
   })

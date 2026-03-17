@@ -27,7 +27,7 @@ export default async function AllStudentsPage({
   }
 
   // Always exclude "removed" on the All Students page
-  let effectiveStatusFilter: Student["status"][] = (statusFilter ?? (STATUSES as Student["status"]["[]"]))
+  let effectiveStatusFilter: Student["status"][] = (statusFilter ?? (STATUSES as Student["status"][]))
     .filter((s) => s !== "removed")
   if (effectiveStatusFilter.length === 0) {
     effectiveStatusFilter = (STATUSES as Student["status"][]).filter((s) => s !== "removed")
@@ -72,7 +72,7 @@ export default async function AllStudentsPage({
     pageSize,
     status: effectiveStatusFilter,
     grade: gradeFilter,
-    modes: modesFilter ?? ["NORMAL", "1 TO 1", "BOARD", "OTHERS"],
+    modes: modesFilter ?? ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "NONE"],
     sort: sortRules.length > 0 ? sortRules : [{ field: "name", order: "asc" }],
     keyword,
   })

@@ -108,8 +108,14 @@ export async function getAllStudents(
   }
 
   const normalizedModeStrings = coerceStringArray(opts?.modes).map((value) => value.toUpperCase());
+  const includeNoneMode = normalizedModeStrings.includes("NONE");
   const normalizedModes = MODE_VALUES.filter((mode) => normalizedModeStrings.includes(mode.toUpperCase()));
-  if (normalizedModes.length > 0) {
+  if (includeNoneMode && normalizedModes.length > 0) {
+    const arrayLiteral = `{${normalizedModes.map((mode) => `"${mode.replace(/"/g, '\\"')}"`).join(",")}}`;
+    query = query.or(`modes.ov.${arrayLiteral},modes.is.null,modes.eq.{}`);
+  } else if (includeNoneMode) {
+    query = query.or("modes.is.null,modes.eq.{}");
+  } else if (normalizedModes.length > 0) {
     query = query.overlaps("modes", [...normalizedModes]);
   }
 
