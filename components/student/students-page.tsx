@@ -260,7 +260,11 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     }
     // Always pass modes so filter is consistent (avoids bug when unchecking OTHERS/BREAK)
     sp.set("modes", modesFilter.join(","))
-    router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
+    const nextUrl = `${pathname}?${sp.toString()}`
+    const currentUrl = `${pathname}?${searchParams?.toString() ?? ""}`
+    if (nextUrl !== currentUrl) {
+      router.replace(nextUrl, { scroll: false })
+    }
   }, [
     currentPage,
     itemsPerPage,
