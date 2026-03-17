@@ -1,12 +1,15 @@
 "use server";
 
 import "server-only";
+import { unstable_noStore } from "next/cache";
 import type { Student, StudentMode } from "@/types/student";
 import { STATUSES } from "@/types/student";
 import { getSupabaseServerClient } from "@/server/supabase/client";
 import type { DbStudent, DbStudentSubject } from "@/types/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+
+const MODE_VALUES: readonly StudentMode[] = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "BREAK"] as const;
 
 function mapDbStudentToStudent(row: DbStudent): Student {
   return {
@@ -44,9 +47,27 @@ type SortField = "registeredDate" | "status" | "grade" | "dlp" | "name";
 type SortOrder = "asc" | "desc";
 type SortRule = { field: SortField; order: SortOrder };
 
+function coerceStringArray(input?: string | string[]): string[] {
+  if (!input) return [];
+  const source = Array.isArray(input) ? input : [input];
+  return source
+    .flatMap((value) => String(value).split(","))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
 export async function getAllStudents(
-  opts?: { page?: number; pageSize?: number; status?: Student["status"] | Student["status"][]; sort?: SortRule[]; keyword?: string }
+  opts?: {
+    page?: number;
+    pageSize?: number;
+    status?: Student["status"] | Student["status"][];
+    grade?: string | string[];
+    modes?: string | string[];
+    sort?: SortRule[];
+    keyword?: string;
+  }
 ): Promise<{ students: Student[]; totalCount: number }> {
+  unstable_noStore(); // Ensure fresh data on every request (fixes pagination overlap)
   await assertAuthenticated();
   const pageUnsafe = opts?.page ?? 1;
   const pageSizeUnsafe = opts?.pageSize ?? 10;
@@ -79,6 +100,17 @@ export async function getAllStudents(
 
   if (normalizedStatuses && normalizedStatuses.length > 0) {
     query = query.in("status", normalizedStatuses);
+  }
+
+  const normalizedGrades = coerceStringArray(opts?.grade);
+  if (normalizedGrades.length > 0) {
+    query = query.in("grade", normalizedGrades);
+  }
+
+  const normalizedModeStrings = coerceStringArray(opts?.modes).map((value) => value.toUpperCase());
+  const normalizedModes = MODE_VALUES.filter((mode) => normalizedModeStrings.includes(mode.toUpperCase()));
+  if (normalizedModes.length > 0) {
+    query = query.overlaps("modes", [...normalizedModes]);
   }
 
   // Keyword filter across multiple columns
@@ -117,10 +149,22 @@ export async function getAllStudents(
 
   if (sortRules.length > 0) {
     for (const rule of sortRules) {
-      query = query.order(colMap[rule.field], { ascending: rule.order === "asc" });
+      const col = colMap[rule.field];
+      const asc = rule.order === "asc";
+      // registereddate: put nulls last so students without date don't appear in wrong place
+      if (col === "registereddate") {
+        query = query.order(col, { ascending: asc, nullsFirst: false });
+      } else {
+        query = query.order(col, { ascending: asc });
+      }
     }
+    query = query.order("studentid", { ascending: true }).order("id", { ascending: true }); // deterministic tie-breakers
   } else {
-    query = query.order("createdat", { ascending: false });
+    // Default: name A–Z ascending
+    query = query
+      .order("name", { ascending: true })
+      .order("studentid", { ascending: true })
+      .order("id", { ascending: true }); // deterministic tie-breaker
   }
 
   const { data, count, error } = await query.range(start, end);
@@ -240,9 +284,25 @@ export async function getAvailableStudentsForSubject(opts: {
 }
 
 
+export async function isStudentIdTaken(studentId: string, excludeId?: string): Promise<boolean> {
+  await assertAuthenticated();
+  const supabase = getSupabaseServerClient();
+  const sid = String(studentId ?? "").trim();
+  if (!sid) return false;
+  let query = supabase.from("students").select("id").eq("studentid", sid).limit(1);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data } = await query;
+  return ((data as { id: string }[] | null) ?? []).length > 0;
+}
+
 export async function createStudent(input: Student): Promise<Student> {
   await assertAuthenticated();
   const supabase = getSupabaseServerClient();
+
+  const studentIdTrimmed = String(input.studentId ?? "").trim();
+  if (await isStudentIdTaken(studentIdTrimmed)) {
+    throw new Error(`Student ID "${studentIdTrimmed}" already exists. Please use a unique ID.`);
+  }
 
   const status = (input.status?.toLowerCase() as Student["status"]) ?? "pending";
   if (!(STATUSES as readonly string[]).includes(status)) {
@@ -295,6 +355,11 @@ export async function createStudent(input: Student): Promise<Student> {
 export async function updateStudent(input: Student): Promise<Student> {
   await assertAuthenticated();
   const supabase = getSupabaseServerClient();
+
+  const studentIdTrimmed = String(input.studentId ?? "").trim();
+  if (await isStudentIdTaken(studentIdTrimmed, input.id)) {
+    throw new Error(`Student ID "${studentIdTrimmed}" already exists. Please use a unique ID.`);
+  }
 
   // Validate enums minimally
   const status = (input.status?.toLowerCase() as Student["status"]) ?? "pending";

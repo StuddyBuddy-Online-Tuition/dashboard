@@ -63,7 +63,8 @@ interface ColumnVisibility {
 }
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
-const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "BREAK"]
+const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
+const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS"]
 
 export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
@@ -80,7 +81,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   const [itemsPerPage, setItemsPerPage] = useState(initialPageSizeFromUrl)
   const [statusFilter, setStatusFilter] = useState<Status[]>(status ? [status] : [...STATUSES])
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false)
-  const [gradeFilter, setGradeFilter] = useState<string>("")
+  const [gradeFilter, setGradeFilter] = useState<string[]>([...GRADE_OPTIONS])
   const [oneToOneSlots, setOneToOneSlots] = useState<Timeslot[]>([])
   const [normalSlots, setNormalSlots] = useState<Timeslot[]>([])
 
@@ -91,7 +92,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     parentName: false,
     studentPhone: true, // Changed from 'phone' to 'studentPhone'
     parentPhone: false, // Added parent phone
-    email: true,
+    email: false,
     school: true,
     grade: true,
     subjects: true,
@@ -105,7 +106,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     recurringPaymentDate: false,
   })
   const [detailView, setDetailView] = useState<"student" | "parent" | "payment">("student")
-  type SortField = "grade" | "dlp" | "status" | "registeredDate"
+  type SortField = "name" | "grade" | "dlp" | "status" | "registeredDate"
   type SortOrder = "asc" | "desc"
   type SortRule = { field: SortField; order: SortOrder }
   const [sortRules, setSortRules] = useState<SortRule[]>([])
@@ -160,6 +161,40 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     if (!equal) setStatusFilter(normalized)
   }, [searchParams, showStatusFilter])
 
+  useEffect(() => {
+    const raw = searchParams?.get("grade")?.trim() ?? null
+    let next: string[]
+    if (!raw || raw.toLowerCase() === "all") {
+      next = [...GRADE_OPTIONS]
+    } else {
+      const parsed = raw
+        .split(",")
+        .map((g) => g.trim().toUpperCase())
+        .filter((g) => g.length > 0)
+      const normalized = GRADE_OPTIONS.filter((grade) => parsed.includes(grade.toUpperCase()))
+      next = normalized.length > 0 ? normalized : [...GRADE_OPTIONS]
+    }
+    const equal = next.length === gradeFilter.length && next.every((grade, idx) => grade === gradeFilter[idx])
+    if (!equal) setGradeFilter(next)
+  }, [searchParams])
+
+  useEffect(() => {
+    const raw = searchParams?.get("modes")?.trim() ?? null
+    let next: StudentMode[]
+    if (!raw || raw.toLowerCase() === "all") {
+      next = [...MODE_OPTIONS]
+    } else {
+      const parsed = raw
+        .split(",")
+        .map((m) => m.trim().toUpperCase())
+        .filter((m) => m.length > 0)
+      const normalized = MODE_OPTIONS.filter((mode) => parsed.includes(mode.toUpperCase())) as StudentMode[]
+      next = normalized.length > 0 ? normalized : [...MODE_OPTIONS]
+    }
+    const equal = next.length === modesFilter.length && next.every((mode, idx) => mode === modesFilter[idx])
+    if (!equal) setModesFilter(next)
+  }, [searchParams])
+
   // Mirror sort rules from URL → local state
   useEffect(() => {
     const raw = searchParams?.get("sort") ?? ""
@@ -169,7 +204,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       .filter(Boolean)
       .map((pair) => {
         const [field, order] = pair.split(":").map((s) => s.trim())
-        const validField = ["grade", "dlp", "status", "registeredDate"].includes(field)
+        const validField = ["name", "grade", "dlp", "status", "registeredDate"].includes(field)
         const validOrder = order === "asc" || order === "desc"
         return validField && validOrder ? ({ field: field as SortField, order: order as SortOrder } as SortRule) : undefined
       })
@@ -185,6 +220,10 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   useEffect(() => {
     if (showStatusFilter) setCurrentPage(1)
   }, [showStatusFilter, statusFilter])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [gradeFilter, modesFilter])
 
   // Sync pagination, status and sort to URL search params
   useEffect(() => {
@@ -214,8 +253,28 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     } else {
       sp.delete("status")
     }
+    if (gradeFilter.length === GRADE_OPTIONS.length) {
+      sp.delete("grade")
+    } else {
+      sp.set("grade", gradeFilter.join(","))
+    }
+    // Always pass modes so filter is consistent (avoids bug when unchecking OTHERS/BREAK)
+    sp.set("modes", modesFilter.join(","))
     router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
-  }, [currentPage, itemsPerPage, pathname, router, searchParams, status, showStatusFilter, statusFilter, sortRules, searchQuery])
+  }, [
+    currentPage,
+    itemsPerPage,
+    pathname,
+    router,
+    searchParams,
+    status,
+    showStatusFilter,
+    statusFilter,
+    sortRules,
+    searchQuery,
+    gradeFilter,
+    modesFilter,
+  ])
 
   /* ----------------------------- helpers ----------------------------- */
   const sortedStudents = useMemo(() => students, [students])
@@ -603,10 +662,93 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
               </Popover>
             )}
 
-            {/* Modes filter - client-side filter removed; keeping UI disabled */}
-            {/* If needed later, re-enable and wire to server */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
+                  <span className="mr-2">Grade</span>
+                  {gradeFilter.length > 0 && (
+                    <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                      {gradeFilter.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0" align="start">
+                <div className="p-1">
+                  {GRADE_OPTIONS.map((grade) => {
+                    const isSelected = gradeFilter.includes(grade)
+                    return (
+                      <Button
+                        key={grade}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          if (isSelected) {
+                            setGradeFilter(gradeFilter.filter((g) => g !== grade))
+                          } else {
+                            setGradeFilter([...gradeFilter, grade])
+                          }
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
+                          )}
+                        >
+                          <Check className="h-4 w-4" />
+                        </div>
+                        <span>{grade}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
 
-        {/* Grade filter - client-side filter removed */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-auto justify-start border-secondary/20 text-left font-normal">
+                  <span className="mr-2">Modes</span>
+                  {modesFilter.length > 0 && (
+                    <Badge variant="secondary" className="rounded-sm px-1 font-mono">
+                      {modesFilter.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0" align="start">
+                <div className="p-1">
+                  {MODE_OPTIONS.map((mode) => {
+                    const isSelected = modesFilter.includes(mode)
+                    return (
+                      <Button
+                        key={mode}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          if (isSelected) {
+                            setModesFilter(modesFilter.filter((m) => m !== mode))
+                          } else {
+                            setModesFilter([...modesFilter, mode])
+                          }
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            isSelected ? "bg-primary text-primary-foreground" : "opacity-50 [&_svg]:invisible",
+                          )}
+                        >
+                          <Check className="h-4 w-4" />
+                        </div>
+                        <span>{mode}</span>
+                      </Button>
+                    )
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {/* Detail view dropdown */}
             <Select value={detailView} onValueChange={handleDetailViewChange}>
@@ -623,7 +765,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
             {/* Sorting controls (multi-criteria, persist across views) */}
             <div className="flex flex-col gap-2">
               {sortRules.length === 0 && (
-                <span className="text-sm text-muted-foreground">No sorting applied</span>
+                <span className="text-sm text-muted-foreground">Name (A–Z) — default</span>
               )}
               {sortRules.map((rule, idx) => (
                 <div key={idx} className="flex items-center gap-2">
@@ -637,6 +779,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
                       <SelectItem value="grade">Grade</SelectItem>
                       <SelectItem value="dlp">DLP</SelectItem>
                       <SelectItem value="status">Status</SelectItem>
@@ -675,7 +818,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                 <Button
                   variant="outline"
                   className="border-secondary/20"
-                  onClick={() => setSortRules((prev) => [...prev, { field: "registeredDate", order: "asc" }])}
+                  onClick={() => setSortRules((prev) => [...prev, { field: "name", order: "asc" }])}
                 >
                   Add sort
                 </Button>

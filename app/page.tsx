@@ -8,7 +8,7 @@ export default function Home() {
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 h-24 w-24 relative">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-RPBHhgmAbisCI5Y9Lg6k9Rb3r9DtKr.png"
+              src="/logo.png"
               alt="StudyBuddy Tutors Logo"
               fill
               className="object-contain"

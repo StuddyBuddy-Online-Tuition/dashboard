@@ -1,11 +1,13 @@
 import StudentsPage from "@/components/student/students-page"
+
+export const dynamic = "force-dynamic"
 import { getAllStudents } from "@/server/queries/students"
 import { getAllSubjects } from "@/server/queries/subjects"
 
 export default async function PendingStudentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; status?: string }>
+  searchParams: Promise<{ page?: string; pageSize?: string; status?: string; grade?: string; modes?: string }>
 }) {
   const sp = await searchParams
   const page = Math.max(parseInt(sp?.page ?? "1", 10) || 1, 1)
@@ -24,7 +26,33 @@ export default async function PendingStudentsPage({
     })
     .filter(Boolean) as { field: "registeredDate" | "status" | "grade" | "dlp" | "name"; order: "asc" | "desc" }[]
 
-  const { students, totalCount } = await getAllStudents({ page, pageSize, status: "pending", sort: sortRules, keyword: (sp as Record<string, string | undefined>)["keyword"]?.toString()?.trim() || undefined })
+  const gradeParamDecoded = sp?.grade ? decodeURIComponent(sp.grade) : undefined
+  const gradeParamRaw = gradeParamDecoded?.trim()
+  const gradeFilter = gradeParamRaw && gradeParamRaw.toLowerCase() !== "all"
+    ? gradeParamRaw
+        .split(",")
+        .map((g) => g.trim())
+        .filter(Boolean)
+    : undefined
+
+  const modesParamDecoded = sp?.modes ? decodeURIComponent(sp.modes) : undefined
+  const modesParamRaw = modesParamDecoded?.trim()
+  const modesFilter = modesParamRaw && modesParamRaw.toLowerCase() !== "all"
+    ? modesParamRaw
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean)
+    : undefined
+
+  const { students, totalCount } = await getAllStudents({
+    page,
+    pageSize,
+    status: "pending",
+    grade: gradeFilter,
+    modes: modesFilter ?? ["NORMAL", "1 TO 1", "BOARD", "OTHERS"],
+    sort: sortRules.length > 0 ? sortRules : [{ field: "name", order: "asc" }],
+    keyword: (sp as Record<string, string | undefined>)["keyword"]?.toString()?.trim() || undefined,
+  })
   const subjects = await getAllSubjects()
   return (
     <div className="w-full">

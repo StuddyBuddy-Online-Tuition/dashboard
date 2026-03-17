@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useEffect, useCallback } from "react"
 import type { Subject } from "@/types/subject"
 import { STANDARD_OPTIONS } from "@/lib/subject-constants"
+import { cleanSubjectName } from "@/lib/utils"
 
 interface SubjectModalProps {
   subject: Subject | null
@@ -23,8 +24,12 @@ interface SubjectModalProps {
 }
 
 const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave }) => {
-  const [formData, setFormData] = useState<Subject | null>(null)
-  const [originalCode, setOriginalCode] = useState<string | undefined>(undefined)
+  const [formData, setFormData] = useState<Subject | null>(() => 
+    subject ? JSON.parse(JSON.stringify(subject)) : null
+  )
+  const [originalCode, setOriginalCode] = useState<string | undefined>(() => 
+    subject?.code
+  )
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -56,7 +61,7 @@ const SubjectModal: React.FC<SubjectModalProps> = ({ subject, onClose, onSave })
     const name = formData.name.trim()
     const standard = formData.standard.trim()
     const type = formData.type.trim()
-    const subjectValue = (formData.subject ?? "").trim() || name
+    const subjectValue = cleanSubjectName((formData.subject ?? "").trim() || name)
 
     if (!code || !name || !standard || !type || !subjectValue) {
       setSaveError("Please complete all fields before saving.")

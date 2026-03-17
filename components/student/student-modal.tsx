@@ -14,7 +14,7 @@ import { X, Plus, UserX } from "lucide-react"
 import type { Student, StudentMode } from "@/types/student"
 import type { Subject } from "@/types/subject"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import {
   AlertDialog,
   AlertDialogContent,
@@ -36,7 +36,7 @@ interface StudentModalProps {
   subjects?: Subject[]
 }
 
-const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "F1", "F2", "F3", "F4", "F5", "CP", "-"]
+const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
 
 export default function StudentModal({ student, onClose, onSave, onRemove, subjects }: StudentModalProps) {
   const [formData, setFormData] = useState<Student>(student)
@@ -46,6 +46,8 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
   const [subjectSearch, setSubjectSearch] = useState("")
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [studentIdError, setStudentIdError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   const getRelevanceScore = (code: string, name: string, standard: string, query: string) => {
@@ -106,9 +108,27 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const checkStudentIdDuplicate = async () => {
+    const sid = formData.studentId?.trim()
+    if (!sid || sid === "NEW") {
+      setStudentIdError(null)
+      return
+    }
+    try {
+      const params = new URLSearchParams({ studentId: sid })
+      if (formData.id) params.set("excludeId", formData.id)
+      const res = await fetch(`/api/students/check-id?${params}`)
+      const data = (await res.json()) as { taken?: boolean }
+      setStudentIdError(data.taken ? `Student ID "${sid}" already exists. Use a unique ID.` : null)
+    } catch {
+      setStudentIdError(null)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setPaymentError(null)
+    setSaveError(null)
     // Custom validation for payment section
     if (modalView === "payment" || formData.recurringpayment) {
       if (formData.recurringpayment && (!formData.recurringpaymentdate || formData.recurringpaymentdate.trim() === "")) {
@@ -116,6 +136,21 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
         return
       }
     }
+    // Check duplicate Student ID before opening confirm
+    const sid = formData.studentId?.trim()
+    if (sid && sid !== "NEW") {
+      try {
+        const params = new URLSearchParams({ studentId: sid })
+        if (formData.id) params.set("excludeId", formData.id)
+        const res = await fetch(`/api/students/check-id?${params}`)
+        const data = (await res.json()) as { taken?: boolean }
+        if (data.taken) {
+          setStudentIdError(`Student ID "${sid}" already exists. Use a unique ID.`)
+          return
+        }
+      } catch { /* ignore */ }
+    }
+    setStudentIdError(null)
     if (formRef.current) {
       if (formRef.current.checkValidity()) {
         setConfirmOpen(true)
@@ -164,6 +199,21 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
       .sort((a, b) => b.score - a.score)
       .map((x) => x.s)
   }, [subjects, formData.subjects, formData.grade, subjectSearch])
+
+  const handleWheelScroll = (event: React.WheelEvent<HTMLDivElement>) => {
+    const target = event.currentTarget
+    const { scrollTop, scrollHeight, clientHeight } = target
+    const deltaY = event.deltaY
+    if ((deltaY < 0 && scrollTop === 0) || (deltaY > 0 && scrollTop + clientHeight >= scrollHeight)) {
+      event.preventDefault()
+      return
+    }
+    event.stopPropagation()
+  }
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+  }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -215,15 +265,24 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
               <Label htmlFor="studentId" className="text-navy sm:text-right">
                 Student ID
               </Label>
-              <Input
-                id="studentId"
-                name="studentId"
-                value={formData.studentId}
-                onChange={handleChange}
-                className="sm:col-span-3 border-secondary/20 font-mono"
-                placeholder="e.g., SBF4038"
-                required
-              />
+              <div className="sm:col-span-3 space-y-1">
+                <Input
+                  id="studentId"
+                  name="studentId"
+                  value={formData.studentId}
+                  onChange={(e) => {
+                    handleChange(e)
+                    setStudentIdError(null)
+                  }}
+                  onBlur={checkStudentIdDuplicate}
+                  className={studentIdError ? "border-destructive" : "border-secondary/20 font-mono"}
+                  placeholder="e.g., SB250235"
+                  required
+                />
+                {studentIdError && (
+                  <p className="text-sm text-destructive">{studentIdError}</p>
+                )}
+              </div>
             </div>
 
             {/* Name field */}
@@ -474,29 +533,36 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
                         {newSubject ? newSubject : "Search subject by code or name..."}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-72" align="start">
+                    <PopoverContent className="w-72 max-h-[70vh] overflow-hidden p-0" align="start">
                       <Command>
                         <CommandInput
                           placeholder="Search by code or name..."
                           value={subjectSearch}
                           onValueChange={setSubjectSearch}
                         />
-                        <CommandEmpty>No subject found.</CommandEmpty>
-                        <CommandGroup>
-                          {pickerSubjects.map((s) => (
-                              <CommandItem
-                                key={s.code}
-                                value={`${s.code} ${s.name}`}
-                                onSelect={() => {
-                                  setNewSubject(s.code)
-                                  setSubjectPopoverOpen(false)
-                                  setSubjectSearch("")
-                                }}
-                              >
-                                {s.code} - {s.name}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
+                        <CommandList
+                          className="max-h-72 overflow-y-auto overscroll-contain touch-pan-y"
+                          onWheelCapture={handleWheelScroll}
+                          onTouchMoveCapture={handleTouchMove}
+                          style={{ WebkitOverflowScrolling: "touch" }}
+                        >
+                          <CommandEmpty>No subject found.</CommandEmpty>
+                          <CommandGroup>
+                            {pickerSubjects.map((s) => (
+                                <CommandItem
+                                  key={s.code}
+                                  value={`${s.code} ${s.name}`}
+                                  onSelect={() => {
+                                    setNewSubject(s.code)
+                                    setSubjectPopoverOpen(false)
+                                    setSubjectSearch("")
+                                  }}
+                                >
+                                  {s.code} - {s.name}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -657,51 +723,65 @@ export default function StudentModal({ student, onClose, onSave, onRemove, subje
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="w-full h-11 sm:w-auto sm:h-auto bg-accent text-navy hover:bg-accent/90">
+                <Button type="submit" disabled={!!studentIdError} className="w-full h-11 sm:w-auto sm:h-auto bg-accent text-navy hover:bg-accent/90">
                   Save Changes
                 </Button>
               </div>
             </div>
           </DialogFooter>
         </form>
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialog open={confirmOpen} onOpenChange={(open) => {
+          setConfirmOpen(open)
+          if (!open) setSaveError(null)
+        }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm save changes</AlertDialogTitle>
               <AlertDialogDescription>
-                This will update the student's details. Are you sure you want to continue?
+                This will {formData.id ? "update" : "create"} the student&apos;s details. Are you sure you want to continue?
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {saveError && (
+              <p className="text-sm text-destructive">{saveError}</p>
+            )}
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <Button
-                onClick={() => {
-                  setConfirmOpen(false)
+                onClick={async () => {
+                  setSaveError(null)
                   const isCreate = !formData.id || formData.id.trim() === ""
                   const url = isCreate ? "/api/students" : `/api/students/${formData.id}`
                   const method = isCreate ? "POST" : "PATCH"
                   const payload: Student = {
                     ...formData,
-                    // Normalize empty date to null, ensure boolean
                     recurringpayment: !!formData.recurringpayment,
                     recurringpaymentdate: formData.recurringpaymentdate && formData.recurringpaymentdate.trim() !== "" ? formData.recurringpaymentdate.trim() : null,
                     icnumber: formData.icnumber && formData.icnumber.trim() !== "" ? formData.icnumber.trim() : null,
                   }
-                  fetch(url, {
-                    method,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                  })
-                    .then(async (res) => {
-                      if (!res.ok) throw new Error(await res.text())
-                      return res.json()
+                  try {
+                    const res = await fetch(url, {
+                      method,
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(payload),
                     })
-                    .then((saved) => {
-                      onSave(saved)
-                    })
-                    .catch(() => {
-                      onSave(payload)
-                    })
+                    const text = await res.text()
+                    if (!res.ok) {
+                      let errMsg = "Failed to save student."
+                      try {
+                        const parsed = JSON.parse(text) as { error?: string }
+                        if (parsed?.error) errMsg = parsed.error
+                      } catch {
+                        if (text) errMsg = text
+                      }
+                      setSaveError(errMsg)
+                      return
+                    }
+                    const saved = JSON.parse(text) as Student
+                    setConfirmOpen(false)
+                    onSave(saved)
+                  } catch {
+                    setSaveError("Failed to save student. Please try again.")
+                  }
                 }}
               >
                 Confirm

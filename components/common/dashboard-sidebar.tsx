@@ -133,7 +133,7 @@ export default function DashboardSidebar({
         <div className="flex items-center space-x-2">
           <div className="relative h-10 w-10 flex-shrink-0">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-RPBHhgmAbisCI5Y9Lg6k9Rb3r9DtKr.png"
+              src="/logo.png"
               alt="StudyBuddy Logo"
               fill
               className="object-contain"

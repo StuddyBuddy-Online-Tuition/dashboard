@@ -48,14 +48,14 @@ export default function PaginationControls({
   }
 
   return (
-    <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="mt-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="text-sm text-muted-foreground">
         Showing {startIndex + 1} to {endIndex} of {totalItems} entries
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
         {/* Items per page selector */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
           <Select value={itemsPerPage.toString()} onValueChange={onItemsPerPageChange}>
             <SelectTrigger className="w-20 border-secondary/20">
@@ -77,14 +77,14 @@ export default function PaginationControls({
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="border-secondary/20"
+          className="border-secondary/20 shrink-0"
         >
           <ChevronLeft className="h-4 w-4" />
           Previous
         </Button>
 
         {/* Page numbers */}
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-center gap-1">
           {getPageNumbers().map((pageNum) => (
             <Button
               key={pageNum}
@@ -108,7 +108,7 @@ export default function PaginationControls({
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="border-secondary/20"
+          className="border-secondary/20 shrink-0"
         >
           Next
           <ChevronRight className="h-4 w-4" />

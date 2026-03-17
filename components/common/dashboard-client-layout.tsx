@@ -35,7 +35,7 @@ export default function DashboardClientLayout({
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light">
-      <div className="flex h-screen w-full overflow-hidden">
+      <div className="fixed inset-0 flex overflow-hidden">
         <aside
           className={`hidden md:block relative transition-all duration-300 ease-in-out border-r border-secondary/20 bg-white ${
             sidebarCollapsed ? "w-16" : "w-64"
@@ -86,7 +86,7 @@ export default function DashboardClientLayout({
           </Sheet>
         </div>
 
-        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-primary/5 to-secondary/5 p-6 pt-16 md:pt-6 transition-all duration-300">
+        <main className="flex-1 min-h-0 overflow-y-auto bg-gradient-to-br from-primary/5 to-secondary/5 p-6 pt-16 md:pt-6 transition-all duration-300">
           {children}
         </main>
       </div>

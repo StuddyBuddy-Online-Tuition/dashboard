@@ -46,6 +46,9 @@ const SUBJECT_COLORS: Record<string, string> = {
   SEJ: "bg-orange-100 text-orange-900 border-orange-300",
   GEO: "bg-emerald-100 text-emerald-900 border-emerald-300",
   SC: "bg-blue-100 text-blue-900 border-blue-300",
+  PRN: "bg-indigo-100 text-indigo-900 border-indigo-300",
+  PA: "bg-teal-100 text-teal-900 border-teal-300",
+  EKO: "bg-cyan-100 text-cyan-900 border-cyan-300",
 }
 
 function getSubjectColor(abbrev: string): string {
@@ -75,6 +78,9 @@ function getBaseAbbrevFromSubjectField(subjectField: string): string {
   if (normalized.startsWith("sejarah")) return "SEJ"
   if (normalized.startsWith("geografi")) return "GEO"
   if (normalized.startsWith("sains")) return "SC"
+  if (normalized.includes("perniagaan") || normalized.includes("perdagangan")) return "PRN"
+  if (normalized.includes("prinsip akaun") || normalized.includes("prinsip perakaunan")) return "PA"
+  if (normalized.startsWith("ekonomi")) return "EKO"
   return normalized.slice(0, 3).toUpperCase()
 }
 
@@ -95,6 +101,10 @@ function getBaseLabelFromSubjectField(subjectField: string): string {
   if (normalized.startsWith("sejarah")) return "Sejarah"
   if (normalized.startsWith("geografi")) return "Geografi"
   if (normalized.startsWith("sains")) return "Sains"
+  if (normalized.includes("prinsip perniagaan")) return "Prinsip Perniagaan"
+  if (normalized.includes("perniagaan") || normalized.includes("perdagangan")) return "P. Perniagaan"
+  if (normalized.includes("prinsip akaun") || normalized.includes("prinsip perakaunan")) return "Prinsip Akaun"
+  if (normalized.startsWith("ekonomi")) return "Ekonomi"
   return subjectField
 }
 
