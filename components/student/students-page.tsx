@@ -66,6 +66,10 @@ const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
 const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
 type DashboardModeFilter = StudentMode | "NONE"
 const MODE_OPTIONS: Readonly<DashboardModeFilter[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "NONE"]
+const normalizeSelection = <T extends string>(selected: readonly T[], allOptions: readonly T[]) =>
+  allOptions.filter((opt) => selected.includes(opt))
+const sameSelection = <T extends string>(a: readonly T[], b: readonly T[]) =>
+  a.length === b.length && a.every((value, idx) => value === b[idx])
 
 export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
@@ -112,6 +116,30 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   type SortRule = { field: SortField; order: SortOrder }
   const [sortRules, setSortRules] = useState<SortRule[]>([])
   const [modesFilter, setModesFilter] = useState<DashboardModeFilter[]>([...MODE_OPTIONS])
+  const canonicalGradeFilter = useMemo(() => normalizeSelection(gradeFilter, GRADE_OPTIONS), [gradeFilter])
+  const canonicalModesFilter = useMemo(() => normalizeSelection(modesFilter, MODE_OPTIONS), [modesFilter])
+  const urlGradeFilter = useMemo(() => {
+    const raw = searchParams?.get("grade")?.trim()
+    if (!raw || raw.toLowerCase() === "all") return [...GRADE_OPTIONS]
+    const parsed = raw
+      .split(",")
+      .map((g) => g.trim().toUpperCase())
+      .filter((g) => g.length > 0)
+    return GRADE_OPTIONS.filter((grade) => parsed.includes(grade.toUpperCase()))
+  }, [searchParams])
+  const urlModesFilter = useMemo(() => {
+    const raw = searchParams?.get("modes")?.trim()
+    if (!raw || raw.toLowerCase() === "all") return [...MODE_OPTIONS]
+    const parsed = raw
+      .split(",")
+      .map((m) => m.trim().toUpperCase())
+      .filter((m) => m.length > 0)
+    return MODE_OPTIONS.filter((mode) => parsed.includes(mode.toUpperCase()))
+  }, [searchParams])
+  const isFilterSyncPending = useMemo(
+    () => !sameSelection(canonicalGradeFilter, urlGradeFilter) || !sameSelection(canonicalModesFilter, urlModesFilter),
+    [canonicalGradeFilter, urlGradeFilter, canonicalModesFilter, urlModesFilter],
+  )
 
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
@@ -175,7 +203,8 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       const normalized = GRADE_OPTIONS.filter((grade) => parsed.includes(grade.toUpperCase()))
       next = normalized.length > 0 ? normalized : [...GRADE_OPTIONS]
     }
-    const equal = next.length === gradeFilter.length && next.every((grade, idx) => grade === gradeFilter[idx])
+    const currentNormalized = normalizeSelection(gradeFilter, GRADE_OPTIONS)
+    const equal = next.length === currentNormalized.length && next.every((grade, idx) => grade === currentNormalized[idx])
     if (!equal) setGradeFilter(next)
   }, [searchParams])
 
@@ -192,7 +221,8 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       const normalized = MODE_OPTIONS.filter((mode) => parsed.includes(mode.toUpperCase()))
       next = normalized.length > 0 ? normalized : [...MODE_OPTIONS]
     }
-    const equal = next.length === modesFilter.length && next.every((mode, idx) => mode === modesFilter[idx])
+    const currentNormalized = normalizeSelection(modesFilter, MODE_OPTIONS)
+    const equal = next.length === currentNormalized.length && next.every((mode, idx) => mode === currentNormalized[idx])
     if (!equal) setModesFilter(next)
   }, [searchParams])
 
@@ -257,10 +287,10 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     if (gradeFilter.length === GRADE_OPTIONS.length) {
       sp.delete("grade")
     } else {
-      sp.set("grade", gradeFilter.join(","))
+      sp.set("grade", canonicalGradeFilter.join(","))
     }
     // Always pass modes so filter is consistent (avoids bug when unchecking OTHERS/BREAK)
-    sp.set("modes", modesFilter.join(","))
+    sp.set("modes", canonicalModesFilter.join(","))
     const nextUrl = `${pathname}?${sp.toString()}`
     const currentUrl = `${pathname}?${searchParams?.toString() ?? ""}`
     if (nextUrl !== currentUrl) {
@@ -687,12 +717,15 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                         key={grade}
                         variant="ghost"
                         className="w-full justify-start"
+                        disabled={isFilterSyncPending}
                         onClick={() => {
-                          if (isSelected) {
-                            setGradeFilter(gradeFilter.filter((g) => g !== grade))
-                          } else {
-                            setGradeFilter([...gradeFilter, grade])
-                          }
+                          if (isFilterSyncPending) return
+                          setGradeFilter((prev) =>
+                            normalizeSelection(
+                              prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade],
+                              GRADE_OPTIONS,
+                            ),
+                          )
                         }}
                       >
                         <div
@@ -731,12 +764,15 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                         key={mode}
                         variant="ghost"
                         className="w-full justify-start"
+                        disabled={isFilterSyncPending}
                         onClick={() => {
-                          if (isSelected) {
-                            setModesFilter(modesFilter.filter((m) => m !== mode))
-                          } else {
-                            setModesFilter([...modesFilter, mode])
-                          }
+                          if (isFilterSyncPending) return
+                          setModesFilter((prev) =>
+                            normalizeSelection(
+                              prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode],
+                              MODE_OPTIONS,
+                            ),
+                          )
                         }}
                       >
                         <div
