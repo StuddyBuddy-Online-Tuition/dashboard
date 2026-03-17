@@ -64,7 +64,8 @@ interface ColumnVisibility {
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
 const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
-const MODE_OPTIONS: Readonly<StudentMode[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS"]
+type DashboardModeFilter = StudentMode | "NONE"
+const MODE_OPTIONS: Readonly<DashboardModeFilter[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "NONE"]
 
 export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
@@ -110,7 +111,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   type SortOrder = "asc" | "desc"
   type SortRule = { field: SortField; order: SortOrder }
   const [sortRules, setSortRules] = useState<SortRule[]>([])
-  const [modesFilter, setModesFilter] = useState<StudentMode[]>([...MODE_OPTIONS])
+  const [modesFilter, setModesFilter] = useState<DashboardModeFilter[]>([...MODE_OPTIONS])
 
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
@@ -180,7 +181,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
 
   useEffect(() => {
     const raw = searchParams?.get("modes")?.trim() ?? null
-    let next: StudentMode[]
+    let next: DashboardModeFilter[]
     if (!raw || raw.toLowerCase() === "all") {
       next = [...MODE_OPTIONS]
     } else {
@@ -188,7 +189,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
         .split(",")
         .map((m) => m.trim().toUpperCase())
         .filter((m) => m.length > 0)
-      const normalized = MODE_OPTIONS.filter((mode) => parsed.includes(mode.toUpperCase())) as StudentMode[]
+      const normalized = MODE_OPTIONS.filter((mode) => parsed.includes(mode.toUpperCase()))
       next = normalized.length > 0 ? normalized : [...MODE_OPTIONS]
     }
     const equal = next.length === modesFilter.length && next.every((mode, idx) => mode === modesFilter[idx])
