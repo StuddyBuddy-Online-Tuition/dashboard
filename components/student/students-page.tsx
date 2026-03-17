@@ -66,6 +66,8 @@ const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50]
 const GRADE_OPTIONS = ["S1", "S2", "S3", "S4", "S5", "S6", "F1", "F2", "F3", "F4", "F5", "CP", "-"] as const
 type DashboardModeFilter = StudentMode | "NONE"
 const MODE_OPTIONS: Readonly<DashboardModeFilter[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "NONE"]
+const normalizeSelection = <T extends string>(selected: readonly T[], allOptions: readonly T[]) =>
+  allOptions.filter((opt) => selected.includes(opt))
 
 export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
@@ -175,7 +177,11 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       const normalized = GRADE_OPTIONS.filter((grade) => parsed.includes(grade.toUpperCase()))
       next = normalized.length > 0 ? normalized : [...GRADE_OPTIONS]
     }
-    const equal = next.length === gradeFilter.length && next.every((grade, idx) => grade === gradeFilter[idx])
+    const currentNormalized = normalizeSelection(gradeFilter, GRADE_OPTIONS)
+    const equal = next.length === currentNormalized.length && next.every((grade, idx) => grade === currentNormalized[idx])
+    // #region agent log
+    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H2',location:'students-page.tsx:grade-url-sync',message:'grade url->state sync evaluated',data:{raw,next,current:gradeFilter,equal,search:searchParams?.toString() ?? ''},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (!equal) setGradeFilter(next)
   }, [searchParams])
 
@@ -192,7 +198,11 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
       const normalized = MODE_OPTIONS.filter((mode) => parsed.includes(mode.toUpperCase()))
       next = normalized.length > 0 ? normalized : [...MODE_OPTIONS]
     }
-    const equal = next.length === modesFilter.length && next.every((mode, idx) => mode === modesFilter[idx])
+    const currentNormalized = normalizeSelection(modesFilter, MODE_OPTIONS)
+    const equal = next.length === currentNormalized.length && next.every((mode, idx) => mode === currentNormalized[idx])
+    // #region agent log
+    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H2',location:'students-page.tsx:modes-url-sync',message:'modes url->state sync evaluated',data:{raw,next,current:modesFilter,equal,search:searchParams?.toString() ?? ''},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (!equal) setModesFilter(next)
   }, [searchParams])
 
@@ -223,6 +233,9 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   }, [showStatusFilter, statusFilter])
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H3',location:'students-page.tsx:filter-page-reset',message:'filter change triggered page reset effect',data:{currentPageBeforeReset:currentPage,gradeFilter,modesFilter},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     setCurrentPage(1)
   }, [gradeFilter, modesFilter])
 
@@ -257,12 +270,17 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     if (gradeFilter.length === GRADE_OPTIONS.length) {
       sp.delete("grade")
     } else {
-      sp.set("grade", gradeFilter.join(","))
+      const canonicalGradeFilter = normalizeSelection(gradeFilter, GRADE_OPTIONS)
+      sp.set("grade", canonicalGradeFilter.join(","))
     }
     // Always pass modes so filter is consistent (avoids bug when unchecking OTHERS/BREAK)
-    sp.set("modes", modesFilter.join(","))
+    const canonicalModesFilter = normalizeSelection(modesFilter, MODE_OPTIONS)
+    sp.set("modes", canonicalModesFilter.join(","))
     const nextUrl = `${pathname}?${sp.toString()}`
     const currentUrl = `${pathname}?${searchParams?.toString() ?? ""}`
+    // #region agent log
+    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H4',location:'students-page.tsx:url-sync-effect',message:'state->url sync evaluated',data:{currentPage,itemsPerPage,gradeFilter,modesFilter,nextUrl,currentUrl,shouldReplace:nextUrl !== currentUrl},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (nextUrl !== currentUrl) {
       router.replace(nextUrl, { scroll: false })
     }
@@ -688,11 +706,15 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                         variant="ghost"
                         className="w-full justify-start"
                         onClick={() => {
-                          if (isSelected) {
-                            setGradeFilter(gradeFilter.filter((g) => g !== grade))
-                          } else {
-                            setGradeFilter([...gradeFilter, grade])
-                          }
+                          // #region agent log
+                          fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H1',location:'students-page.tsx:grade-click',message:'grade filter toggled from UI',data:{grade,isSelected,current:gradeFilter},timestamp:Date.now()})}).catch(()=>{});
+                          // #endregion
+                          setGradeFilter((prev) =>
+                            normalizeSelection(
+                              prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade],
+                              GRADE_OPTIONS,
+                            ),
+                          )
                         }}
                       >
                         <div
@@ -732,11 +754,15 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                         variant="ghost"
                         className="w-full justify-start"
                         onClick={() => {
-                          if (isSelected) {
-                            setModesFilter(modesFilter.filter((m) => m !== mode))
-                          } else {
-                            setModesFilter([...modesFilter, mode])
-                          }
+                          // #region agent log
+                          fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H1',location:'students-page.tsx:mode-click',message:'mode filter toggled from UI',data:{mode,isSelected,current:modesFilter},timestamp:Date.now()})}).catch(()=>{});
+                          // #endregion
+                          setModesFilter((prev) =>
+                            normalizeSelection(
+                              prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode],
+                              MODE_OPTIONS,
+                            ),
+                          )
                         }}
                       >
                         <div
