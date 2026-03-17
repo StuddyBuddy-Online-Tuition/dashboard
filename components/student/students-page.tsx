@@ -171,12 +171,6 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     if (kw !== searchQuery) setSearchQuery(kw)
   }, [searchParams])
 
-  useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'post-fix',hypothesisId:'H5',location:'students-page.tsx:filter-lock',message:'filter interaction lock state evaluated',data:{isFilterSyncPending,canonicalGradeFilter,urlGradeFilter,canonicalModesFilter,urlModesFilter},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  }, [isFilterSyncPending, canonicalGradeFilter, urlGradeFilter, canonicalModesFilter, urlModesFilter])
-
   // When on All Students (showStatusFilter), mirror status from URL into local state
   useEffect(() => {
     if (!showStatusFilter) return
@@ -211,9 +205,6 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     }
     const currentNormalized = normalizeSelection(gradeFilter, GRADE_OPTIONS)
     const equal = next.length === currentNormalized.length && next.every((grade, idx) => grade === currentNormalized[idx])
-    // #region agent log
-    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H2',location:'students-page.tsx:grade-url-sync',message:'grade url->state sync evaluated',data:{raw,next,current:gradeFilter,equal,search:searchParams?.toString() ?? ''},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!equal) setGradeFilter(next)
   }, [searchParams])
 
@@ -232,9 +223,6 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     }
     const currentNormalized = normalizeSelection(modesFilter, MODE_OPTIONS)
     const equal = next.length === currentNormalized.length && next.every((mode, idx) => mode === currentNormalized[idx])
-    // #region agent log
-    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H2',location:'students-page.tsx:modes-url-sync',message:'modes url->state sync evaluated',data:{raw,next,current:modesFilter,equal,search:searchParams?.toString() ?? ''},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!equal) setModesFilter(next)
   }, [searchParams])
 
@@ -265,9 +253,6 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   }, [showStatusFilter, statusFilter])
 
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H3',location:'students-page.tsx:filter-page-reset',message:'filter change triggered page reset effect',data:{currentPageBeforeReset:currentPage,gradeFilter,modesFilter},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     setCurrentPage(1)
   }, [gradeFilter, modesFilter])
 
@@ -308,9 +293,6 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     sp.set("modes", canonicalModesFilter.join(","))
     const nextUrl = `${pathname}?${sp.toString()}`
     const currentUrl = `${pathname}?${searchParams?.toString() ?? ""}`
-    // #region agent log
-    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H4',location:'students-page.tsx:url-sync-effect',message:'state->url sync evaluated',data:{currentPage,itemsPerPage,gradeFilter,modesFilter,nextUrl,currentUrl,shouldReplace:nextUrl !== currentUrl},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (nextUrl !== currentUrl) {
       router.replace(nextUrl, { scroll: false })
     }
@@ -737,15 +719,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                         className="w-full justify-start"
                         disabled={isFilterSyncPending}
                         onClick={() => {
-                          if (isFilterSyncPending) {
-                            // #region agent log
-                            fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'post-fix',hypothesisId:'H5',location:'students-page.tsx:grade-click-ignored',message:'grade click ignored due to pending url sync',data:{grade,isFilterSyncPending,current:gradeFilter},timestamp:Date.now()})}).catch(()=>{});
-                            // #endregion
-                            return
-                          }
-                          // #region agent log
-                          fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H1',location:'students-page.tsx:grade-click',message:'grade filter toggled from UI',data:{grade,isSelected,current:gradeFilter},timestamp:Date.now()})}).catch(()=>{});
-                          // #endregion
+                          if (isFilterSyncPending) return
                           setGradeFilter((prev) =>
                             normalizeSelection(
                               prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade],
@@ -792,15 +766,7 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                         className="w-full justify-start"
                         disabled={isFilterSyncPending}
                         onClick={() => {
-                          if (isFilterSyncPending) {
-                            // #region agent log
-                            fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'post-fix',hypothesisId:'H5',location:'students-page.tsx:mode-click-ignored',message:'mode click ignored due to pending url sync',data:{mode,isFilterSyncPending,current:modesFilter},timestamp:Date.now()})}).catch(()=>{});
-                            // #endregion
-                            return
-                          }
-                          // #region agent log
-                          fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H1',location:'students-page.tsx:mode-click',message:'mode filter toggled from UI',data:{mode,isSelected,current:modesFilter},timestamp:Date.now()})}).catch(()=>{});
-                          // #endregion
+                          if (isFilterSyncPending) return
                           setModesFilter((prev) =>
                             normalizeSelection(
                               prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode],
