@@ -68,6 +68,8 @@ type DashboardModeFilter = StudentMode | "NONE"
 const MODE_OPTIONS: Readonly<DashboardModeFilter[]> = ["NORMAL", "1 TO 1", "BOARD", "OTHERS", "NONE"]
 const normalizeSelection = <T extends string>(selected: readonly T[], allOptions: readonly T[]) =>
   allOptions.filter((opt) => selected.includes(opt))
+const sameSelection = <T extends string>(a: readonly T[], b: readonly T[]) =>
+  a.length === b.length && a.every((value, idx) => value === b[idx])
 
 export default function StudentsPage({ status, showStatusFilter = false, initialStudents, totalItems: totalItemsFromServer, subjects }: StudentsPageProps) {
   /* ------------------------------ state ------------------------------ */
@@ -114,6 +116,30 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
   type SortRule = { field: SortField; order: SortOrder }
   const [sortRules, setSortRules] = useState<SortRule[]>([])
   const [modesFilter, setModesFilter] = useState<DashboardModeFilter[]>([...MODE_OPTIONS])
+  const canonicalGradeFilter = useMemo(() => normalizeSelection(gradeFilter, GRADE_OPTIONS), [gradeFilter])
+  const canonicalModesFilter = useMemo(() => normalizeSelection(modesFilter, MODE_OPTIONS), [modesFilter])
+  const urlGradeFilter = useMemo(() => {
+    const raw = searchParams?.get("grade")?.trim()
+    if (!raw || raw.toLowerCase() === "all") return [...GRADE_OPTIONS]
+    const parsed = raw
+      .split(",")
+      .map((g) => g.trim().toUpperCase())
+      .filter((g) => g.length > 0)
+    return GRADE_OPTIONS.filter((grade) => parsed.includes(grade.toUpperCase()))
+  }, [searchParams])
+  const urlModesFilter = useMemo(() => {
+    const raw = searchParams?.get("modes")?.trim()
+    if (!raw || raw.toLowerCase() === "all") return [...MODE_OPTIONS]
+    const parsed = raw
+      .split(",")
+      .map((m) => m.trim().toUpperCase())
+      .filter((m) => m.length > 0)
+    return MODE_OPTIONS.filter((mode) => parsed.includes(mode.toUpperCase()))
+  }, [searchParams])
+  const isFilterSyncPending = useMemo(
+    () => !sameSelection(canonicalGradeFilter, urlGradeFilter) || !sameSelection(canonicalModesFilter, urlModesFilter),
+    [canonicalGradeFilter, urlGradeFilter, canonicalModesFilter, urlModesFilter],
+  )
 
   /* ---------------------------- lifecycle ---------------------------- */
   useEffect(() => {
@@ -144,6 +170,12 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     const kw = searchParams?.get("keyword") ?? ""
     if (kw !== searchQuery) setSearchQuery(kw)
   }, [searchParams])
+
+  useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'post-fix',hypothesisId:'H5',location:'students-page.tsx:filter-lock',message:'filter interaction lock state evaluated',data:{isFilterSyncPending,canonicalGradeFilter,urlGradeFilter,canonicalModesFilter,urlModesFilter},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [isFilterSyncPending, canonicalGradeFilter, urlGradeFilter, canonicalModesFilter, urlModesFilter])
 
   // When on All Students (showStatusFilter), mirror status from URL into local state
   useEffect(() => {
@@ -270,11 +302,9 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
     if (gradeFilter.length === GRADE_OPTIONS.length) {
       sp.delete("grade")
     } else {
-      const canonicalGradeFilter = normalizeSelection(gradeFilter, GRADE_OPTIONS)
       sp.set("grade", canonicalGradeFilter.join(","))
     }
     // Always pass modes so filter is consistent (avoids bug when unchecking OTHERS/BREAK)
-    const canonicalModesFilter = normalizeSelection(modesFilter, MODE_OPTIONS)
     sp.set("modes", canonicalModesFilter.join(","))
     const nextUrl = `${pathname}?${sp.toString()}`
     const currentUrl = `${pathname}?${searchParams?.toString() ?? ""}`
@@ -705,7 +735,14 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                         key={grade}
                         variant="ghost"
                         className="w-full justify-start"
+                        disabled={isFilterSyncPending}
                         onClick={() => {
+                          if (isFilterSyncPending) {
+                            // #region agent log
+                            fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'post-fix',hypothesisId:'H5',location:'students-page.tsx:grade-click-ignored',message:'grade click ignored due to pending url sync',data:{grade,isFilterSyncPending,current:gradeFilter},timestamp:Date.now()})}).catch(()=>{});
+                            // #endregion
+                            return
+                          }
                           // #region agent log
                           fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H1',location:'students-page.tsx:grade-click',message:'grade filter toggled from UI',data:{grade,isSelected,current:gradeFilter},timestamp:Date.now()})}).catch(()=>{});
                           // #endregion
@@ -753,7 +790,14 @@ export default function StudentsPage({ status, showStatusFilter = false, initial
                         key={mode}
                         variant="ghost"
                         className="w-full justify-start"
+                        disabled={isFilterSyncPending}
                         onClick={() => {
+                          if (isFilterSyncPending) {
+                            // #region agent log
+                            fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'post-fix',hypothesisId:'H5',location:'students-page.tsx:mode-click-ignored',message:'mode click ignored due to pending url sync',data:{mode,isFilterSyncPending,current:modesFilter},timestamp:Date.now()})}).catch(()=>{});
+                            // #endregion
+                            return
+                          }
                           // #region agent log
                           fetch('http://127.0.0.1:7913/ingest/382b2a64-46c7-472e-8257-cae2b6c28776',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'db546b'},body:JSON.stringify({sessionId:'db546b',runId:'pre-fix',hypothesisId:'H1',location:'students-page.tsx:mode-click',message:'mode filter toggled from UI',data:{mode,isSelected,current:modesFilter},timestamp:Date.now()})}).catch(()=>{});
                           // #endregion
